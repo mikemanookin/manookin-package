@@ -1,0 +1,1 @@
+start "" "C:\Program Files\MATLAB\R2016b\bin\matlab.exe" -nosplash -nodesktop -r run('C:\Users\Public\Documents\GitRepos\Symphony2\manookin-package\startup\startStageServer.m');
