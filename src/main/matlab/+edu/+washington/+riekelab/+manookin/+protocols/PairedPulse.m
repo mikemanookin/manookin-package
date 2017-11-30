@@ -1,11 +1,13 @@
-classdef InjectPulseDur < edu.washington.riekelab.protocols.RiekeLabProtocol
+classdef PairedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
     properties
-        amp                             % Output amplifier
-        preTime = 250                   % Pulse leading duration (ms)
-        stimTime = 4000                 % Pulse duration (ms)
-        tailTime = 5000                  % Pulse trailing duration (ms)
-        pulseAmplitude = 200            % Pulse amplitude (mV or pA depending on amp mode)
-        durations = [250 500 1000 2000 4000] % Pulse durations (ms)
+        amp               % Output amplifier
+        preTime = 500     % Pulse leading duration (ms)
+        pulse1Time = 2000 % Pulse1 duration (ms)
+        interTime = 100   % Interpulse duration (ms)
+        pulse2Time = 500  % Pulse2 duration (ms)
+        tailTime = 1000   % Pulse trailing duration (ms)
+        pulse1Amps   % Pulse1 amplitude (mV or pA)
+        pulse2Amps   % Pulse2 amplitude (mV or pA)
     end
     
     properties (Dependent, SetAccess = private)
@@ -20,7 +22,8 @@ classdef InjectPulseDur < edu.washington.riekelab.protocols.RiekeLabProtocol
     
     properties (Hidden)
         ampType
-        pulseDuration
+        pulse1Amplitude   % Pulse1 amplitude (mV or pA)
+        pulse2Amplitude   % Pulse2 amplitude (mV or pA)
     end
     
     methods
@@ -125,3 +128,4 @@ classdef InjectPulseDur < edu.washington.riekelab.protocols.RiekeLabProtocol
         end
     end
 end
+
