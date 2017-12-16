@@ -1,35 +1,37 @@
-classdef AdaptNoise < edu.washington.riekelab.manookin.protocols.ManookinLabStageProtocol
+classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLabStageProtocol
     
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 15000                % Stim duration (ms)
+        stimTime = 5000                 % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
-        contrasts = [1/3 1 1/3]         % Contrast series (0-1)
-        durations = [1 5]*1000          % Duration series (ms)
+        highContrast = 1.0              % High contrast value (0-1)
+        highDuration = 3000             % High-contrast duration (ms)
+        lowContrasts = [0 0.3]          % Low contrast values (0-1)
+        temporalFrequencies = [6 6]     % Temporal frequencies (Hz)
         radius = 50                     % Inner radius in pixels.
-        apertureRadius = 80             % Aperture/blank radius in pixels.
+        apertureRadius = 80             % Blank aperture radius (pix)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         centerOffset = [0,0]            % Center offset in pixels (x,y) 
-        noiseClass = 'binary-gaussian'  % Noise type (binary or Gaussian)
         stimulusClass = 'spot'          % Stimulus class
+        temporalClass = 'sinewave'      % Temporal class: sinewave or squarewave
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
-        randomSeed = true               % Use random noise seed?
-        numberOfAverages = uint16(18)   % Number of epochs
+        numberOfAverages = uint16(4)   % Number of epochs
     end
     
     properties (Hidden)
         ampType
-        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian','binary-gaussian'})
+        temporalClassType = symphonyui.core.PropertyType('char', 'row', {'sinewave','squarewave'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field','center-surround'})
-        seed
         bkg
-        noiseStream
         frameSeq
         frameSeqSurround
+        lowContrast
+        temporalFrequency
     end
+    
     
     methods
         
@@ -43,10 +45,11 @@ classdef AdaptNoise < edu.washington.riekelab.manookin.protocols.ManookinLabStag
             prepareRun@edu.washington.riekelab.manookin.protocols.ManookinLabStageProtocol(obj);
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            obj.showFigure('edu.washington.riekelab.manookin.figures.MeanResponseFigure', ...
+            obj.showFigure('edu.washington.riekelab.manookin.figures.AdaptGratingFigure', ...
                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                'sweepColor',[30 144 255]/255,...
-                'groupBy',{'frameRate'});
+                'preTime',obj.preTime,...
+                'highTime',obj.highDuration,...
+                'numSubplots',max(length(obj.temporalFrequencies),length(obj.lowContrasts)));
             
             if obj.backgroundIntensity == 0
                 obj.bkg = 0.5;
@@ -138,57 +141,36 @@ classdef AdaptNoise < edu.washington.riekelab.manookin.protocols.ManookinLabStag
             prepareEpoch@edu.washington.riekelab.manookin.protocols.ManookinLabStageProtocol(obj, epoch);
             
             % Deal with the seed.
-            if obj.randomSeed
-                obj.seed = RandStream.shuffleSeed;
-            else
-                obj.seed = 1;
-            end
-            
-            % Seed the random number generator.
-            obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
+            obj.temporalFrequency = obj.temporalFrequencies(mod(obj.numEpochsCompleted,length(obj.temporalFrequencies))+1);
+            obj.lowContrast = obj.lowContrasts(mod(obj.numEpochsCompleted,length(obj.lowContrasts))+1);
             
             % Pre-generate frames for the epoch.
             nframes = obj.stimTime*1e-3*obj.frameRate + 15;
-            if strcmp(obj.noiseClass,'binary')
-                obj.frameSeq = obj.noiseStream.rand(1,nframes) > 0.5;
-                obj.frameSeq = 2*obj.frameSeq - 1; 
-            else
-                obj.frameSeq = 0.3*obj.noiseStream.randn(1,nframes);
+            % Generate the sinusoidal modulation
+            obj.frameSeq = sin((1:nframes)/obj.frameRate*2*pi*obj.temporalFrequency);
+            obj.frameSeq = obj.frameSeq / max(obj.frameSeq);
+            if strcmp(obj.temporalClass, 'squarewave')
+                obj.frameSeq = sign(obj.frameSeq);
             end
-            eFrames = cumsum(obj.durations*1e-3*obj.frameRate);
-            sFrames = [0 eFrames]+1;
-            eFrames(end+1) = nframes;
             
-            for k = 1 : length(sFrames)
-                if strcmp(obj.noiseClass, 'binary-gaussian')
-                    if obj.contrasts(min(k,length(obj.contrasts))) == max(obj.contrasts) && ~isequal(obj.contrasts,obj.contrasts(1)*ones(size(obj.contrasts)))
-                        obj.frameSeq(sFrames(k):eFrames(k)) = obj.contrasts(min(k,length(obj.contrasts)))*...
-                            (2*(obj.frameSeq(sFrames(k):eFrames(k)) > 0)-1);
-                    else
-                        obj.frameSeq(sFrames(k):eFrames(k)) = obj.contrasts(min(k,length(obj.contrasts)))*...
-                            obj.frameSeq(sFrames(k):eFrames(k));
-                    end
-                else
-                    obj.frameSeq(sFrames(k):eFrames(k)) = obj.contrasts(min(k,length(obj.contrasts)))*...
-                        obj.frameSeq(sFrames(k):eFrames(k));
-                end
-            end
+            % Calculate the number of high contrast frames.
+            highFrames = round(obj.highDuration*1e-3*obj.frameRate);
+            obj.frameSeq(1:highFrames) = obj.frameSeq(1:highFrames)*obj.highContrast;
+            obj.frameSeq(highFrames+1:end) = obj.frameSeq(highFrames+1:end)*obj.lowContrast;
+            
             % Convert to LED contrast.
             obj.frameSeq = obj.bkg*obj.frameSeq + obj.bkg;
             
             if strcmp(obj.stimulusClass, 'center-surround')
                 obj.frameSeqSurround = ones(size(obj.frameSeq))*obj.bkg;
-                obj.frameSeqSurround(sFrames(2):eFrames(2)) = obj.frameSeq(sFrames(2):eFrames(2));
-                obj.frameSeq(sFrames(2):eFrames(2)) = obj.bkg;
+                obj.frameSeqSurround(1:highFrames) = obj.frameSeq(1:highFrames);
+                obj.frameSeq(1:highFrames) = obj.bkg;
             end
             
             % Save the seed.
-            epoch.addParameter('seed', obj.seed);
-
-            % Add the radius to the epoch.
-            if strcmp(obj.stimulusClass, 'annulus')
-                epoch.addParameter('outerRadius', min(obj.canvasSize/2));
-            end
+            epoch.addParameter('lowContrast', obj.lowContrast);
+            epoch.addParameter('temporalFrequency',obj.temporalFrequency);
+            epoch.addParameter('epochTag',['lowCt',num2str(obj.lowContrast),'-tFreq',num2str(obj.temporalFrequency)]);
         end
         
         function tf = shouldContinuePreparingEpochs(obj)

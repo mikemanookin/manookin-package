@@ -5,7 +5,7 @@ classdef ContrastResponseSpot < edu.washington.riekelab.manookin.protocols.Manoo
         preTime = 500                   % Spot leading duration (ms)
         stimTime = 2500                 % Spot duration (ms)
         tailTime = 500                  % Spot trailing duration (ms)
-        contrasts = [3*ones(1,3) 7*ones(1,3) 13*ones(1,3) 26 26 38 38 51 51 64 102 128]/128 % Contrast (0-1)
+        contrasts = [0 0 3*ones(1,3) 7*ones(1,3) 13*ones(1,3) 26 26 38 38 51 51 64 102 128]/128 % Contrast (0-1)
         temporalFrequency = 4.0         % Modulation frequency (Hz)
         radius = 200                    % Inner radius in pixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
@@ -14,7 +14,7 @@ classdef ContrastResponseSpot < edu.washington.riekelab.manookin.protocols.Manoo
         chromaticClass = 'achromatic'   % Spot color
         stimulusClass = 'spot'          % Stimulus class
         onlineAnalysis = 'extracellular'% Online analysis type.
-        numberOfAverages = uint16(18)   % Number of epochs
+        numberOfAverages = uint16(20)   % Number of epochs
     end
     
     properties (Hidden)

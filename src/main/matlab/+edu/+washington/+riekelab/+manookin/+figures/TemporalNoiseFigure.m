@@ -124,6 +124,8 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
             
             if strcmpi(obj.stimulusClass, 'Stage')
                 binRate = 10000;
+                % Account for early frame presentation.
+                prePts = prePts - round(sampleRate/obj.frameRate);
             else
                 binRate = 480;
             end
@@ -140,7 +142,7 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                     end
                 else
                     % High-pass filter to get rid of drift.
-                    y = highPassFilter(y, 0.5, 1/sampleRate);
+%                     y = highPassFilter(y, 0.5, 1/sampleRate);
                     if prePts > 0
                         y = y - median(y(1:prePts));
                     else
