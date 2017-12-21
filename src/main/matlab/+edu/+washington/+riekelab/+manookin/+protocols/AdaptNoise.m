@@ -3,10 +3,10 @@ classdef AdaptNoise < edu.washington.riekelab.manookin.protocols.ManookinLabStag
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 15000                % Stim duration (ms)
+        stimTime = 21000                % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
         contrasts = [1/3 1 1/3]         % Contrast series (0-1)
-        durations = [1 5]*1000          % Duration series (ms)
+        durations = [0.25 10]*1000      % Duration series (ms)
         radius = 50                     % Inner radius in pixels.
         apertureRadius = 80             % Aperture/blank radius in pixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
