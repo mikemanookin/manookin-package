@@ -22,7 +22,7 @@ classdef AdaptGratingFigure < symphonyui.core.FigureHandler
             ip.addParameter('recordingType', 'extracellular', @(x)ischar(x));
             ip.addParameter('preTime',0.0, @(x)isfloat(x));
             ip.addParameter('highTime',0.0, @(x)isfloat(x));
-            ip.addParameter('numSubplots',4, @(x)isfloat(x));
+            ip.addParameter('numSubplots',6, @(x)isfloat(x));
             
             ip.parse(varargin{:});
             
@@ -39,11 +39,11 @@ classdef AdaptGratingFigure < symphonyui.core.FigureHandler
             import appbox.*;
             
             obj.axesHandle = {};
-            if length(obj.numSubplots) <= 2
+            if obj.numSubplots <= 2
                 nrows=2; ncols=1;
-            elseif length(obj.numSubplots) <= 4
+            elseif obj.numSubplots <= 4
                 nrows=2; ncols=2;
-            elseif length(obj.numSubplots) <= 6
+            elseif obj.numSubplots <= 6
                 nrows=3; ncols=2;
             else
                 nrows=3; ncols=3;
