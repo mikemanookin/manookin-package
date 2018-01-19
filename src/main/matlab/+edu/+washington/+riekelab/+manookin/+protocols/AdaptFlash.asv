@@ -88,22 +88,10 @@ classdef AdaptFlash < edu.washington.riekelab.manookin.protocols.ManookinLabStag
             p.addController(flash1Visible);
             
             % Add the test spot.
-            if strcmp(obj.flash2Class, 'spot')
-                spot = stage.builtin.stimuli.Ellipse();
-                spot.radiusX = obj.radius;
-                spot.radiusY = obj.radius; 
-                spot.position = obj.canvasSize/2 + obj.centerOffset;
-            else
-                spot = stage.builtin.stimuli.Rectangle();
-                spot.position = obj.canvasSize/2 + obj.centerOffset;
-                spot.orientation = 0;
-                spot.size = max(obj.canvasSize) * ones(1,2) + 2*max(abs(obj.centerOffset));
-                if strcmp(obj.flash2Class, 'annulus')
-                    sc = (obj.apertureRadius)*2 / max(spot.size);
-                    m = stage.core.Mask.createCircularAperture(sc);
-                    spot.setMask(m);
-                end
-            end
+            spot = stage.builtin.stimuli.Ellipse();
+            spot.radiusX = obj.radius;
+            spot.radiusY = obj.radius; 
+            spot.position = obj.canvasSize/2 + obj.centerOffset;
             spot.color = obj.flash2Contrast * obj.bkg + obj.bkg;
             % Add the stimulus to the presentation.
             p.addStimulus(spot);
