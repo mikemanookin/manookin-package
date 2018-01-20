@@ -5,7 +5,7 @@ classdef AdaptFlash < edu.washington.riekelab.manookin.protocols.ManookinLabStag
         stimTime = 2500                 % Stim duration (ms)
         tailTime = 500                  % Stim trailing duration (ms)
         flash1Contrast = 1.0            % Flash 1 contrast (-1:1)
-        flash1Duration = 500            % Flash 1 duration (ms)
+        flash1Duration = 250            % Flash 1 duration (ms)
         flash2Contrasts = [0.0625 0.0625 0.125 0.25 0.375 0.5 0.75 1] % Test flash contrasts (-1:1)
         flash2Duration = 250            % Test flash duration
         ipis = 25*2.^(0:6)              % Inter-pulse intervals (ms)

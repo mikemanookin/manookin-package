@@ -49,7 +49,7 @@ classdef NaturalImageAndSpot < edu.washington.riekelab.manookin.protocols.Manook
         function prepareRun(obj)
             prepareRun@edu.washington.riekelab.manookin.protocols.ManookinLabStageProtocol(obj);
             
-            obj.showFigure('edu.washington.riekelab.manookin.figures.ResponseFigure', obj.rig.getDevices(obj.amp), ...
+            obj.showFigure('edu.washington.riekelab.manookin.figures.ResponseFigure', obj.rig.getDevices('Amp'), ...
                 'numberOfAverages', obj.numberOfAverages);
             
             obj.showFigure('edu.washington.riekelab.manookin.figures.ContrastResponseFigure', ...
@@ -58,8 +58,16 @@ classdef NaturalImageAndSpot < edu.washington.riekelab.manookin.protocols.Manook
                 'stimTime',obj.flashTime,...
                 'contrasts',unique(obj.contrasts),...
                 'groupBy','backgroundType',...
-                'groupByValues',obj.backgroundTypes,...
-                'temporalClass','pulse');
+                );
+            
+            ip.addParameter('recordingType', 'extracellular', @(x)ischar(x));
+            ip.addParameter('preTime',0.0, @(x)isfloat(x));
+            ip.addParameter('stimTime',0.0, @(x)isfloat(x));
+            ip.addParameter('contrasts',0.0, @(x)isfloat(x));
+            ip.addParameter('groupBy','',@(x)ischar(x));
+            ip.addParameter('groupByValues',{},@(x)iscellstr(x) || @(x)isfloat);
+            ip.addParameter('temporalClass','pulse',@(x)ischar(x));
+            ip.addParameter('temporalFrequency',4.0,@(x)isfloat(x));
             
             obj.muPerPixel = 0.8;
         end

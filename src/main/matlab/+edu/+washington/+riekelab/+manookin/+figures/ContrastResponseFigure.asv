@@ -158,7 +158,7 @@ classdef ContrastResponseFigure < symphonyui.core.FigureHandler
                     line(obj.contrasts, obj.yaxis(:,k),...
                         'Parent', obj.axesHandle, 'Color', axColors{k}, 'Marker', 'o', 'LineStyle', '-');
                 end
-                legend(obj.axesHandle,obj.groupByValues,'Location','NorthWest');
+                legend(obj.groupByValues)
             end
             
             set(obj.axesHandle, 'XLim', [min([obj.contrasts(:)',0]) max([obj.contrasts(:)',0])]);

@@ -131,7 +131,7 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
             line(obj.xaxis, obj.yaxis,...
                 'Parent', obj.axesHandle, 'Color', 'k', 'Marker', 'o', 'LineStyle', '-');
             
-            set(obj.axesHandle, 'XLim', [0 max(obj.xaxis)]);
+            set(obj.axesHandle, 'XLim', [min([obj.xaxis(:)',0]) max([obj.xaxis(:)',0])]);
         end
     end
     
