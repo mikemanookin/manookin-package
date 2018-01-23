@@ -75,9 +75,7 @@ classdef ContrastResponseFigure < symphonyui.core.FigureHandler
         end
         
         function clear(obj)
-            for k = 1 : length(obj.axesHandle)
-                cla(obj.axesHandle{k});
-            end
+            cla(obj.axesHandle);
             obj.yaxis = zeros(length(obj.contrasts),1);
             obj.repsPerX = zeros(length(obj.contrasts),1);
         end

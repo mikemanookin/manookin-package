@@ -13,6 +13,7 @@ classdef NaturalImageAndSpot < edu.washington.riekelab.manookin.protocols.Manook
         maskDiameter = 200              % Mask diameter in pixels
         apertureDiameter = 2000         % Aperture diameter in pixels.
         centerOffset = [0,0]            % Center offset in pixels (x,y)
+        randomSeed = true               % Use a random (true) or repeating seed (false)
         chromaticClass = 'achromatic'   % Spot color
         onlineAnalysis = 'extracellular'         % Type of online analysis
         numberOfAverages = uint16(108)    % Number of epochs
@@ -260,7 +261,11 @@ classdef NaturalImageAndSpot < edu.washington.riekelab.manookin.protocols.Manook
             obj.contrast = obj.contrasts(mod(floor(obj.numEpochsCompleted/length(obj.backgroundTypes)), length(obj.contrasts))+1);
             
             % Seed the random number generator.
-            obj.seed = RandStream.shuffleSeed; % Generate a random seed.
+            if obj.randomSeed
+                obj.seed = RandStream.shuffleSeed; % Generate a random seed.
+            else
+                obj.seed = 1; % Repeating seed.
+            end
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             epoch.addParameter('seed',obj.seed);
             
