@@ -17,7 +17,8 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         apertureDiameter = 2000         % Aperture diameter in pixels.
         centerOffset = [0,0]            % Center offset in pixels (x,y)
         randomSeed = false              % Use a random (true) or repeating seed (false)
-        stimulusClass = 'natural image'  % Background stimulus type.
+        centerClass = 'spot'            % Center stimulus class
+        surroundClass = 'natural image' % Background stimulus type.
         chromaticClass = 'achromatic'   % Spot color
         onlineAnalysis = 'extracellular'         % Type of online analysis
         numberOfAverages = uint16(108)    % Number of epochs
@@ -25,8 +26,9 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
     
     properties (Hidden)
         ampType
-        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'natural image','plaid','grating'})
-        chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red','green','blue','yellow','S-iso','M-iso','L-iso','LM-iso'})
+        centerClassType = symphonyui.core.PropertyType('char', 'row', {'spot','high freq grating', 'low freq grating'})
+        surroundClassType = symphonyui.core.PropertyType('char', 'row', {'natural image','plaid','grating'})
+        chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red-green isoluminant','red-green isochromatic'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         imageMatrix
         backgroundIntensity
@@ -41,6 +43,8 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         contrast
         orientationRads
         delayTime
+        rgbMeans
+        rgbValues
     end
     
     methods
@@ -75,13 +79,28 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             obj.muPerPixel = 0.8;
             
             % Get the image and subject names.
-            switch obj.stimulusClass
+            switch obj.surroundClass
                 case 'natural image'
                     obj.getImageSubject();
                 case 'plaid'
                     obj.getPlaid();
                 case 'grating'
                     obj.getGrating();
+            end
+            
+            % Check the color space.
+            if strcmp(obj.chromaticClass,'achromatic')
+                obj.rgbMeans = 0.5;
+                obj.rgbValues = 1;
+            else
+                [obj.rgbMeans, ~, deltaRGB] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
+                obj.rgbValues = deltaRGB*obj.backgroundIntensity + obj.backgroundIntensity;
+                obj.imageMatrix = repmat(double(obj.imageMatrix), [1 1 3]);
+                for k = 1 : 2
+                    obj.imageMatrix(:,:,k) = obj.imageMatrix(:,:,k)*obj.rgbMeans(k)*2;
+                end
+                obj.imageMatrix(:,:,3) = 0;
+                obj.imageMatrix = uint8(obj.imageMatrix);
             end
         end
         
@@ -158,10 +177,6 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             % Load the fixations for the image.
             f = load([pkgDir,'resources\doves\fixations\', obj.imageName, '.mat']);
             obj.subjectName = f.subj_names_list{im.FEMdata(obj.stimulusIndex).SubjectIndex};
-            
-            % Get the magnification factor. Exps were done with each pixel
-            % = 1 arcmin == 1/60 degree; 200 um/degree...
-%             obj.magnificationFactor = round(1/60*200/obj.muPerPixel);
         end
         
         function p = createPresentation(obj)
@@ -249,7 +264,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             spot.radiusX = obj.spotRadius;
             spot.radiusY = obj.spotRadius;
             spot.position = obj.canvasSize/2 + obj.centerOffset;
-            spot.color = obj.contrast*obj.backgroundIntensity + obj.backgroundIntensity;
+            spot.color = obj.contrast*obj.rgbValues*obj.backgroundIntensity + obj.backgroundIntensity;
             
             % Add the stimulus to the presentation.
             p.addStimulus(spot);
@@ -281,7 +296,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             epoch.addParameter('seed',obj.seed);
             % Get a random orientation for movement.
-            if strcmp(obj.stimulusClass,'natural image')
+            if strcmp(obj.surroundClass,'natural image')
                 obj.orientationRads = obj.noiseStream.rand*2*pi;
             else
                 obj.orientationRads = 0;
