@@ -1,0 +1,1 @@
+start "" "C:\Program Files\MATLAB\R2017b\bin\matlab.exe" -nosplash -nodesktop -r run('"C:\Users\ManookinLab\Google Drive\GitRepos\Symphony2\manookin-package\startup\startSymphony.m"');

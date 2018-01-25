@@ -25,7 +25,7 @@ classdef ContrastResponseGrating < edu.washington.riekelab.manookin.protocols.Ma
         apertureClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus'})
         spatialClassType = symphonyui.core.PropertyType('char', 'row', {'sinewave', 'squarewave'})
         temporalClassType = symphonyui.core.PropertyType('char', 'row', {'drifting', 'reversing'})
-        chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red-green isoluminant','S-iso','red','green','blue','M-iso','L-iso'})
+        chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red-green isoluminant','red-green isochromatic','S-iso','M-iso','L-iso'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         rawImage
         spatialPhaseRad % The spatial phase in radians.
@@ -77,21 +77,10 @@ classdef ContrastResponseGrating < edu.washington.riekelab.manookin.protocols.Ma
                 obj.colorWeights = ones(1,3);
             else
                 if strcmp(obj.chromaticClass, 'achromatic')
-                    if ~isempty(strfind(obj.greenLEDName, '505'))
-                        obj.backgroundMeans = [0.7 1 1]*obj.backgroundIntensity;
-                    else
-                        obj.backgroundMeans = [0 0.92 1]*obj.backgroundIntensity;
-                    end
+                    obj.backgroundMeans = obj.backgroundIntensity*ones(1,3);
                     obj.colorWeights = ones(1,3);
-                elseif strcmp(obj.chromaticClass, 'red-green isoluminant')
-                    obj.backgroundMeans = [1 0.76 0]*obj.backgroundIntensity;
-                    obj.colorWeights = [1 -1 1];
-                elseif strcmp(obj.chromaticClass, 'S-iso')
-                    obj.backgroundMeans = [0.025 1 1]*obj.backgroundIntensity;
-                    obj.colorWeights = [1 -1 1];
                 else
-                    obj.setColorWeights();
-                    obj.backgroundMeans = 0.5*ones(1,3);
+                    [obj.backgroundMeans, ~, obj.colorWeights] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
                 end
             end
             

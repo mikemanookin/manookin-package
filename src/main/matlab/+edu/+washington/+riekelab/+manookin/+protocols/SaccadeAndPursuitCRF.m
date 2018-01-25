@@ -32,6 +32,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         imageMatrix
         backgroundIntensity
+        backgroundMeans
         imageName
         subjectName
         magnificationFactor =  4
@@ -88,10 +89,15 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
                     obj.getGrating();
             end
             
+            if strcmp(obj.stageClass,'LightCrafter')
+                obj.chromaticClass = 'achromatic';
+            end
+            
             % Check the color space.
             if strcmp(obj.chromaticClass,'achromatic')
                 obj.rgbMeans = 0.5;
                 obj.rgbValues = 1;
+                obj.backgroundMeans = obj.backgroundIntensity*ones(1,3);
             else
                 [obj.rgbMeans, ~, deltaRGB] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
                 obj.rgbValues = deltaRGB*obj.backgroundIntensity + obj.backgroundIntensity;
@@ -101,6 +107,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
                 end
                 obj.imageMatrix(:,:,3) = 0;
                 obj.imageMatrix = uint8(obj.imageMatrix);
+                obj.backgroundMeans = obj.rgbMeans(:)';
             end
         end
         
@@ -181,7 +188,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         
         function p = createPresentation(obj)
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
-            p.setBackgroundColor(obj.backgroundIntensity);
+            p.setBackgroundColor(obj.backgroundMeans);
             
             % Create your scene.
             scene = stage.builtin.stimuli.Image(obj.imageMatrix);
@@ -219,7 +226,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             if sz < 1
                 aperture = stage.builtin.stimuli.Rectangle();
                 aperture.position = obj.canvasSize/2;
-                aperture.color = obj.backgroundIntensity;
+                aperture.color = obj.backgroundMeans;
                 aperture.size = obj.canvasSize;
                 [x,y] = meshgrid(linspace(-obj.canvasSize(1)/2,obj.canvasSize(1)/2,obj.canvasSize(1)), ...
                     linspace(-obj.canvasSize(2)/2,obj.canvasSize(2)/2,obj.canvasSize(2)));
@@ -236,7 +243,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             if (obj.maskDiameter > 0) % Create mask
                 mask = stage.builtin.stimuli.Ellipse();
                 mask.position = obj.canvasSize/2 + obj.centerOffset;
-                mask.color = obj.backgroundIntensity;
+                mask.color = obj.backgroundMeans;
                 mask.radiusX = obj.maskDiameter/2;
                 mask.radiusY = obj.maskDiameter/2;
                 p.addStimulus(mask); %add mask

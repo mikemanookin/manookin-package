@@ -22,6 +22,7 @@ switch isoType
         lockIndex = 2; % This gets L and M ct closest.
     case 'red-green isoluminant'
         m = getRGIsochromaticMeans();
+        m = m(:)';
         % Define the delta RGB.
         deltaRGB = [1 -1 0];
         % Calculate the cone contrast.
@@ -29,14 +30,13 @@ switch isoType
         return;
     case 'red-green isochromatic'
         m = getRGIsochromaticMeans();
+        m = m(:)';
         % Define the delta RGB.
         deltaRGB = [1 1 0];
         % Calculate the cone contrast.
         ct = getConeContrasts(m);
         return;
 end
-
-
 
 % Set minimization options.
 options = optimoptions('fmincon','MaxFunctionEvaluations',6000,'MaxIterations',2000);
