@@ -15,7 +15,7 @@ classdef ContrastResponseFlash < edu.washington.riekelab.manookin.protocols.Mano
         chromaticClass = 'achromatic'   % Spot color
         stimulusClass = 'spot'          % Stimulus class
         onlineAnalysis = 'extracellular'% Online analysis type.
-        numberOfAverages = uint16(51)   % Number of epochs
+        numberOfAverages = uint16(72)   % Number of epochs
     end
     
     properties (Hidden)
