@@ -8,17 +8,17 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         flashTime = 250                 % Spot flash time (ms)
         delayTimes = [0,100,200,300,400,500] % Delay time (ms)
         spotRadius = 50                % Spot radius (pix).
-        contrasts = [0 1./[16 16 8 8 4 2 1.3333 1]] % Spot contrasts (-1:1)
+        contrasts = [0 1./[16 16 8 8 4 2 1+1/3 1]] % Spot contrasts (-1:1)
         speed = 2750                    % Background motion speed (pix/sec)
         stimulusIndex = 2               % Stimulus number (1:161)
         surroundContrast = 0.5          % Surround contrast (0-1)
-        surroundBarWidth = 100          % Surround bar width (pix)
-        maskDiameter = 50                % Mask diameter in pixels
+        surroundBarWidth = 50           % Surround bar width (pix)
+        maskDiameter = 100              % Mask diameter in pixels
         apertureDiameter = 2000         % Aperture diameter in pixels.
         centerOffset = [0,0]            % Center offset in pixels (x,y)
         randomSeed = false              % Use a random (true) or repeating seed (false)
         centerClass = 'spot'            % Center stimulus class
-        surroundClass = 'natural image' % Background stimulus type.
+        surroundClass = 'grating'       % Background stimulus type.
         chromaticClass = 'achromatic'   % Spot color
         onlineAnalysis = 'extracellular'         % Type of online analysis
         numberOfAverages = uint16(153)    % Number of epochs
@@ -68,14 +68,16 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
                 obj.backgroundTypes = {'stationary','pursuit','fixation'};
             end
             
-%             obj.showFigure('edu.washington.riekelab.manookin.figures.ContrastResponseFigure', ...
-%                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-%                 'preTime',obj.preTime+obj.waitTime+obj.delayTimes(1),...
-%                 'stimTime',obj.flashTime,...
-%                 'contrasts',unique(obj.contrasts),...
-%                 'groupBy','backgroundType',...
-%                 'groupByValues',obj.backgroundTypes,...
-%                 'temporalClass','pulse');
+            if ~strcmp(obj.onlineAnalysis,'none')
+                obj.showFigure('edu.washington.riekelab.manookin.figures.ContrastResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'preTime',obj.preTime+obj.waitTime+obj.delayTimes(1),...
+                    'stimTime',obj.flashTime,...
+                    'contrasts',unique(obj.contrasts),...
+                    'groupBy','backgroundType',...
+                    'groupByValues',obj.backgroundTypes,...
+                    'temporalClass','pulse');
+            end
             
             obj.muPerPixel = 0.8;
             
@@ -101,18 +103,19 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             else
                 [obj.rgbMeans, ~, deltaRGB] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
                 obj.rgbValues = deltaRGB*obj.backgroundIntensity + obj.backgroundIntensity;
-                obj.imageMatrix = repmat(double(obj.imageMatrix), [1 1 3]);
-                for k = 1 : 2
-                    obj.imageMatrix(:,:,k) = obj.imageMatrix(:,:,k)*obj.rgbMeans(k)*2;
-                end
-                obj.imageMatrix(:,:,3) = 0;
-                obj.imageMatrix = uint8(obj.imageMatrix);
+%                 obj.imageMatrix = repmat(double(obj.imageMatrix), [1 1 3]);
+%                 for k = 1 : 2
+%                     obj.imageMatrix(:,:,k) = obj.imageMatrix(:,:,k)*obj.rgbMeans(k)*2;
+%                 end
+%                 obj.imageMatrix(:,:,3) = 0;
+%                 obj.imageMatrix = uint8(obj.imageMatrix);
                 obj.backgroundMeans = obj.rgbMeans(:)';
             end
         end
         
         function getPlaid(obj)
             obj.backgroundIntensity = 0.5;
+            obj.backgroundMeans
             
             [x,y] = meshgrid(...
                 linspace(-1536/2, 1536/2, 1536), ...
@@ -188,7 +191,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         
         function p = createPresentation(obj)
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
-            p.setBackgroundColor(obj.backgroundMeans);
+            p.setBackgroundColor(obj.backgroundIntensity);
             
             % Create your scene.
             scene = stage.builtin.stimuli.Image(obj.imageMatrix);
@@ -271,7 +274,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             spot.radiusX = obj.spotRadius;
             spot.radiusY = obj.spotRadius;
             spot.position = obj.canvasSize/2 + obj.centerOffset;
-            spot.color = obj.contrast*obj.rgbValues*obj.backgroundIntensity + obj.backgroundIntensity;
+            spot.color = obj.contrast*obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
             
             % Add the stimulus to the presentation.
             p.addStimulus(spot);
