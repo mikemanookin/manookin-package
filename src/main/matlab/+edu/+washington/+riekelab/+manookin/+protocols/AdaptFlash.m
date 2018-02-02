@@ -4,17 +4,17 @@ classdef AdaptFlash < edu.washington.riekelab.manookin.protocols.ManookinLabStag
         preTime = 500                   % Stim leading duration (ms)
         stimTime = 2500                 % Stim duration (ms)
         tailTime = 500                  % Stim trailing duration (ms)
-        flash1Contrast = 1.0            % Flash 1 contrast (-1:1)
+        flash1Contrast = 0.5            % Flash 1 contrast (-1:1)
         flash1Duration = 250            % Flash 1 duration (ms)
-        flash2Contrasts = [0.0625 0.0625 0.125 0.25 0.375 0.5 0.75 1] % Test flash contrasts (-1:1)
+        flash2Contrasts = [0 0.0625 0.0625 0.125 0.25 0.5 0.75 1] % Test flash contrasts (-1:1)
         flash2Duration = 250            % Test flash duration
         ipis = 25*2.^(0:6)              % Inter-pulse intervals (ms)
         radius = 50                     % Inner radius in pixels.
         apertureRadius = 80             % Blank aperture radius (pix)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         centerOffset = [0,0]            % Center offset in pixels (x,y) 
-        flash1Class = 'spot'            % Adapting flash class
-        flash2Class = 'spot'            % Test flash class
+        flash1Class = 'full-field'      % Adapting flash class
+        flash2Class = 'full-field'      % Test flash class
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
         numberOfAverages = uint16(24)   % Number of epochs
@@ -22,12 +22,16 @@ classdef AdaptFlash < edu.washington.riekelab.manookin.protocols.ManookinLabStag
     
     properties (Hidden)
         ampType
+        chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red-green isoluminant','red-green isochromatic'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         flash1ClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field'})
         flash2ClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field'})
         bkg
         flash2Contrast
         ipi
+        rgbMeans
+        rgbValues
+        backgroundMeans
     end
     
      methods
@@ -57,11 +61,26 @@ classdef AdaptFlash < edu.washington.riekelab.manookin.protocols.ManookinLabStag
             else
                 obj.bkg = obj.backgroundIntensity;
             end
+            
+            if strcmp(obj.stageClass,'LightCrafter')
+                obj.chromaticClass = 'achromatic';
+            end
+            
+            % Check the color space.
+            if strcmp(obj.chromaticClass,'achromatic')
+                obj.rgbMeans = 0.5;
+                obj.rgbValues = 1;
+                obj.backgroundMeans = obj.bkg*ones(1,3);
+            else
+                [obj.rgbMeans, ~, deltaRGB] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
+                obj.rgbValues = deltaRGB*obj.bkg + obj.bkg;
+                obj.backgroundMeans = obj.rgbMeans(:)';
+            end
         end
         
         function p = createPresentation(obj)
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
-            p.setBackgroundColor(obj.backgroundIntensity);
+            p.setBackgroundColor(obj.backgroundMeans);
             
             if strcmp(obj.flash1Class, 'spot')
                 flash1 = stage.builtin.stimuli.Ellipse();
@@ -79,7 +98,7 @@ classdef AdaptFlash < edu.washington.riekelab.manookin.protocols.ManookinLabStag
                     flash1.setMask(m);
                 end
             end
-            flash1.color = obj.flash1Contrast * obj.bkg + obj.bkg;
+            flash1.color = obj.flash1Contrast*obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
             p.addStimulus(flash1);
             
             % Control when the spot is visible.
@@ -104,7 +123,7 @@ classdef AdaptFlash < edu.washington.riekelab.manookin.protocols.ManookinLabStag
                     spot.setMask(m);
                 end
             end
-            spot.color = obj.flash2Contrast * obj.bkg + obj.bkg;
+            spot.color = obj.flash2Contrast*obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
             % Add the stimulus to the presentation.
             p.addStimulus(spot);
             

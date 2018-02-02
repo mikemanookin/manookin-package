@@ -21,7 +21,7 @@ classdef NaturalImageAndSpot < edu.washington.riekelab.manookin.protocols.Manook
     
     properties (Hidden)
         ampType
-        chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red','green','blue','yellow','S-iso','M-iso','L-iso','LM-iso'})
+        chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red-green isoluminant','red-green isochromatic'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         imageMatrix
         backgroundIntensity
@@ -37,6 +37,9 @@ classdef NaturalImageAndSpot < edu.washington.riekelab.manookin.protocols.Manook
         seed
         noiseStream
         contrast
+        rgbMeans
+        rgbValues
+        backgroundMeans
     end
     
     methods
@@ -62,6 +65,25 @@ classdef NaturalImageAndSpot < edu.washington.riekelab.manookin.protocols.Manook
                     'groupBy','backgroundType',...
                     'groupByValues',obj.backgroundTypes,...
                     'temporalClass','pulse');
+            end
+            
+            if strcmp(obj.stageClass,'LightCrafter')
+                obj.chromaticClass = 'achromatic';
+            end
+            
+            obj.noiseStream = RandStream('mt19937ar', 'Seed', 1);
+            % Get the image and subject names.
+            obj.getImageSubject();
+            
+            % Check the color space.
+            if strcmp(obj.chromaticClass,'achromatic')
+                obj.rgbMeans = 0.5;
+                obj.rgbValues = 1;
+                obj.backgroundMeans = obj.backgroundIntensity*ones(1,3);
+            else
+                [obj.rgbMeans, ~, deltaRGB] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
+                obj.rgbValues = deltaRGB*obj.backgroundIntensity + obj.backgroundIntensity;
+                obj.backgroundMeans = obj.rgbMeans(:)';
             end
             
             obj.muPerPixel = 0.8;
@@ -189,37 +211,7 @@ classdef NaturalImageAndSpot < edu.washington.riekelab.manookin.protocols.Manook
 
                 sceneVisible = stage.builtin.controllers.PropertyController(scene, 'visible', ...
                     @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
-                p.addController(sceneVisible);
-
-                %--------------------------------------------------------------
-                % Size is 0 to 1
-                sz = (obj.apertureDiameter)/min(obj.canvasSize);
-                % Create the outer mask.
-                if sz < 1
-                    aperture = stage.builtin.stimuli.Rectangle();
-                    aperture.position = obj.canvasSize/2;
-                    aperture.color = obj.backgroundIntensity;
-                    aperture.size = obj.canvasSize;
-                    [x,y] = meshgrid(linspace(-obj.canvasSize(1)/2,obj.canvasSize(1)/2,obj.canvasSize(1)), ...
-                        linspace(-obj.canvasSize(2)/2,obj.canvasSize(2)/2,obj.canvasSize(2)));
-                    % Center the stimulus.
-                    x = x - obj.centerOffset(1);
-                    y = y + obj.centerOffset(2);
-                    distanceMatrix = sqrt(x.^2 + y.^2);
-                    circle = uint8((distanceMatrix >= obj.apertureDiameter/2) * 255);
-                    mask = stage.core.Mask(circle);
-                    aperture.setMask(mask);
-                    p.addStimulus(aperture); %add aperture
-                end
-
-                if (obj.maskDiameter > 0) % Create mask
-                    mask = stage.builtin.stimuli.Ellipse();
-                    mask.position = obj.canvasSize/2 + obj.centerOffset;
-                    mask.color = obj.backgroundIntensity;
-                    mask.radiusX = obj.maskDiameter/2;
-                    mask.radiusY = obj.maskDiameter/2;
-                    p.addStimulus(mask); %add mask
-                end
+                p.addController(sceneVisible); 
             end
             
             function p = getScenePosition(obj, time, p0)
@@ -237,12 +229,42 @@ classdef NaturalImageAndSpot < edu.washington.riekelab.manookin.protocols.Manook
             end
             
             %--------------------------------------------------------------
+            % Size is 0 to 1
+            sz = (obj.apertureDiameter)/min(obj.canvasSize);
+            % Create the outer mask.
+            if sz < 1
+                aperture = stage.builtin.stimuli.Rectangle();
+                aperture.position = obj.canvasSize/2;
+                aperture.color = obj.backgroundMeans;
+                aperture.size = obj.canvasSize;
+                [x,y] = meshgrid(linspace(-obj.canvasSize(1)/2,obj.canvasSize(1)/2,obj.canvasSize(1)), ...
+                    linspace(-obj.canvasSize(2)/2,obj.canvasSize(2)/2,obj.canvasSize(2)));
+                % Center the stimulus.
+                x = x - obj.centerOffset(1);
+                y = y + obj.centerOffset(2);
+                distanceMatrix = sqrt(x.^2 + y.^2);
+                circle = uint8((distanceMatrix >= obj.apertureDiameter/2) * 255);
+                mask = stage.core.Mask(circle);
+                aperture.setMask(mask);
+                p.addStimulus(aperture); %add aperture
+            end
+
+            if (obj.maskDiameter > 0) % Create mask
+                mask = stage.builtin.stimuli.Ellipse();
+                mask.position = obj.canvasSize/2 + obj.centerOffset;
+                mask.color = obj.backgroundMeans;
+                mask.radiusX = obj.maskDiameter/2;
+                mask.radiusY = obj.maskDiameter/2;
+                p.addStimulus(mask); %add mask
+            end
+            
+            %--------------------------------------------------------------
             % Spot.
             spot = stage.builtin.stimuli.Ellipse();
             spot.radiusX = obj.spotRadius;
             spot.radiusY = obj.spotRadius;
             spot.position = obj.canvasSize/2 + obj.centerOffset;
-            spot.color = obj.contrast*obj.backgroundIntensity + obj.backgroundIntensity;
+            spot.color = obj.contrast*obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
             
             % Add the stimulus to the presentation.
             p.addStimulus(spot);
