@@ -125,11 +125,10 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             if ~strcmp(obj.bgChromaticClass,'achromatic')
                 [rgMeans, ~, deltaRGB] = getMaxContrast(obj.quantalCatch, obj.bgChromaticClass);
                 % Convert the image back to pixel values.
-                imgTmp = (double(obj.imageMatrix)/255-obj.backgroundIntensity)/obj.backgroundIntensity;
-                imgTmp = 255*imgTmp;
+                imgTmp = double(obj.imageMatrix)/255;
                 obj.imageMatrix = repmat(double(obj.imageMatrix), [1 1 3]);
                 for k = 1 : 2
-                    obj.imageMatrix(:,:,k) = imgTmp*deltaRGB(k)*rgMeans(k) + rgMeans(k);
+                    obj.imageMatrix(:,:,k) = obj.imageMatrix(:,:,k)*rgMeans(k)*2;
                 end
                 obj.imageMatrix(:,:,3) = 0;
                 obj.imageMatrix = uint8(obj.imageMatrix);

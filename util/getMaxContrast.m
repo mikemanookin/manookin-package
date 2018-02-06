@@ -1,4 +1,4 @@
-function [m, ct, deltaRGB] = getMaxContrast(q, isoType)
+function [m, ct, deltaRGB] = getMaxContrast(q, isoType, coneRatio)
 % 
 % q : [m x n] matrix of quantal catch values where columns are L, M, S
 % catch and rows are R G B.
@@ -6,6 +6,12 @@ function [m, ct, deltaRGB] = getMaxContrast(q, isoType)
 % isoType : isolation type options are 'L-iso', 'M-iso', 'S-iso', 'LM-iso',
 % 'red-green isoluminant', and 'red-green isochromatic'
 % q = qCatch.ndf00([1,2,4],1:3);
+
+% For isoluminant stimuli. L:M is 2:1 for Northern Europeans and 1:1 for
+% macaque.
+if ~exist('coneRatio','var')
+    coneRatio = [1 1]; % [2 1]
+end
 
 switch isoType
     case 'L-iso'
@@ -24,12 +30,12 @@ switch isoType
         m = getRGIsochromaticMeans();
         m = m(:)';
         % Define the delta RGB.
-        deltaRGB = [1 -1 0];
+        deltaRGB = [coneRatio(1) -coneRatio(2) 0];
         % Calculate the cone contrast.
         ct = getConeContrasts(m);
         return;
     case 'red-green isochromatic'
-        m = getRGIsochromaticMeans();
+        m = getRGIsochromaticMeans(coneRatio);
         m = m(:)';
         % Define the delta RGB.
         deltaRGB = [1 1 0];
@@ -130,10 +136,11 @@ ct = getConeContrasts(m);
     % Calculate the parameters for the red-green isochromatic stimulus.
     function gunMeans = getRGIsochromaticMeans()
         % Calculate the RG means.
-        gunMeans = q(1:2,1:2)' \ [2 1]';
+        gunMeans = q(1:2,1:2)' \ ones(2,1);
         gunMeans = gunMeans/max(abs(gunMeans));
         gunMeans = gunMeans*0.5;
         gunMeans(3) = 0; % Set the blue to zero.
+        gunMeans = max(gunMeans,0); 
     end
 
     % Calculate the delta RG values at red-green isoluminance.
