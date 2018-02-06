@@ -3,11 +3,11 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 6000                 % Stim duration (ms)
+        stimTime = 2000                 % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
         highContrast = 1.0              % High contrast value (0-1)
-        highDuration = 3000             % High-contrast duration (ms)
-        lowContrasts = [0 0.3]          % Low contrast values (0-1)
+        highDuration = 1000             % High-contrast duration (ms)
+        lowContrasts = [0.25 0.5]       % Low contrast values (0-1)
         temporalFrequencies = [6 6]     % Temporal frequencies (Hz)
         radius = 50                     % Inner radius in pixels.
         apertureRadius = 80             % Blank aperture radius (pix)
