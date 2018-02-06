@@ -42,6 +42,9 @@ switch isoType
         % Calculate the cone contrast.
         ct = getConeContrasts(m);
         return;
+    otherwise
+        disp('Error: Please select a valid stimulus type.');
+        return
 end
 
 % Set minimization options.
