@@ -77,9 +77,16 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
                 if length(ndString) == 1
                     ndString = ['0', ndString];
                 end
-                obj.quantalCatch = q.qCatch.(['ndf', ndString]);
+                obj.quantalCatch = q.qCatch.(['ndf', ndString])([1 2 4],:);
                 obj.muPerPixel = 0;
                 obj.greenLEDName = 'Green_505nm';
+                
+                % Adjust the quantal catch depending on the objective.
+                if obj.objectiveMag == 4
+                    obj.quantalCatch = obj.quantalCatch .* ([0.498627;0.4921139;0.453983]*ones(1,4));
+                elseif obj.objectiveMag == 60
+                    obj.quantalCatch = obj.quantalCatch .* ([0.664836;0.630064;0.732858]*ones(1,4));
+                end
             end
             
             % Get the canvas size.

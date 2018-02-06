@@ -125,7 +125,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             if ~strcmp(obj.bgChromaticClass,'achromatic')
                 [rgMeans, ~, deltaRGB] = getMaxContrast(obj.quantalCatch, obj.bgChromaticClass);
                 % Convert the image back to pixel values.
-                imgTmp = (double(obj.imageMatrix)/255-obj.backgroundIntensity)/obj.backgroundIntensity;
+                imgTmp = 2*(double(obj.imageMatrix)/255) - 1;
                 imgTmp = 255*imgTmp;
                 obj.imageMatrix = repmat(double(obj.imageMatrix), [1 1 3]);
                 for k = 1 : 2
@@ -139,8 +139,8 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         function getTremorSequence(obj)
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             nframes = ceil(obj.stimTime * obj.frameRate) + 10;
-            xy = cumsum(obj.noiseStream.randn(nframes,2)*obj.speed/obj.frameRate);
-            obj.xyTable = obj.canvasSize/2 + obj.centerOffset + xy;
+            xy = obj.noiseStream.randn(nframes,2)*obj.speed/obj.frameRate;            
+            obj.xyTable = obj.canvasSize/2 + obj.centerOffset + cumsum(xy);
         end
         
         function getPlaid(obj)

@@ -35,7 +35,7 @@ switch isoType
         ct = getConeContrasts(m);
         return;
     case 'red-green isochromatic'
-        m = getRGIsochromaticMeans(coneRatio);
+        m = getRGIsochromaticMeans();
         m = m(:)';
         % Define the delta RGB.
         deltaRGB = [1 1 0];
