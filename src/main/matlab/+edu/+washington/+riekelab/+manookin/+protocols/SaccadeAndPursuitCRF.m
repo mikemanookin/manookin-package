@@ -23,7 +23,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         bgChromaticClass = 'achromatic' % Background color
         onlineAnalysis = 'extracellular'         % Type of online analysis
         stimulusSequence = 'tremor-saccade' % Interleaved sequence types.
-        numberOfAverages = uint16(153)    % Number of epochs
+        numberOfAverages = uint16(270)    % Number of epochs
     end
     
     properties (Hidden)
