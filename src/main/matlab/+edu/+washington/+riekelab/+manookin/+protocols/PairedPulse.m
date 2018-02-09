@@ -2,12 +2,12 @@ classdef PairedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
     properties
         amp               % Output amplifier
         preTime = 500     % Pulse leading duration (ms)
-        pulse1Time = 2000 % Pulse1 duration (ms)
+        pulse1Time = 1000 % Pulse1 duration (ms)
         interTime = 100   % Interpulse duration (ms)
-        pulse2Time = 500  % Pulse2 duration (ms)
+        pulse2Time = 200  % Pulse2 duration (ms)
         tailTime = 1000   % Pulse trailing duration (ms)
-        pulse1Amps   % Pulse1 amplitude (mV or pA)
-        pulse2Amps   % Pulse2 amplitude (mV or pA)
+        pulse1Amps = [250 250]   % Pulse1 amplitude (mV or pA)
+        pulse2Amps = [0 50 100 200 400]   % Pulse2 amplitude (mV or pA)
     end
     
     properties (Dependent, SetAccess = private)
@@ -89,7 +89,8 @@ classdef PairedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@edu.washington.riekelab.protocols.RiekeLabProtocol(obj, epoch);
             
-            obj.pulseDuration = obj.durations(mod(obj.numEpochsPrepared - 1, length(obj.durations)) + 1);
+            obj.pulse1Amplitude = obj.pulse1Amps(mod(obj.numEpochsPrepared - 1),length(obj.pulse1Amps)+1);
+            obj.pulse2Amplitude = obj.pulse2Amps(mod(obj.numEpochsPrepared - 1),length(obj.pulse2Amps)+1);
             stim = obj.createAmpStimulus();
             
             epoch.addStimulus(obj.rig.getDevice(obj.amp), stim);
