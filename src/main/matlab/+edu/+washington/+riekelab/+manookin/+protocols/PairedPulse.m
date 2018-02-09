@@ -3,11 +3,11 @@ classdef PairedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
         amp               % Output amplifier
         preTime = 500     % Pulse leading duration (ms)
         pulse1Time = 1000 % Pulse1 duration (ms)
-        interTime = 100   % Interpulse duration (ms)
+        interTime = 50    % Interpulse duration (ms)
         pulse2Time = 200  % Pulse2 duration (ms)
         tailTime = 1000   % Pulse trailing duration (ms)
         pulse1Amps = [250 250]   % Pulse1 amplitude (mV or pA)
-        pulse2Amps = [0 50 100 200 400]   % Pulse2 amplitude (mV or pA)
+        pulse2Amps = [-500:100:-100 -50 0 50 100:100:500]   % Pulse2 amplitude (mV or pA)
     end
     
     properties (Dependent, SetAccess = private)
@@ -16,7 +16,7 @@ classdef PairedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
     
     properties
         amp2PulseAmplitude = 0          % Pulse amplitude for secondary amp (mV or pA depending on amp2 mode)
-        numberOfAverages = uint16(10)    % Number of epochs
+        numberOfAverages = uint16(26)    % Number of epochs
         interpulseInterval = 1          % Duration between pulses (s)
     end
     
@@ -41,10 +41,6 @@ classdef PairedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
             end
         end
         
-        function p = getPreview(obj, panel)
-            p = symphonyui.builtin.previews.StimuliPreview(panel, @()obj.createAmpStimulus());
-        end
-        
         function prepareRun(obj)
             prepareRun@edu.washington.riekelab.protocols.RiekeLabProtocol(obj);
             
@@ -54,17 +50,27 @@ classdef PairedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
                 obj.showFigure('edu.washington.riekelab.figures.DualResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));
             end
             
+            % Get the color sequence for plotting.
+            colors = pmkmp(length(unique(obj.pulse2Amps)),'IsoL');
+            obj.showFigure('edu.washington.riekelab.manookin.figures.MeanResponseFigure', ...
+                obj.rig.getDevice(obj.amp),'recordingType','spikes_CClamp',...
+                'sweepColor',colors,...
+                'groupBy',{'pulse2Amplitude'});
+            
             % Show the progress bar.
             obj.showFigure('edu.washington.riekelab.manookin.figures.ProgressFigure', obj.numberOfAverages);
         end
         
         function stim = createAmpStimulus(obj)
-            gen = symphonyui.builtin.stimuli.PulseGenerator();
+            gen = edu.washington.riekelab.manookin.stimuli.PairedPulseGenerator();
             
             gen.preTime = obj.preTime;
-            gen.stimTime = obj.pulseDuration;
-            gen.tailTime = obj.tailTime + (obj.stimTime-obj.pulseDuration);
-            gen.amplitude = obj.pulseAmplitude;
+            gen.pulse1Time = obj.pulse1Time;
+            gen.interTime = obj.interTime;
+            gen.pulse2Time = obj.pulse2Time;
+            gen.tailTime = obj.tailTime;
+            gen.pulse1Amplitude = obj.pulse1Amplitude;
+            gen.pulse2Amplitude = obj.pulse2Amplitude;
             gen.mean = obj.rig.getDevice(obj.amp).background.quantity;
             gen.sampleRate = obj.sampleRate;
             gen.units = obj.rig.getDevice(obj.amp).background.displayUnits;
@@ -76,7 +82,7 @@ classdef PairedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
             gen = symphonyui.builtin.stimuli.PulseGenerator();
             
             gen.preTime = obj.preTime;
-            gen.stimTime = obj.stimTime;
+            gen.stimTime = obj.pulse1Time + obj.interTime + obj.pulse2Time;
             gen.tailTime = obj.tailTime;
             gen.mean = obj.rig.getDevice(obj.amp2).background.quantity;
             gen.amplitude = obj.amp2PulseSignal - gen.mean;
@@ -89,8 +95,8 @@ classdef PairedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@edu.washington.riekelab.protocols.RiekeLabProtocol(obj, epoch);
             
-            obj.pulse1Amplitude = obj.pulse1Amps(mod(obj.numEpochsPrepared - 1),length(obj.pulse1Amps)+1);
-            obj.pulse2Amplitude = obj.pulse2Amps(mod(obj.numEpochsPrepared - 1),length(obj.pulse2Amps)+1);
+            obj.pulse1Amplitude = obj.pulse1Amps(mod(obj.numEpochsPrepared - 1,length(obj.pulse1Amps))+1);
+            obj.pulse2Amplitude = obj.pulse2Amps(mod(obj.numEpochsPrepared - 1,length(obj.pulse2Amps))+1);
             stim = obj.createAmpStimulus();
             
             epoch.addStimulus(obj.rig.getDevice(obj.amp), stim);
@@ -98,9 +104,10 @@ classdef PairedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
             
             if numel(obj.rig.getDeviceNames('Amp')) >= 2
                 epoch.addStimulus(obj.rig.getDevice(obj.amp2), obj.createAmp2Stimulus());
-                epoch.addResponse(obj.rig.getDevice(obj.amp2));
+                epoch.addResponse (obj.rig.getDevice(obj.amp2));
             end
-            epoch.addParameter('pulseDuration',obj.pulseDuration);
+            epoch.addParameter('pulse1Amplitude',obj.pulse1Amplitude);
+            epoch.addParameter('pulse2Amplitude',obj.pulse2Amplitude);
         end
         
         function prepareInterval(obj, interval)

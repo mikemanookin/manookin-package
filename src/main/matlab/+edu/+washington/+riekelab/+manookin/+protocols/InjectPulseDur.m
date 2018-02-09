@@ -51,6 +51,13 @@ classdef InjectPulseDur < edu.washington.riekelab.protocols.RiekeLabProtocol
                 obj.showFigure('edu.washington.riekelab.figures.DualResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));
             end
             
+            % Get the color sequence for plotting.
+            colors = pmkmp(length(unique(obj.durations)),'IsoL');
+            obj.showFigure('edu.washington.riekelab.manookin.figures.MeanResponseFigure', ...
+                obj.rig.getDevice(obj.amp),'recordingType','spikes_CClamp',...
+                'sweepColor',colors,...
+                'groupBy',{'pulseDuration'});
+            
             % Show the progress bar.
             obj.showFigure('edu.washington.riekelab.manookin.figures.ProgressFigure', obj.numberOfAverages);
         end
