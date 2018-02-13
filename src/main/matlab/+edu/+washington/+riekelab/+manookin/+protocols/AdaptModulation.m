@@ -11,6 +11,7 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
         temporalFrequencies = [6 6]     % Temporal frequencies (Hz)
         radius = 50                     % Inner radius in pixels.
         apertureRadius = 80             % Blank aperture radius (pix)
+        phaseShift = 0.0                % Phase shift (degrees)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         centerOffset = [0,0]            % Center offset in pixels (x,y) 
         stimulusClass = 'spot'          % Stimulus class
@@ -30,6 +31,7 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
         frameSeqSurround
         lowContrast
         temporalFrequency
+        phaseShiftRad
     end
     
     
@@ -56,6 +58,7 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
             else
                 obj.bkg = obj.backgroundIntensity;
             end
+            obj.phaseShiftRad = obj.phaseShift / 180 * pi;
         end
         
         function p = createPresentation(obj)
@@ -144,17 +147,22 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
             obj.temporalFrequency = obj.temporalFrequencies(mod(obj.numEpochsCompleted,length(obj.temporalFrequencies))+1);
             obj.lowContrast = obj.lowContrasts(mod(obj.numEpochsCompleted,length(obj.lowContrasts))+1);
             
+            % Calculate the number of high contrast frames.
+            highFrames = round(obj.highDuration*1e-3*obj.frameRate);
+            
             % Pre-generate frames for the epoch.
             nframes = obj.stimTime*1e-3*obj.frameRate + 15;
             % Generate the sinusoidal modulation
             obj.frameSeq = sin((1:nframes)/obj.frameRate*2*pi*obj.temporalFrequency);
+            
+            % Deal with the phase shift after transition.
+            obj.frameSeq(highFrames+1:end) = sin((highFrames+1:nframes)/obj.frameRate*2*pi*obj.temporalFrequency + obj.phaseShiftRad);
+            
             obj.frameSeq = obj.frameSeq / max(obj.frameSeq);
             if strcmp(obj.temporalClass, 'squarewave')
                 obj.frameSeq = sign(obj.frameSeq);
             end
             
-            % Calculate the number of high contrast frames.
-            highFrames = round(obj.highDuration*1e-3*obj.frameRate);
             obj.frameSeq(1:highFrames) = obj.frameSeq(1:highFrames)*obj.highContrast;
             obj.frameSeq(highFrames+1:end) = obj.frameSeq(highFrames+1:end)*obj.lowContrast;
             
