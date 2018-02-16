@@ -5,9 +5,9 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
         preTime = 250                   % Stim leading duration (ms)
         stimTime = 2000                 % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
-        highContrast = 1.0              % High contrast value (0-1)
+        highContrasts = [0 1.0]         % High contrast value (0-1)
         highDuration = 1000             % High-contrast duration (ms)
-        lowContrasts = [0.25 0.5]       % Low contrast values (0-1)
+        lowContrasts = [0 0.125 0.25 0.5]       % Low contrast values (0-1)
         temporalFrequencies = [6 6]     % Temporal frequencies (Hz)
         radius = 50                     % Inner radius in pixels.
         apertureRadius = 80             % Blank aperture radius (pix)
@@ -18,7 +18,7 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
         temporalClass = 'sinewave'      % Temporal class: sinewave or squarewave
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
-        numberOfAverages = uint16(16)   % Number of epochs
+        numberOfAverages = uint16(64)   % Number of epochs
     end
     
     properties (Hidden)
@@ -29,6 +29,7 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
         bkg
         frameSeq
         frameSeqSurround
+        highContrast
         lowContrast
         temporalFrequency
         phaseShiftRad
@@ -51,7 +52,7 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                 'preTime',obj.preTime,...
                 'highTime',obj.highDuration,...
-                'numSubplots',max(length(obj.temporalFrequencies),length(obj.lowContrasts)));
+                'numSubplots',length(obj.highContrasts)*max(length(obj.temporalFrequencies),length(obj.lowContrasts)));
             
             if obj.backgroundIntensity == 0
                 obj.bkg = 0.5;
@@ -143,20 +144,21 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
         function prepareEpoch(obj, epoch)
             prepareEpoch@edu.washington.riekelab.manookin.protocols.ManookinLabStageProtocol(obj, epoch);
             
-            % Deal with the seed.
+            % Deal with epoch-specific parameters.
             obj.temporalFrequency = obj.temporalFrequencies(mod(obj.numEpochsCompleted,length(obj.temporalFrequencies))+1);
-            obj.lowContrast = obj.lowContrasts(mod(obj.numEpochsCompleted,length(obj.lowContrasts))+1);
+            obj.highContrast = obj.highContrasts(mod(obj.numEpochsCompleted,length(obj.highContrasts))+1);
+            obj.lowContrast = obj.lowContrasts(mod(floor(obj.numEpochsCompleted/length(obj.highContrasts)),length(obj.lowContrasts))+1);
             
             % Calculate the number of high contrast frames.
-            highFrames = round(obj.highDuration*1e-3*obj.frameRate);
+            highFrames = floor(obj.highDuration*1e-3*obj.frameRate*0.9985);
             
             % Pre-generate frames for the epoch.
-            nframes = obj.stimTime*1e-3*obj.frameRate + 15;
+            nframes = ceil(obj.stimTime*1e-3*obj.frameRate*0.9985) + 15;
             % Generate the sinusoidal modulation
-            obj.frameSeq = sin((1:nframes)/obj.frameRate*2*pi*obj.temporalFrequency);
+            obj.frameSeq = sin((0:nframes-1)/obj.frameRate*0.9985*2*pi*obj.temporalFrequency);
             
             % Deal with the phase shift after transition.
-            obj.frameSeq(highFrames+1:end) = sin((highFrames+1:nframes)/obj.frameRate*2*pi*obj.temporalFrequency + obj.phaseShiftRad);
+            obj.frameSeq(highFrames+1:end) = sin((highFrames:nframes-1)/obj.frameRate*0.9985*2*pi*obj.temporalFrequency + obj.phaseShiftRad);
             
             obj.frameSeq = obj.frameSeq / max(obj.frameSeq);
             if strcmp(obj.temporalClass, 'squarewave')
@@ -176,9 +178,10 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
             end
             
             % Save the seed.
+            epoch.addParameter('highContrast', obj.highContrast);
             epoch.addParameter('lowContrast', obj.lowContrast);
             epoch.addParameter('temporalFrequency',obj.temporalFrequency);
-            epoch.addParameter('epochTag',['lowCt',num2str(obj.lowContrast),'-tFreq',num2str(obj.temporalFrequency)]);
+            epoch.addParameter('epochTag',['hiCt',num2str(obj.highContrast),'lowCt',num2str(obj.lowContrast),'-tFreq',num2str(obj.temporalFrequency)]);
         end
         
         function tf = shouldContinuePreparingEpochs(obj)

@@ -5,6 +5,7 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
         preTime
         flash1Duration
         flash2Duration
+        flash1Contrasts
         flash2Contrasts
         ipis
     end
@@ -16,6 +17,9 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
         repsPerX
         bgResponse
         xName
+        ucvals
+        uclegends
+        colors
     end
     
     methods
@@ -25,6 +29,7 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
             ip.addParameter('preTime',0.0, @(x)isfloat(x));
             ip.addParameter('flash1Duration',0.0, @(x)isfloat(x));
             ip.addParameter('flash2Duration',0.0, @(x)isfloat(x));
+            ip.addParameter('flash1Contrasts',0.0, @(x)isfloat(x));
             ip.addParameter('flash2Contrasts',0.0, @(x)isfloat(x));
             ip.addParameter('ipis',0.0, @(x)isfloat(x));
             ip.addParameter('recordingType', 'extracellular', @(x)ischar(x));
@@ -34,9 +39,18 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
             obj.preTime = ip.Results.preTime;
             obj.flash1Duration = ip.Results.flash1Duration;
             obj.flash2Duration = ip.Results.flash2Duration;
+            obj.flash1Contrasts = ip.Results.flash1Contrasts;
             obj.flash2Contrasts = ip.Results.flash2Contrasts;
             obj.recordingType = ip.Results.recordingType;
             obj.ipis = ip.Results.ipis;
+            
+            obj.ucvals = unique(obj.flash1Contrasts);
+            obj.colors = pmkmp(length(obj.ucvals),'IsoL');
+            
+            obj.uclegends = cell(1,length(obj.ucvals));
+            for k = 1 : length(obj.ucvals)
+                obj.uclegends{k} = ['ct: ',num2str(obj.ucvals(k))];
+            end
             
             % Set up the xaxis, yaxis, and reps
             lDur = length(unique(obj.flash2Contrasts));
@@ -48,8 +62,8 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
                 obj.xName = 'ipi';
                 obj.xaxis = unique(obj.ipis);
             end
-            obj.yaxis = zeros(size(obj.xaxis));
-            obj.repsPerX = zeros(size(obj.xaxis));
+            obj.yaxis = zeros(length(unique(obj.flash1Contrasts)),length(obj.xaxis));
+            obj.repsPerX = zeros(length(unique(obj.flash1Contrasts)),length(obj.xaxis));
             obj.bgResponse = 0;
 
             obj.createUi();
@@ -77,8 +91,8 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
             cla(obj.axesHandle);
             cla(obj.phaseAxesHandle);
             obj.xaxis = obj.xaxis*0;
-            obj.yaxis = zeros(size(obj.xaxis));
-            obj.repsPerX = zeros(size(obj.xaxis));
+            obj.yaxis = obj.yaxis*0;
+            obj.repsPerX = obj.repsPerX*0;
             obj.bgResponse = 0;
         end
         
@@ -94,6 +108,8 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
             % Define an anonymous function to convert time to points.
             timeToPts = @(t)(t*1e-3*sampleRate);
             
+            cval = epoch.parameters('flash1Contrast');
+            cIndex = obj.ucvals == cval;
             xval = epoch.parameters(obj.xName);
             xIndex = obj.xaxis == xval;
             
@@ -121,16 +137,20 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
                 r = mean(y(sample(1) : sample(2))) - obj.bgResponse;
                 
                 % Iterate the reps.
-                obj.repsPerX(xIndex) = obj.repsPerX(xIndex) + 1;
-                obj.yaxis(xIndex) = (obj.yaxis(xIndex)*(obj.repsPerX(xIndex)-1) + r)/obj.repsPerX(xIndex);
+                obj.repsPerX(cIndex,xIndex) = obj.repsPerX(cIndex,xIndex) + 1;
+                obj.yaxis(cIndex,xIndex) = (obj.yaxis(cIndex,xIndex)*(obj.repsPerX(cIndex,xIndex)-1) + r)/obj.repsPerX(cIndex,xIndex);
             end
             
             % Plot the data.
             cla(obj.axesHandle);
             
-            line(obj.xaxis, obj.yaxis,...
-                'Parent', obj.axesHandle, 'Color', 'k', 'Marker', 'o', 'LineStyle', '-');
-            
+            for k = 1 : length(obj.ucvals)
+                hold(obj.axesHandle,'on');
+                line(obj.xaxis, obj.yaxis,...
+                    'Parent', obj.axesHandle, 'Color', obj.colors(k,:), 'Marker', 'o', 'LineStyle', '-');
+                hold(obj.axesHandle,'off');
+            end
+            legend(obj.axesHandle,obj.uclegends,'Location','EastOutside');
             set(obj.axesHandle, 'XLim', [min([obj.xaxis(:)',0]) max([obj.xaxis(:)',0])]);
         end
     end

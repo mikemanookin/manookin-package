@@ -4,7 +4,7 @@ classdef AdaptFlash < edu.washington.riekelab.manookin.protocols.ManookinLabStag
         preTime = 500                   % Stim leading duration (ms)
         stimTime = 2500                 % Stim duration (ms)
         tailTime = 500                  % Stim trailing duration (ms)
-        flash1Contrast = 0.5            % Flash 1 contrast (-1:1)
+        flash1Contrasts = [0 0.5]       % Flash 1 contrast (-1:1)
         flash1Duration = 250            % Flash 1 duration (ms)
         flash2Contrasts = [0 0.0625 0.0625 0.125 0.25 0.5 0.75 1] % Test flash contrasts (-1:1)
         flash2Duration = 250            % Test flash duration
@@ -17,7 +17,7 @@ classdef AdaptFlash < edu.washington.riekelab.manookin.protocols.ManookinLabStag
         flash2Class = 'full-field'      % Test flash class
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
-        numberOfAverages = uint16(24)   % Number of epochs
+        numberOfAverages = uint16(48)   % Number of epochs
     end
     
     properties (Hidden)
@@ -27,6 +27,7 @@ classdef AdaptFlash < edu.washington.riekelab.manookin.protocols.ManookinLabStag
         flash1ClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field'})
         flash2ClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field'})
         bkg
+        flash1Contrast
         flash2Contrast
         ipi
         rgbMeans
@@ -52,6 +53,7 @@ classdef AdaptFlash < edu.washington.riekelab.manookin.protocols.ManookinLabStag
                     'preTime',obj.preTime,...
                     'flash1Duration',obj.flash1Duration,...
                     'flash2Duration',obj.flash2Duration,...
+                    'flash1Contrasts',obj.flash1Contrasts,...
                     'flash2Contrasts',obj.flash2Contrasts,...
                     'ipis',obj.ipis);
             end
@@ -136,12 +138,15 @@ classdef AdaptFlash < edu.washington.riekelab.manookin.protocols.ManookinLabStag
         function prepareEpoch(obj, epoch)
             prepareEpoch@edu.washington.riekelab.manookin.protocols.ManookinLabStageProtocol(obj, epoch);
             
+            % Get the current first flash contrast.
+            obj.flash1Contrast = obj.flash1Contrasts(mod(obj.numEpochsCompleted, length(obj.flash1Contrasts))+1);
             % Get the current test flash contrast.
-            obj.flash2Contrast = obj.flash2Contrasts(mod(obj.numEpochsCompleted, length(obj.flash2Contrasts))+1);
+            obj.flash2Contrast = obj.flash2Contrasts(mod(floor(obj.numEpochsCompleted/length(obj.flash1Contrasts)), length(obj.flash2Contrasts))+1);
             % Get the current inter-pulse interval.
             obj.ipi = obj.ipis(mod(obj.numEpochsCompleted, length(obj.ipis))+1);
             
             % Save the Epoch-specific parameters.
+            epoch.addParameter('flash1Contrast', obj.flash1Contrast);
             epoch.addParameter('flash2Contrast', obj.flash2Contrast);
             epoch.addParameter('ipi',obj.ipi);
         end
