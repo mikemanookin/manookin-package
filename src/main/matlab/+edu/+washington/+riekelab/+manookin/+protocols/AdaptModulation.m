@@ -181,7 +181,7 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
             epoch.addParameter('highContrast', obj.highContrast);
             epoch.addParameter('lowContrast', obj.lowContrast);
             epoch.addParameter('temporalFrequency',obj.temporalFrequency);
-            epoch.addParameter('epochTag',['hiCt',num2str(obj.highContrast),'lowCt',num2str(obj.lowContrast),'-tFreq',num2str(obj.temporalFrequency)]);
+            epoch.addParameter('epochTag',['hiCt',num2str(obj.highContrast),'lowCt',num2str(obj.lowContrast),'tF',num2str(obj.temporalFrequency)]);
         end
         
         function tf = shouldContinuePreparingEpochs(obj)

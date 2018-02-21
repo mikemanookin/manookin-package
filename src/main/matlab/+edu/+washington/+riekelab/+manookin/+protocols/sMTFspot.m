@@ -13,7 +13,7 @@ classdef sMTFspot < edu.washington.riekelab.manookin.protocols.ManookinLabStageP
         temporalClass = 'sinewave'      % Sinewave or squarewave?
         chromaticClass = 'achromatic'   % Spot color
         stimulusClass = 'spot'          % Stimulus class
-        onlineAnalysis = 'none'         % Online analysis type.
+        onlineAnalysis = 'extracellular' % Online analysis type.
         numberOfAverages = uint16(18)   % Number of epochs
     end
     
