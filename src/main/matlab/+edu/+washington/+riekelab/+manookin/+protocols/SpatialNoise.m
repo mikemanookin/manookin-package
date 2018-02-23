@@ -17,8 +17,8 @@ classdef SpatialNoise < edu.washington.riekelab.manookin.protocols.ManookinLabSt
         useRandomSeed = true            % Random seed (bool)
         noiseClass = 'binary'           % Noise class (binary or Gaussian)
         chromaticClass = 'achromatic'  % Chromatic type
-        onlineAnalysis = 'none'
-        numberOfAverages = uint16(50)    % Number of epochs
+        onlineAnalysis = 'extracellular'
+        numberOfAverages = uint16(100)    % Number of epochs
     end
 
     properties (Hidden)

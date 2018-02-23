@@ -7,7 +7,7 @@ classdef BarCentering < edu.washington.riekelab.manookin.protocols.ManookinLabSt
         tailTime = 1000                 % Spot trailing duration (ms)
         intensity = 1.0                 % Bar intensity (0-1)
         temporalFrequency = 2.0         % Modulation frequency (Hz)
-        barSize = [50 500]              % Bar size [width, height] (pix)
+        barSize = [50 1000]              % Bar size [width, height] (pix)
         searchAxis = 'xaxis'            % Search axis
         temporalClass = 'squarewave'    % Squarewave or pulse?
         positions = -300:50:300         % Bar center position (pix)

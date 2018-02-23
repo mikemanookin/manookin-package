@@ -7,8 +7,8 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
         tailTime = 250                  % Stim trailing duration (ms)
         highContrasts = [0 1.0]         % High contrast value (0-1)
         highDuration = 1000             % High-contrast duration (ms)
-        lowContrasts = [0 0.125 0.25 0.5]       % Low contrast values (0-1)
-        temporalFrequencies = [6 6]     % Temporal frequencies (Hz)
+        lowContrasts = [0 0.125 0.25 0.5] % Low contrast values (0-1)
+        temporalFrequencies = [12 12]     % Temporal frequencies (Hz)
         radius = 50                     % Inner radius in pixels.
         apertureRadius = 80             % Blank aperture radius (pix)
         phaseShift = 0.0                % Phase shift (degrees)
@@ -150,15 +150,15 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
             obj.lowContrast = obj.lowContrasts(mod(floor(obj.numEpochsCompleted/length(obj.highContrasts)),length(obj.lowContrasts))+1);
             
             % Calculate the number of high contrast frames.
-            highFrames = floor(obj.highDuration*1e-3*obj.frameRate*0.9985);
+            highFrames = floor(obj.highDuration*1e-3*obj.frameRate);
             
             % Pre-generate frames for the epoch.
-            nframes = ceil(obj.stimTime*1e-3*obj.frameRate*0.9985) + 15;
+            nframes = ceil(obj.stimTime*1e-3*obj.frameRate) + 15;
             % Generate the sinusoidal modulation
-            obj.frameSeq = sin((0:nframes-1)/obj.frameRate*0.9985*2*pi*obj.temporalFrequency);
+            obj.frameSeq = sin((0:nframes-1)/obj.frameRate*2*pi*obj.temporalFrequency);
             
             % Deal with the phase shift after transition.
-            obj.frameSeq(highFrames+1:end) = sin((highFrames:nframes-1)/obj.frameRate*0.9985*2*pi*obj.temporalFrequency + obj.phaseShiftRad);
+            obj.frameSeq(highFrames+1:end) = sin((highFrames:nframes-1)/obj.frameRate*2*pi*obj.temporalFrequency + obj.phaseShiftRad);
             
             obj.frameSeq = obj.frameSeq / max(obj.frameSeq);
             if strcmp(obj.temporalClass, 'squarewave')

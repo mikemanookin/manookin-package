@@ -45,7 +45,11 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
             obj.ipis = ip.Results.ipis;
             
             obj.ucvals = unique(obj.flash1Contrasts);
-            obj.colors = pmkmp(length(obj.ucvals),'IsoL');
+            if length(obj.ucvals) == 1
+                obj.colors = zeros(1,3);
+            else
+                obj.colors = pmkmp(length(obj.ucvals),'IsoL');
+            end
             
             obj.uclegends = cell(1,length(obj.ucvals));
             for k = 1 : length(obj.ucvals)
@@ -118,8 +122,8 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
             
             % Get your sample regions.
             prePts = timeToPts(obj.preTime);
-            sample = [1 timeToPts(obj.flash2Duration)] + prePts + ...
-                timeToPts(obj.flash1Duration + ipiTime);
+            sample = round([1 timeToPts(obj.flash2Duration)] + prePts + ...
+                timeToPts(obj.flash1Duration + ipiTime));
             
             if numel(quantities) > 0
                 % Parse the response by type.

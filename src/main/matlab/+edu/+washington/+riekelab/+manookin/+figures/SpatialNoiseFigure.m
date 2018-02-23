@@ -95,7 +95,7 @@ classdef SpatialNoiseFigure < symphonyui.core.FigureHandler
             response = epoch.getResponse(obj.device);
             [quantities, ~] = response.getData();
             sampleRate = response.sampleRate.quantityInBaseUnits;
-            prePts = obj.preTime*1e-3*sampleRate;
+            prePts = round((obj.preTime*1e-3 - 1/60)*sampleRate);
             
             if numel(quantities) > 0
                 % Parse the response by type.
@@ -137,7 +137,7 @@ classdef SpatialNoiseFigure < symphonyui.core.FigureHandler
                 end
                 
                 filterFrames = floor(obj.frameRate*0.5);
-                lobePts = round(0.05*obj.frameRate) : round(0.15*obj.frameRate);
+                lobePts = 2:4; %round(0.03*obj.frameRate) : round(0.15*obj.frameRate);
                 
                 % Perform reverse correlation.
                 if strcmpi(obj.chromaticClass, 'RGB')
