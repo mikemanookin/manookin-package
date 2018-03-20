@@ -3,13 +3,13 @@ classdef AdaptGrating < edu.washington.riekelab.manookin.protocols.ManookinLabSt
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 12000                % Stim duration (ms)
+        stimTime = 4000                 % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
         lowContrast = 0.0               % Low-contrast value (0-1)
         highContrast = 1.0              % High-contrast value (0-1)
-        highDuration = 5000             % High-contrast duration (ms)
-        barWidths = [40 40 40 200 200 200] % Bar widths (pix)
-        temporalFrequencies = [2 6 12 2 6 12] % Temporal frequencies (Hz)
+        highDuration = 2000             % High-contrast duration (ms)
+        barWidths = [40 400]            % Bar widths (pix)
+        temporalFrequencies = [6 6] % Temporal frequencies (Hz)
         orientation = 0                 % Stimulus orientiation (degrees)
         spatialPhase = 0.0              % Spatial phase of grating (deg)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
