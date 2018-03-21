@@ -50,6 +50,13 @@ classdef ObjectMotionGrating < edu.washington.riekelab.manookin.protocols.Manook
             prepareRun@edu.washington.riekelab.manookin.protocols.ManookinLabStageProtocol(obj);
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            if ~strcmp(obj.onlineAnalysis, 'none')
+                colors = [0 0 0; 0.8 0 0; 0 0.7 0.2; 0 0.2 1];
+                obj.showFigure('edu.washington.riekelab.manookin.figures.MeanResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'sweepColor',colors,...
+                    'groupBy',{'stimulusClass'});
+            end
             
             obj.stepSize = obj.jitterSpeed / obj.frameRate;
             obj.driftStep = obj.driftSpeed / obj.frameRate;

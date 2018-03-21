@@ -193,7 +193,14 @@ classdef FilterWheelControl < symphonyui.ui.Module
             if obj.objectiveMag == 4
                 obj.quantalCatch = obj.quantalCatch .* ([0.498627; 0.4921139; 0.453983]*ones(1,4));
             elseif obj.objectiveMag == 60
-                obj.quantalCatch = obj.quantalCatch .* ([1.867747065682890; 1.849862001274647; 1.767678539504911]*ones(1,4));
+                obj.quantalCatch = obj.quantalCatch .* ([6.597209302325584; 5.741661412358134; 4.323529411764706]*ones(1,4));
+            end
+            
+            % Check whether this is a lightcrafter. If so, it's 4 times
+            % brighter.
+            devices = obj.configurationService.getDevices('LightCrafter');
+            if ~isempty(devices)
+                obj.quantalCatch = 4 * obj.quantalCatch;
             end
             
             % Set the quantal catch on the filter wheel device.
