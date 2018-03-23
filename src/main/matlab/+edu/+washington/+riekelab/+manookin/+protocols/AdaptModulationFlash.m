@@ -111,17 +111,33 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
             
             % Control the spot color.
             colorController = stage.builtin.controllers.PropertyController(modulation, 'color', ...
-                @(state)getModContrast(obj, state.time - obj.preTime * 1e-3));
+                @(state)getModContrast(obj, state.frame, round(obj.frameRate/obj.modulationFrequency)));
             p.addController(colorController);
             
-            function c = getModContrast(obj, time)
-                if time > 0 && time <= obj.stimTime*1e-3
-                    c = (obj.modulationContrast*sign(sin(time*2*pi*obj.modulationFrequency)))...
-                        *obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
-                else
-                    c = obj.backgroundMeans;
-                end
+            function c = getModContrast(obj, frame, cycleLength)
+                c = (obj.modulationContrast*(2*mod(floor(frame/cycleLength*2),2)-1))...
+                    *obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
+%                 if time > 0 && time <= obj.stimTime*1e-3
+%                     c = (obj.modulationContrast*sign(sin(time*2*pi*obj.modulationFrequency)))...
+%                         *obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
+%                 else
+%                     c = obj.backgroundMeans;
+%                 end
             end
+            
+%             % Control the spot color.
+%             colorController = stage.builtin.controllers.PropertyController(modulation, 'color', ...
+%                 @(state)getModContrast(obj, state.time - obj.preTime * 1e-3));
+%             p.addController(colorController);
+%             
+%             function c = getModContrast(obj, time)
+%                 if time > 0 && time <= obj.stimTime*1e-3
+%                     c = (obj.modulationContrast*sign(sin(time*2*pi*obj.modulationFrequency)))...
+%                         *obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
+%                 else
+%                     c = obj.backgroundMeans;
+%                 end
+%             end
             
             % Add the test spot.
             if strcmp(obj.flash2Class, 'spot')
