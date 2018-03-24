@@ -2,18 +2,18 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stimulus leading duration (ms)
-        stimTime = 500                  % Stimulus duration (ms)
+        stimTime = 750                  % Stimulus duration (ms)
         tailTime = 250                  % Stimulus trailing duration (ms)
-        waitTime = 200                  % Stimulus wait duration (ms)
-        flashTime = 250                 % Spot flash time (ms)
-        delayTimes = [0,0] % Delay time (ms)
-        spotRadius = 50                % Spot radius (pix).
+        waitTime = 500                  % Stimulus wait duration (ms)
+        flashTime = 100                 % Spot flash time (ms)
+        delayTimes = [25 25]            % Delay time (ms)
+        spotRadius = 100                % Spot radius (pix).
         contrasts = [0 1./[16 16 8 8 4 2 1+1/3 1]] % Spot contrasts (-1:1)
         speed = 2750                    % Background motion speed (pix/sec)
         stimulusIndex = 2               % Stimulus number (1:161)
-        surroundContrast = 0.5          % Surround contrast (0-1)
+        surroundContrast = 1.0          % Surround contrast (0-1)
         surroundBarWidth = 50           % Surround bar width (pix)
-        maskDiameter = 100              % Mask diameter in pixels
+        maskDiameter = 225              % Mask diameter in pixels
         apertureDiameter = 2000         % Aperture diameter in pixels.
         centerOffset = [0,0]            % Center offset in pixels (x,y)
         randomSeed = false              % Use a random (true) or repeating seed (false)
@@ -22,7 +22,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         chromaticClass = 'achromatic'   % Spot color
         bgChromaticClass = 'achromatic' % Background color
         onlineAnalysis = 'extracellular'         % Type of online analysis
-        stimulusSequence = 'tremor-saccade' % Interleaved sequence types.
+        stimulusSequence = 'saccade' % Interleaved sequence types.
         numberOfAverages = uint16(330)    % Number of epochs
     end
     
