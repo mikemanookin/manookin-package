@@ -10,7 +10,7 @@ function [m, ct, deltaRGB] = getMaxContrast(q, isoType, coneRatio)
 % For isoluminant stimuli. L:M is 2:1 for Northern Europeans and 1:1 for
 % macaque.
 if ~exist('coneRatio','var')
-    coneRatio = [1 1]; % [2 1]
+    coneRatio = [2 1];
 end
 
 switch isoType
@@ -27,13 +27,13 @@ switch isoType
         isoM = [1 1 0]';
         lockIndex = 2; % This gets L and M ct closest.
     case 'red-green isoluminant'
-%         m = getRGIsochromaticMeans();
-%         m = m(:)';
-%         % Define the delta RGB.
-%         deltaRGB = [coneRatio(1) -coneRatio(2) 0];
-%         % Calculate the cone contrast.
-%         ct = getConeContrasts(m);
-%         return;
+        m = getRGIsoluminantMeans();
+        m = m(:)';
+        % Define the delta RGB.
+        deltaRGB = [1 -1 0];
+        % Calculate the cone contrast.
+        ct = getConeContrasts(m);
+        return;
     case 'red-green isochromatic'
         m = getRGIsochromaticMeans();
         m = m(:)';
@@ -158,7 +158,16 @@ ct = getConeContrasts(m);
     % Calculate the parameters for the red-green isochromatic stimulus.
     function gunMeans = getRGIsochromaticMeans()
         % Calculate the RG means.
-        gunMeans = q(1:2,1:2)' \ (1./coneRatio(:));
+        gunMeans = q(1:2,1:2)' \ [1; 0.7613];
+        gunMeans = gunMeans/max(abs(gunMeans));
+        gunMeans = gunMeans*0.5;
+        gunMeans(3) = 0; % Set the blue to zero.
+        gunMeans = max(gunMeans,0); 
+    end
+
+    function gunMeans = getRGIsoluminantMeans()
+        % Calculate the RG means.
+        gunMeans = q(1:2,1:2)' \ [0.862; 1];
         gunMeans = gunMeans/max(abs(gunMeans));
         gunMeans = gunMeans*0.5;
         gunMeans(3) = 0; % Set the blue to zero.
