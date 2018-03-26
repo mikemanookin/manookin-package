@@ -16,7 +16,7 @@ classdef AdaptNoise < edu.washington.riekelab.manookin.protocols.ManookinLabStag
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
         randomSeed = true               % Use random noise seed?
-        numberOfAverages = uint16(18)   % Number of epochs
+        numberOfAverages = uint16(100)   % Number of epochs
     end
     
     properties (Hidden)
