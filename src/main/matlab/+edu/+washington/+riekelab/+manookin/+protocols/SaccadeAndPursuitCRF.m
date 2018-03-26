@@ -2,16 +2,16 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stimulus leading duration (ms)
-        stimTime = 750                  % Stimulus duration (ms)
+        stimTime = 1250                 % Stimulus duration (ms)
         tailTime = 250                  % Stimulus trailing duration (ms)
-        waitTime = 500                  % Stimulus wait duration (ms)
+        waitTime = 1000                 % Stimulus wait duration (ms)
         flashTime = 100                 % Spot flash time (ms)
-        delayTimes = [25 25]            % Delay time (ms)
+        delayTimes = [50 50]            % Delay time (ms)
         spotRadius = 100                % Spot radius (pix).
         contrasts = [0 1./[16 16 8 8 4 2 1+1/3 1]] % Spot contrasts (-1:1)
         speed = 2750                    % Background motion speed (pix/sec)
         stimulusIndex = 2               % Stimulus number (1:161)
-        surroundContrast = 1.0          % Surround contrast (0-1)
+        surroundContrast = 0.8          % Surround contrast (0-1)
         surroundBarWidth = 50           % Surround bar width (pix)
         maskDiameter = 225              % Mask diameter in pixels
         apertureDiameter = 2000         % Aperture diameter in pixels.

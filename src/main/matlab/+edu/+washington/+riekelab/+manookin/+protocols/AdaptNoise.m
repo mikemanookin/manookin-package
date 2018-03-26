@@ -3,16 +3,16 @@ classdef AdaptNoise < edu.washington.riekelab.manookin.protocols.ManookinLabStag
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 21000                % Stim duration (ms)
+        stimTime = 3000                 % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
         contrasts = [1/3 1 1/3]         % Contrast series (0-1)
-        durations = [0.25 10]*1000      % Duration series (ms)
-        radius = 50                     % Inner radius in pixels.
+        durations = [1 1]*1000      % Duration series (ms)
+        radius = 100                     % Inner radius in pixels.
         apertureRadius = 80             % Aperture/blank radius in pixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         centerOffset = [0,0]            % Center offset in pixels (x,y) 
         noiseClass = 'binary-gaussian'  % Noise type (binary or Gaussian)
-        stimulusClass = 'spot'          % Stimulus class
+        stimulusClass = 'center-full'     % Stimulus class
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
         randomSeed = true               % Use random noise seed?
@@ -23,7 +23,7 @@ classdef AdaptNoise < edu.washington.riekelab.manookin.protocols.ManookinLabStag
         ampType
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian','binary-gaussian'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
-        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field','center-surround'})
+        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'spot','center-full', 'annulus', 'full-field','center-surround'})
         seed
         bkg
         noiseStream
@@ -59,15 +59,20 @@ classdef AdaptNoise < edu.washington.riekelab.manookin.protocols.ManookinLabStag
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
             
-            if strcmp(obj.stimulusClass, 'center-surround')
+            if strcmp(obj.stimulusClass, 'center-full') || strcmp(obj.stimulusClass, 'center-surround')
                 surround = stage.builtin.stimuli.Rectangle();
                 surround.color = obj.backgroundIntensity;
-                surround.position = obj.canvasSize/2 + obj.centerOffset;
                 surround.orientation = 0;
-                surround.size = max(obj.canvasSize) * ones(1,2) + 2*max(abs(obj.centerOffset));
-                sc = (obj.apertureRadius)*2 / max(surround.size);
-                m = stage.core.Mask.createCircularAperture(sc);
-                surround.setMask(m);
+                if strcmp(obj.stimulusClass, 'center-surround')
+                    surround.size = max(obj.canvasSize) * ones(1,2) + 2*max(abs(obj.centerOffset));
+                    surround.position = obj.canvasSize/2 + obj.centerOffset;
+                    sc = (obj.apertureRadius)*2 / max(surround.size);
+                    m = stage.core.Mask.createCircularAperture(sc);
+                    surround.setMask(m);
+                else
+                    surround.size = obj.canvasSize;
+                    surround.position = obj.canvasSize/2;
+                end
                 p.addStimulus(surround);
                 
                 % Control when the spot is visible.
@@ -81,7 +86,7 @@ classdef AdaptNoise < edu.washington.riekelab.manookin.protocols.ManookinLabStag
                 p.addController(surroundController);
             end
             
-            if strcmp(obj.stimulusClass, 'spot') || strcmp(obj.stimulusClass, 'center-surround')
+            if strcmp(obj.stimulusClass, 'spot') || strcmp(obj.stimulusClass, 'center-full') || strcmp(obj.stimulusClass, 'center-surround')
                 spot = stage.builtin.stimuli.Ellipse();
                 spot.radiusX = obj.radius;
                 spot.radiusY = obj.radius; 
@@ -176,10 +181,12 @@ classdef AdaptNoise < edu.washington.riekelab.manookin.protocols.ManookinLabStag
             % Convert to LED contrast.
             obj.frameSeq = obj.bkg*obj.frameSeq + obj.bkg;
             
-            if strcmp(obj.stimulusClass, 'center-surround')
+            if strcmp(obj.stimulusClass, 'center-full') || strcmp(obj.stimulusClass, 'center-surround')
                 obj.frameSeqSurround = ones(size(obj.frameSeq))*obj.bkg;
                 obj.frameSeqSurround(sFrames(2):eFrames(2)) = obj.frameSeq(sFrames(2):eFrames(2));
-                obj.frameSeq(sFrames(2):eFrames(2)) = obj.bkg;
+                if strcmp(obj.stimulusClass, 'center-surround')
+                    obj.frameSeq(sFrames(2):eFrames(2)) = obj.bkg;
+                end
             end
             
             % Save the seed.
