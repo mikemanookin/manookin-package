@@ -93,8 +93,6 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
         
         function clear(obj)
             cla(obj.axesHandle);
-            cla(obj.phaseAxesHandle);
-            obj.xaxis = obj.xaxis*0;
             obj.yaxis = obj.yaxis*0;
             obj.repsPerX = obj.repsPerX*0;
             obj.bgResponse = 0;
