@@ -10,7 +10,7 @@ function [m, ct, deltaRGB] = getMaxContrast(q, isoType, coneRatio)
 % For isoluminant stimuli. L:M is 2:1 for Northern Europeans and 1:1 for
 % macaque.
 if ~exist('coneRatio','var')
-    coneRatio = [2 1];
+    coneRatio = [1 1]; %[2 1];
 end
 
 switch isoType
@@ -27,13 +27,13 @@ switch isoType
         isoM = [1 1 0]';
         lockIndex = 2; % This gets L and M ct closest.
     case 'red-green isoluminant'
-        m = getRGIsoluminantMeans();
-        m = m(:)';
-        % Define the delta RGB.
-        deltaRGB = [1 -1 0];
-        % Calculate the cone contrast.
-        ct = getConeContrasts(m);
-        return;
+%         m = getRGIsoluminantMeans();
+%         m = m(:)';
+%         % Define the delta RGB.
+%         deltaRGB = [1 -1 0];
+%         % Calculate the cone contrast.
+%         ct = getConeContrasts(m);
+%         return;
     case 'red-green isochromatic'
         m = getRGIsochromaticMeans();
         m = m(:)';

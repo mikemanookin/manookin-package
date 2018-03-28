@@ -17,6 +17,7 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
         modulationClass = 'full-field'  % Adapting flash class
         flash2Class = 'spot'            % Test flash class
         chromaticClass = 'achromatic'   % Chromatic class
+        backgroundChromaticClass = 'achromatic' % Background chromatic class.
         onlineAnalysis = 'extracellular'% Online analysis type.
         numberOfAverages = uint16(60)   % Number of epochs
     end
@@ -24,6 +25,7 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
     properties (Hidden)
         ampType
         chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red-green isoluminant','red-green isochromatic'})
+        backgroundChromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red-green isoluminant','red-green isochromatic'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         modulationClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field'})
         flash2ClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field'})
@@ -34,6 +36,7 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
         rgbMeans
         rgbValues
         backgroundMeans
+        bkgValues
     end
     
      methods
@@ -72,12 +75,17 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
             % Check the color space.
             if strcmp(obj.chromaticClass,'achromatic')
                 obj.rgbMeans = 0.5;
-                obj.rgbValues = 1;
-                obj.backgroundMeans = obj.bkg*ones(1,3);
+                obj.rgbValues = 1;  
             else
-                [obj.rgbMeans, ~, deltaRGB] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
-                obj.rgbValues = deltaRGB*obj.bkg + obj.bkg;
-                obj.backgroundMeans = obj.rgbMeans(:)';
+                [obj.rgbMeans, ~, obj.rgbValues] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
+            end
+            
+            if strcmp(obj.backgroundChromaticClass,'achromatic')
+                obj.backgroundMeans = obj.bkg*ones(1,3);
+                obj.bkgValues = 1;
+            else
+                [obj.backgroundMeans, ~, obj.bkgValues] = getMaxContrast(obj.quantalCatch, obj.backgroundChromaticClass);
+                obj.backgroundMeans = obj.backgroundMeans(:)';
             end
         end
         
@@ -101,7 +109,7 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
                     modulation.setMask(m);
                 end
             end
-            modulation.color = obj.modulationContrast*obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
+            modulation.color = obj.modulationContrast*obj.bkgValues.*obj.backgroundMeans + obj.backgroundMeans;
             p.addStimulus(modulation);
             
             % Control when the spot is visible.
@@ -116,28 +124,8 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
             
             function c = getModContrast(obj, frame, cycleLength)
                 c = (obj.modulationContrast*(2*mod(floor(frame/cycleLength*2),2)-1))...
-                    *obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
-%                 if time > 0 && time <= obj.stimTime*1e-3
-%                     c = (obj.modulationContrast*sign(sin(time*2*pi*obj.modulationFrequency)))...
-%                         *obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
-%                 else
-%                     c = obj.backgroundMeans;
-%                 end
+                    *obj.bkgValues.*obj.backgroundMeans + obj.backgroundMeans;
             end
-            
-%             % Control the spot color.
-%             colorController = stage.builtin.controllers.PropertyController(modulation, 'color', ...
-%                 @(state)getModContrast(obj, state.time - obj.preTime * 1e-3));
-%             p.addController(colorController);
-%             
-%             function c = getModContrast(obj, time)
-%                 if time > 0 && time <= obj.stimTime*1e-3
-%                     c = (obj.modulationContrast*sign(sin(time*2*pi*obj.modulationFrequency)))...
-%                         *obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
-%                 else
-%                     c = obj.backgroundMeans;
-%                 end
-%             end
             
             % Add the test spot.
             if strcmp(obj.flash2Class, 'spot')
@@ -156,7 +144,7 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
                     spot.setMask(m);
                 end
             end
-            spot.color = obj.flash2Contrast*obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
+            spot.color = obj.flash2Contrast*obj.rgbValues.*obj.rgbMeans + obj.rgbMeans;
             % Add the stimulus to the presentation.
             p.addStimulus(spot);
             
