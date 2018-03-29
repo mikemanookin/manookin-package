@@ -25,7 +25,7 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
         ampType
         temporalClassType = symphonyui.core.PropertyType('char', 'row', {'sinewave','squarewave'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
-        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field','center-surround'})
+        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'spot','center-const-surround', 'annulus', 'full-field','center-surround'})
         bkg
         frameSeq
         frameSeqSurround
@@ -66,7 +66,7 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
             
-            if strcmp(obj.stimulusClass, 'center-surround')
+            if strcmp(obj.stimulusClass, 'center-surround') || strcmp(obj.stimulusClass,'center-const-surround')
                 surround = stage.builtin.stimuli.Rectangle();
                 surround.color = obj.backgroundIntensity;
                 surround.position = obj.canvasSize/2 + obj.centerOffset;
@@ -88,7 +88,7 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
                 p.addController(surroundController);
             end
             
-            if strcmp(obj.stimulusClass, 'spot') || strcmp(obj.stimulusClass, 'center-surround')
+            if strcmp(obj.stimulusClass, 'spot') || strcmp(obj.stimulusClass, 'center-surround') || strcmp(obj.stimulusClass,'center-const-surround')
                 spot = stage.builtin.stimuli.Ellipse();
                 spot.radiusX = obj.radius;
                 spot.radiusY = obj.radius; 
@@ -165,8 +165,24 @@ classdef AdaptModulation < edu.washington.riekelab.manookin.protocols.ManookinLa
                 obj.frameSeq = sign(obj.frameSeq);
             end
             
-            obj.frameSeq(1:highFrames) = obj.frameSeq(1:highFrames)*obj.highContrast;
-            obj.frameSeq(highFrames+1:end) = obj.frameSeq(highFrames+1:end)*obj.lowContrast;
+            if strcmp(obj.stimulusClass,'center-const-surround')
+                obj.frameSeq = sin((0:nframes-1)/obj.frameRate*2*pi*obj.temporalFrequency + obj.phaseShiftRad);
+                obj.frameSeq = obj.frameSeq / max(obj.frameSeq);
+                obj.frameSeqSurround = sin((0:nframes-1)/obj.frameRate*2*pi*obj.temporalFrequency);
+                obj.frameSeqSurround = obj.frameSeqSurround/max(obj.frameSeqSurround);
+                if strcmp(obj.temporalClass, 'squarewave')
+                    obj.frameSeq = sign(obj.frameSeq);
+                    obj.frameSeqSurround = sign(obj.frameSeqSurround);
+                end
+                obj.frameSeq = obj.frameSeq*obj.lowContrast;
+                obj.frameSeqSurround = obj.frameSeqSurround*obj.highContrast;
+                obj.frameSeqSurround(highFrames+1 : end) = 0;
+                % Convert to LED contrast.
+                obj.frameSeqSurround = obj.bkg*obj.frameSeqSurround + obj.bkg;
+            else
+                obj.frameSeq(1:highFrames) = obj.frameSeq(1:highFrames)*obj.highContrast;
+                obj.frameSeq(highFrames+1:end) = obj.frameSeq(highFrames+1:end)*obj.lowContrast;
+            end
             
             % Convert to LED contrast.
             obj.frameSeq = obj.bkg*obj.frameSeq + obj.bkg;
