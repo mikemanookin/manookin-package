@@ -3,11 +3,11 @@ classdef AdaptNoiseHalfField < edu.washington.riekelab.manookin.protocols.Manook
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 15000                % Stim duration (ms)
+        stimTime = 2000                 % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
         lowContrast = 1/3               % Low-contrast value (0-1)
         highContrast = 1.0              % High-contrast value (0-1)
-        highDuration = 5000             % High-contrast duration (ms)
+        highDuration = 1000             % High-contrast duration (ms)
         radius = 150                    % Inner radius in pixels.
         separationPix = 32              % Separation between RF regions (pix)
         orientation = 0                 % Stimulus orientiation (degrees)
@@ -17,7 +17,7 @@ classdef AdaptNoiseHalfField < edu.washington.riekelab.manookin.protocols.Manook
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
         randomSeed = true               % Use random noise seed?
-        numberOfAverages = uint16(30)   % Number of epochs
+        numberOfAverages = uint16(200)  % Number of epochs
     end
     
     properties (Hidden)
@@ -166,7 +166,7 @@ classdef AdaptNoiseHalfField < edu.washington.riekelab.manookin.protocols.Manook
             stimulusClass = obj.stimulusClasses{mod(obj.numEpochsCompleted,length(obj.stimulusClasses))+1};
             lowField = obj.lowFields{mod(obj.numEpochsCompleted,length(obj.lowFields))+1};
             
-            if strcmp(obj.noiseClass,'binary-gaussian') && ~strcmp(stimulusClass,'normal')
+            if strcmp(obj.noiseClass,'binary-gaussian') && ~strcmp(stimulusClass,'normal') && ~strcmp(stimulusClass,'adapt-interact')
                 frameSeq(1:eFrames) = 2*(frameSeq(1:eFrames) > 0) - 1;
             end
             
@@ -179,16 +179,22 @@ classdef AdaptNoiseHalfField < edu.washington.riekelab.manookin.protocols.Manook
                     obj.frameSeq1 = zeros(1,nframes);
                 end
             elseif strcmp(stimulusClass,'adapt-interact')
+                % Reseed the generator.
+                obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed+1);
+                if strcmp(obj.noiseClass,'binary') || strcmp(obj.noiseClass,'binary-gaussian')
+                    frameSeqHigh = obj.noiseStream.rand(1,eFrames) > 0.5;
+                    frameSeqHigh = 2*frameSeqHigh - 1;
+                else
+                    frameSeqHigh = 0.3*obj.noiseStream.randn(1,eFrames);
+                end
                 if strcmp(lowField, 'left')
                     obj.frameSeq1 = obj.lowContrast*frameSeq;
-                    obj.frameSeq1(1:eFrames) = 0;
                     obj.frameSeq2 = zeros(1,nframes);
-                    obj.frameSeq2(1:eFrames) = obj.highContrast*frameSeq(1:eFrames);
+                    obj.frameSeq2(1:eFrames) = obj.highContrast*frameSeqHigh(1:eFrames);
                 else
                     obj.frameSeq2 = obj.lowContrast*frameSeq;
-                    obj.frameSeq2(1:eFrames) = 0;
                     obj.frameSeq1 = zeros(1,nframes);
-                    obj.frameSeq1(1:eFrames) = obj.highContrast*frameSeq(1:eFrames);
+                    obj.frameSeq1(1:eFrames) = obj.highContrast*frameSeqHigh(1:eFrames);
                 end
             else
                 if strcmp(lowField, 'left')
