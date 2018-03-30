@@ -208,12 +208,6 @@ classdef AdaptNoise < edu.washington.riekelab.manookin.protocols.ManookinLabStag
                 end
             end
             
-            figure(100); clf;
-            hold on
-            plot(obj.frameSeq);
-            plot(obj.frameSeqSurround);
-            hold off;
-            
             % Save the seed.
             epoch.addParameter('seed', obj.seed);
 
