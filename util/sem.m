@@ -18,4 +18,4 @@ end
 x = varargin{1};
 n = size(x,dim);
 
-y = std(x,[],dim) / sqrt(n);
+y = nanstd(x,[],dim) / sqrt(n);
