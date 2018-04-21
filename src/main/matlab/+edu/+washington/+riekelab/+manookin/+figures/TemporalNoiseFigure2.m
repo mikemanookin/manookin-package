@@ -146,24 +146,27 @@ classdef TemporalNoiseFigure2 < symphonyui.core.FigureHandler
                 end
                 
                 % Make it the same size as the stim frames.
-                y = y(round(obj.onsets(1)*binRate)+ (1 : length(frameValues)));
+                y1 = y(round(obj.onsets(1)*binRate)+ (1 : length(frameValues)));
                 
                 % Zero out the first half-second while cell is adapting to
                 % stimulus.
-                y(1 : floor(binRate/2)) = 0;
+                y1(1 : floor(binRate/2)) = 0;
                 frameValues(1 : floor(binRate/2)) = 0;
                 
-                obj.stimulus1 = [obj.stimulus1; frameValues];
-                obj.response1 = [obj.response1; y];
+                obj.stimulus1 = [obj.stimulus1; frameValues(:)'];
+                obj.response1 = [obj.response1; y1(:)'];
                 
                 % Calculate the linear filter.
-                lf1 = mean((fft(obj.response1,[],2).*conj(fft(obj.stimulus1,[],2))),1);
+                lf1 = real(mean((fft(obj.response1,[],1).*conj(fft(obj.stimulus1,[],1))),1));
                 lf1 = lf1 / max(abs(lf1));
+                
                 % Calculate the linear prediction.
                 prediction = zeros(size(obj.response1));
                 for n = 1 : size(obj.stimulus1,1)
-                    prediction(n,:) = ifft(fft(lf1) .* fft(obj.stimulus1(n,:)));
+                    prediction(n,:) = real(ifft(fft(lf1) .* fft(obj.stimulus1(n,:))));
                 end
+                prediction(isnan(prediction))=0;
+                
                 % Bin the nonlinearity
                 [xBin1, yBin1] = binNonlinearity(prediction, obj.response1, obj.nonlinearityBins); 
                 
@@ -178,24 +181,25 @@ classdef TemporalNoiseFigure2 < symphonyui.core.FigureHandler
                     end
 
                     % Make it the same size as the stim frames.
-                    y = y(round(obj.onsets(2)*binRate)+ (1 : length(frameValues)));
+                    y2 = y(round(obj.onsets(2)*binRate)+ (1 : length(frameValues)));
 
                     % Zero out the first half-second while cell is adapting to
                     % stimulus.
-                    y(1 : floor(binRate/2)) = 0;
+                    y2(1 : floor(binRate/2)) = 0;
                     frameValues(1 : floor(binRate/2)) = 0;
 
-                    obj.stimulus2 = [obj.stimulus2; frameValues];
-                    obj.response2 = [obj.response2; y];
+                    obj.stimulus2 = [obj.stimulus2; frameValues(:)'];
+                    obj.response2 = [obj.response2; y2(:)'];
                     
                     % Calculate the linear filter.
-                    lf2 = mean((fft(obj.response2,[],2).*conj(fft(obj.stimulus2,[],2))),1);
+                    lf2 = real(mean((fft(obj.response2,[],1).*conj(fft(obj.stimulus2,[],1))),1));
                     lf2 = lf2 / max(abs(lf2));
                     % Calculate the linear prediction.
                     prediction = zeros(size(obj.response2));
                     for n = 1 : size(obj.stimulus2,1)
-                        prediction(n,:) = ifft(fft(lf2) .* fft(obj.stimulus2(n,:)));
+                        prediction(n,:) = real(ifft(fft(lf2) .* fft(obj.stimulus2(n,:))));
                     end
+                    prediction(isnan(prediction))=0;
                     % Bin the nonlinearity
                     [xBin2, yBin2] = binNonlinearity(prediction, obj.response2, obj.nonlinearityBins); 
                 end
