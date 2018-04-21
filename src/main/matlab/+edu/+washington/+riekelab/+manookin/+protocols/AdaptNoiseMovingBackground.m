@@ -15,7 +15,7 @@ classdef AdaptNoiseMovingBackground < edu.washington.riekelab.manookin.protocols
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         centerOffset = [0,0]            % Center offset in pixels (x,y) 
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
-        backgroundClass = 'jittering'   % Stimulus class
+        backgroundClass = 'drifting'    % Stimulus class
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
         numberOfAverages = uint16(20)   % Number of epochs
@@ -50,10 +50,6 @@ classdef AdaptNoiseMovingBackground < edu.washington.riekelab.manookin.protocols
             prepareRun@edu.washington.riekelab.manookin.protocols.ManookinLabStageProtocol(obj);
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            obj.showFigure('edu.washington.riekelab.manookin.figures.MeanResponseFigure', ...
-                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                'sweepColor',[30 144 255]/255,...
-                'groupBy',{'frameRate'});
             
             % Calculate the period durations.
             halfTime = floor(obj.stimTime/2);
@@ -61,6 +57,17 @@ classdef AdaptNoiseMovingBackground < edu.washington.riekelab.manookin.protocols
             obj.onsets = cumsum([1 randTime obj.repTime randTime])*1e-3;
             
             obj.stepSize = obj.backgroundSpeed / obj.frameRate;
+            
+%             if ~strcmp(obj.onlineAnalysis, 'none')
+%                 obj.showFigure('edu.washington.riekelab.manookin.figures.TemporalNoiseFigure2', ...
+%                     obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+%                     'noiseClass',obj.noiseClass,...
+%                     'preTime',obj.preTime,...
+%                     'frameRate',obj.frameRate,...
+%                     'onsets',obj.onsets([1 3]),...
+%                     'durations',randTime*ones(1,2)*1e-3,...
+%                     'contrasts',obj.spotContrast*ones(1,2));
+%             end
         end
         
         function p = createPresentation(obj)
