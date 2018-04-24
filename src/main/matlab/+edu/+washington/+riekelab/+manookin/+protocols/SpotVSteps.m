@@ -4,9 +4,9 @@ classdef SpotVSteps < edu.washington.riekelab.manookin.protocols.ManookinLabStag
         preTime = 500                   % Spot leading duration (ms)
         stimTime = 500                  % Spot duration (ms)
         tailTime = 1500                 % Spot trailing duration (ms)
-        contrasts = [-1 1 -1 1]         % Contrasts (-1 to 1)
-        innerRadius = 0                 % Inner radius in pixels.
-        outerRadius = 200               % Outer radius in pixels.
+        contrasts = [-1 -1 1 1]    % Contrasts (-1 to 1)
+        innerRadii = [0 100 0 100]        % Inner radius in pixels.
+        outerRadii = [100 200 100 200]      % Outer radius in pixels.
         chromaticClass = 'achromatic'   % Spot color
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         ECl = -55                       % Apparent chloride reversal (mV)
@@ -28,6 +28,10 @@ classdef SpotVSteps < edu.washington.riekelab.manookin.protocols.ManookinLabStag
         repsPerHold
         Vh
         allContrasts
+        innerRadius
+        outerRadius
+        allInnerRadii
+        allOuterRadii
     end
     
     methods
@@ -49,6 +53,8 @@ classdef SpotVSteps < edu.washington.riekelab.manookin.protocols.ManookinLabStag
             obj.Vh = obj.Vh(:)';
             
             obj.allContrasts = [0, obj.contrasts(:)'];
+            obj.allInnerRadii = [0, obj.innerRadii(:)'];
+            obj.allOuterRadii = [0, obj.outerRadii(:)'];
             
             % Set the first holding potential.
             device = obj.rig.getDevice(obj.amp);
@@ -74,6 +80,15 @@ classdef SpotVSteps < edu.washington.riekelab.manookin.protocols.ManookinLabStag
 
                 % Add the stimulus to the presentation.
                 p.addStimulus(spot);
+                
+                if obj.innerRadius > 0
+                    mask = stage.builtin.stimuli.Ellipse();
+                    mask.radiusX = obj.innerRadius;
+                    mask.radiusY = obj.innerRadius;
+                    mask.position = obj.canvasSize/2 + obj.centerOffset;
+                    mask.color = obj.backgroundIntensity;
+                    p.addStimulus(mask);
+                end
 
                 % Control when the spot is visible.
                 spotVisible = stage.builtin.controllers.PropertyController(spot, 'visible', ...
@@ -90,6 +105,20 @@ classdef SpotVSteps < edu.washington.riekelab.manookin.protocols.ManookinLabStag
                 obj.contrast = obj.allContrasts(mod(obj.numEpochsCompleted,length(obj.allContrasts))+1);
             else
                 obj.contrast = obj.contrasts;
+            end
+            
+            % Get the current inner radius.
+            if length(obj.innerRadii) > 1
+                obj.innerRadius = obj.allInnerRadii(mod(obj.numEpochsCompleted,length(obj.allInnerRadii))+1);
+            else
+                obj.innerRadius = obj.innerRadii;
+            end
+            
+            % Get the current outer radius.
+            if length(obj.outerRadii) > 1
+                obj.outerRadius = obj.allOuterRadii(mod(obj.numEpochsCompleted,length(obj.allOuterRadii))+1);
+            else
+                obj.outerRadius = obj.outerRadii;
             end
             
             % Get the current holding potential.
@@ -132,6 +161,8 @@ classdef SpotVSteps < edu.washington.riekelab.manookin.protocols.ManookinLabStag
             % Save the epoch-specific parameters
             epoch.addParameter('contrast',obj.contrast);
             epoch.addParameter('holdingPotential',obj.holdingPotential);
+            epoch.addParameter('innerRadius', obj.innerRadius);
+            epoch.addParameter('outerRadius', obj.outerRadius);
             
             % Set the holding potential.
             device = obj.rig.getDevice(obj.amp);
