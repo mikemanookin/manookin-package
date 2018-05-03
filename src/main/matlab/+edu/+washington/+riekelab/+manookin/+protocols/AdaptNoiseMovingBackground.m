@@ -3,7 +3,7 @@ classdef AdaptNoiseMovingBackground < edu.washington.riekelab.manookin.protocols
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 21000                % Stim duration (ms)
+        stimTime = 27000                % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
         repTime = 3500                  % Repeat period durations (ms)
         spotContrast = 1.0              % High contrast (0-1)
@@ -18,7 +18,7 @@ classdef AdaptNoiseMovingBackground < edu.washington.riekelab.manookin.protocols
         backgroundClass = 'drifting'    % Stimulus class
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
-        numberOfAverages = uint16(20)   % Number of epochs
+        numberOfAverages = uint16(21)   % Number of epochs
     end
     
     properties (Hidden)
