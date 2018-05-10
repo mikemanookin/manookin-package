@@ -7,7 +7,7 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
         modulationContrasts = [0 0.8]   % Flash 1 contrast (-1:1)
         modulationDuration = 1250       % Flash 1 duration (ms)
         modulationFrequency = 30.0      % Modulation temporal frequency (Hz)
-        flash2Contrasts = [0 0.0625 0.0625 0.125 0.125 0.25 0.25 0.5 0.75 1] % Test flash contrasts (-1:1)
+        flash2Contrasts = [0 -0.0625 0.0625 -0.0625 0.0625 -0.125 0.125 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Test flash contrasts (-1:1)
         flash2Duration = 100            % Test flash duration
         ipis = 25*2.^(0:6)              % Inter-pulse intervals (ms)
         radius = 105                    % Inner radius in pixels.
@@ -19,7 +19,7 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
         chromaticClass = 'achromatic'   % Chromatic class
         backgroundChromaticClass = 'achromatic' % Background chromatic class.
         onlineAnalysis = 'extracellular'% Online analysis type.
-        numberOfAverages = uint16(60)   % Number of epochs
+        numberOfAverages = uint16(120)   % Number of epochs
     end
     
     properties (Hidden)
