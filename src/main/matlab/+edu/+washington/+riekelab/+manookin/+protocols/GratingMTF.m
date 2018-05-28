@@ -71,7 +71,7 @@ classdef GratingMTF < edu.washington.riekelab.manookin.protocols.ManookinLabStag
                     grate = stage.builtin.stimuli.Grating('square'); 
             end
             grate.orientation = obj.orientation;
-            if obj.apertureRadius > 0 && obj.apertureRadius < max(obj.canvasSize/2)
+            if obj.apertureRadius > 0 && obj.apertureRadius < max(obj.canvasSize/2) && strcmpi(obj.apertureClass, 'spot')
                 grate.size = 2*obj.apertureRadius*ones(1,2);
             else
                 grate.size = max(obj.canvasSize) * ones(1,2);

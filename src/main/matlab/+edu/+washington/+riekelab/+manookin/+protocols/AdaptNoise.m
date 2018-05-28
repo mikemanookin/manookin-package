@@ -3,16 +3,16 @@ classdef AdaptNoise < edu.washington.riekelab.manookin.protocols.ManookinLabStag
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 3000                 % Stim duration (ms)
+        stimTime = 13000                % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
         contrasts = [1/3 1 1/3]         % Contrast series (0-1)
-        durations = [1 1]*1000      % Duration series (ms)
+        durations = [1 6]*1000      % Duration series (ms)
         radius = 100                     % Inner radius in pixels.
-        apertureRadius = 80             % Aperture/blank radius in pixels.
+        apertureRadius = 100             % Aperture/blank radius in pixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         centerOffset = [0,0]            % Center offset in pixels (x,y) 
-        noiseClass = 'binary-gaussian'  % Noise type (binary or Gaussian)
-        stimulusClass = 'center-const-surround' % Stimulus class
+        noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
+        stimulusClass = 'spot'          % Stimulus class
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
         randomSeed = true               % Use random noise seed?

@@ -157,7 +157,7 @@ classdef TemporalNoiseFigure2 < symphonyui.core.FigureHandler
                 
                 % Calculate the linear filter.
                 lf1 = real(ifft(mean((fft(obj.response1,[],2).*conj(fft(obj.stimulus1,[],2))),1)));
-                lf1 = lf1 / max(abs(lf1));
+                lf1 = lf1 / norm(lf1);
                 
                 % Calculate the linear prediction.
                 prediction = zeros(size(obj.response1));
@@ -192,7 +192,7 @@ classdef TemporalNoiseFigure2 < symphonyui.core.FigureHandler
                     
                     % Calculate the linear filter.
                     lf2 = real(ifft(mean((fft(obj.response2,[],2).*conj(fft(obj.stimulus2,[],2))),1)));
-                    lf2 = lf2 / max(abs(lf2));
+                    lf2 = lf2 / norm(lf2);
                     % Calculate the linear prediction.
                     prediction = zeros(size(obj.response2));
                     for n = 1 : size(obj.stimulus2,1)

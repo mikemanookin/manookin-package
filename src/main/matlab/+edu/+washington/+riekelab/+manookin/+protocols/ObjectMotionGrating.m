@@ -2,7 +2,7 @@ classdef ObjectMotionGrating < edu.washington.riekelab.manookin.protocols.Manook
     properties
         amp                             % Output amplifier
         preTime = 500                   % Grating leading duration (ms)
-        stimTime = 15000                 % Grating duration (ms)
+        stimTime = 6000                 % Grating duration (ms)
         tailTime = 500                  % Grating trailing duration (ms)
         contrast = 0.5                  % Grating contrast (0-1)
         orientation = 0.0               % Grating orientation (deg)
@@ -16,7 +16,7 @@ classdef ObjectMotionGrating < edu.washington.riekelab.manookin.protocols.Manook
         apertureRadius = 150            % Aperature radius between inner and outer gratings.
         spatialClass = 'squarewave'     % Spatial type (sinewave or squarewave)      
         onlineAnalysis = 'extracellular' % Type of online analysis
-        useRandomSeed = true            % Random or repeated seed?
+        useRandomSeed = false            % Random or repeated seed?
         numberOfAverages = uint16(24)   % Number of epochs
     end
     
