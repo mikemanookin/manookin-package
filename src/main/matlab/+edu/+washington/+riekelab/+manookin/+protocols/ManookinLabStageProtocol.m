@@ -1,7 +1,7 @@
 classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabStageProtocol
     
     properties
-        interpulseInterval = 0          % Duration between pulses (s)
+        interpulseInterval = 1          % Duration between pulses (s)
     end
     
     properties (Hidden)

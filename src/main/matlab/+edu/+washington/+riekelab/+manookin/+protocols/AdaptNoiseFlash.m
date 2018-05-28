@@ -2,14 +2,13 @@ classdef AdaptNoiseFlash < edu.washington.riekelab.manookin.protocols.ManookinLa
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 3000                 % Stim duration (ms)
+        stimTime = 1500                 % Stim duration (ms)
         tailTime = 500                  % Stim trailing duration (ms)
-        modulationContrasts = [0 0.8]   % Flash 1 contrast (-1:1)
+        modulationContrasts = [0 1]     % Flash 1 contrast (-1:1)
         modulationDuration = 1250       % Flash 1 duration (ms)
-        modulationFrequency = 30.0      % Modulation temporal frequency (Hz)
         flash2Contrasts = [0 -0.0625 0.0625 -0.0625 0.0625 -0.125 0.125 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Test flash contrasts (-1:1)
         flash2Duration = 100            % Test flash duration
-        ipis = 25*2.^(0:6)              % Inter-pulse intervals (ms)
+        ipis = [50 50]                  % Inter-pulse intervals (ms)
         radius = 105                    % Inner radius in pixels.
         apertureRadius = 105            % Blank aperture radius (pix)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
@@ -37,6 +36,7 @@ classdef AdaptNoiseFlash < edu.washington.riekelab.manookin.protocols.ManookinLa
         rgbValues
         backgroundMeans
         bkgValues
+        noiseStream
     end
     
      methods
@@ -124,12 +124,17 @@ classdef AdaptNoiseFlash < edu.washington.riekelab.manookin.protocols.ManookinLa
             
             % Control the spot color.
             colorController = stage.builtin.controllers.PropertyController(modulation, 'color', ...
-                @(state)getModContrast(obj, state.frame, round(obj.frameRate/obj.modulationFrequency)));
+                @(state)getModContrast(obj, state.time - obj.preTime*1e-3));
             p.addController(colorController);
             
-            function c = getModContrast(obj, frame, cycleLength)
-                c = (obj.modulationContrast*(2*mod(floor(frame/cycleLength*2),2)-1))...
-                    *obj.bkgValues.*obj.backgroundMeans + obj.backgroundMeans;
+            function c = getModContrast(obj, time)
+                if time >= 0 && time < obj.modulationDuration*1e-3
+                    c = (obj.modulationContrast*(2*(obj.noiseStream.rand > 0.5)-1))...
+                        *obj.bkgValues.*obj.backgroundMeans + obj.backgroundMeans;
+                else
+                    c = obj.backgroundMeans;
+                end
+                
             end
             
             % Add the test spot.
@@ -168,7 +173,15 @@ classdef AdaptNoiseFlash < edu.washington.riekelab.manookin.protocols.ManookinLa
             obj.flash2Contrast = obj.flash2Contrasts(mod(floor(obj.numEpochsCompleted/length(obj.modulationContrasts)), length(obj.flash2Contrasts))+1);
             % Get the current inter-pulse interval.
             obj.ipi = obj.ipis(mod(floor(obj.numEpochsCompleted/length(obj.modulationContrasts)), length(obj.ipis))+1);
-%             obj.ipi = obj.ipis(mod(obj.numEpochsCompleted, length(obj.ipis))+1);
+            
+            % Deal with the seed.
+            seed = RandStream.shuffleSeed;
+            
+            % Seed the random number generator.
+            obj.noiseStream = RandStream('mt19937ar', 'Seed', seed);
+            
+            % Save the seed.
+            epoch.addParameter('seed', seed);
             
             % Save the Epoch-specific parameters.
             epoch.addParameter('modulationContrast', obj.modulationContrast);
