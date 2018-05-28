@@ -141,7 +141,7 @@ classdef sMTFspot < edu.washington.riekelab.manookin.protocols.ManookinLabStageP
             p.setBackgroundColor(obj.backgroundIntensity);
             
             if strcmp(obj.stimulusClass, 'annulus')
-                stage.builtin.stimuli.Rectangle();
+                spot = stage.builtin.stimuli.Rectangle();
                 spot.size = obj.canvasSize;
                 spot.orientation = 0;
                 spot.position = obj.canvasSize/2;
