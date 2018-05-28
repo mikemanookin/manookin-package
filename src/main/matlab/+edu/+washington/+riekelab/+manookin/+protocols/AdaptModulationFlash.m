@@ -73,20 +73,40 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
             end
             
             % Check the color space.
-            if strcmp(obj.chromaticClass,'achromatic')
+            if strcmp(obj.chromaticClass,'achromatic') && strcmp(obj.backgroundChromaticClass,'achromatic')
                 obj.rgbMeans = 0.5;
-                obj.rgbValues = 1;  
-            else
-                [obj.rgbMeans, ~, obj.rgbValues] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
-            end
-            
-            if strcmp(obj.backgroundChromaticClass,'achromatic')
+                obj.rgbValues = 1;
                 obj.backgroundMeans = obj.bkg*ones(1,3);
+                obj.bkgValues = 1;
+            elseif ~strcmp(obj.chromaticClass,'achromatic') && ~strcmp(obj.backgroundChromaticClass,'achromatic')
+                [obj.rgbMeans, ~, obj.rgbValues] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
+                [obj.backgroundMeans, ~, obj.bkgValues] = getMaxContrast(obj.quantalCatch, obj.backgroundChromaticClass);
+                obj.backgroundMeans = obj.backgroundMeans(:)';
+            elseif strcmp(obj.backgroundChromaticClass,'achromatic')
+                [obj.rgbMeans, ~, obj.rgbValues] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
+                obj.backgroundMeans = obj.rgbMeans;
                 obj.bkgValues = 1;
             else
                 [obj.backgroundMeans, ~, obj.bkgValues] = getMaxContrast(obj.quantalCatch, obj.backgroundChromaticClass);
                 obj.backgroundMeans = obj.backgroundMeans(:)';
+                obj.rgbMeans = obj.backgroundMeans;
+                obj.rgbValues = 1;
             end
+            
+%             if strcmp(obj.chromaticClass,'achromatic')
+%                 obj.rgbMeans = 0.5;
+%                 obj.rgbValues = 1;  
+%             else
+%                 [obj.rgbMeans, ~, obj.rgbValues] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
+%             end
+%             
+%             if strcmp(obj.backgroundChromaticClass,'achromatic')
+%                 obj.backgroundMeans = obj.bkg*ones(1,3);
+%                 obj.bkgValues = 1;
+%             else
+%                 [obj.backgroundMeans, ~, obj.bkgValues] = getMaxContrast(obj.quantalCatch, obj.backgroundChromaticClass);
+%                 obj.backgroundMeans = obj.backgroundMeans(:)';
+%             end
         end
         
         function p = createPresentation(obj)
@@ -143,7 +163,7 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
                     m = stage.core.Mask.createCircularAperture(sc);
                     spot.setMask(m);
                 end
-            end
+            end 
             spot.color = obj.flash2Contrast*obj.rgbValues.*obj.rgbMeans + obj.rgbMeans;
             % Add the stimulus to the presentation.
             p.addStimulus(spot);

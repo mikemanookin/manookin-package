@@ -140,15 +140,18 @@ classdef sMTFspot < edu.washington.riekelab.manookin.protocols.ManookinLabStageP
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
             
-            spot = stage.builtin.stimuli.Ellipse();
             if strcmp(obj.stimulusClass, 'annulus')
-                spot.radiusX = min(obj.canvasSize/2);
-                spot.radiusY = min(obj.canvasSize/2);
+                stage.builtin.stimuli.Rectangle();
+                spot.size = obj.canvasSize;
+                spot.orientation = 0;
+                spot.position = obj.canvasSize/2;
             else
+                spot = stage.builtin.stimuli.Ellipse();
                 spot.radiusX = obj.currentRadius;
                 spot.radiusY = obj.currentRadius;
+                spot.position = obj.canvasSize/2 + obj.centerOffset;
             end
-            spot.position = obj.canvasSize/2 + obj.centerOffset;
+            
             if strcmp(obj.stageClass, 'Video')
                 spot.color = obj.contrast*obj.colorWeights*obj.bkg + obj.bkg;
             else

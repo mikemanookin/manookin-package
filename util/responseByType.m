@@ -15,6 +15,7 @@ switch onlineAnalysis
         response = wavefilter(response(:)', 6);
         if strcmpi(spikeAnalysis, 'k-means')
             S = spikeDetectorOnline(response);
+%             S.sp = getSpikeParameters(response,S.sp,sampleRate);
             spikesBinary = zeros(size(response));
             if ~isempty(S.sp)
                 spikesBinary(S.sp) = 1;
