@@ -13,7 +13,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         stimulusIndex = 2               % Stimulus number (1:161)
         surroundContrast = 0.8          % Surround contrast (0-1)
         surroundBarWidth = 50           % Surround bar width (pix)
-        maskDiameter = 225              % Mask diameter in pixels
+        maskRadius = 100                % Mask radius in pixels
         apertureDiameter = 2000         % Aperture diameter in pixels.
         centerOffset = [0,0]            % Center offset in pixels (x,y)
         randomSeed = false              % Use a random (true) or repeating seed (false)
@@ -253,10 +253,6 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
                 p.addController(scenePosition);
             end
 
-%             sceneVisible = stage.builtin.controllers.PropertyController(scene, 'visible', ...
-%                 @(state)state.time > obj.preTime * 1e-3 && state.time <= (obj.preTime + obj.stimTime) * 1e-3);
-%             p.addController(sceneVisible);
-
             %--------------------------------------------------------------
             % Size is 0 to 1
             sz = (obj.apertureDiameter)/min(obj.canvasSize);
@@ -278,12 +274,12 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
                 p.addStimulus(aperture); %add aperture
             end
 
-            if (obj.maskDiameter > 0) % Create mask
+            if (obj.maskRadius > 0) % Create mask
                 mask = stage.builtin.stimuli.Ellipse();
                 mask.position = obj.canvasSize/2 + obj.centerOffset;
                 mask.color = obj.backgroundMeans;
-                mask.radiusX = obj.maskDiameter/2;
-                mask.radiusY = obj.maskDiameter/2;
+                mask.radiusX = obj.maskRadius;
+                mask.radiusY = obj.maskRadius;
                 p.addStimulus(mask); %add mask
             end
             
