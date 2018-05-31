@@ -83,6 +83,22 @@ classdef ChromaticSpot < edu.washington.riekelab.manookin.protocols.ManookinLabS
                 @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
             p.addController(spotVisible);
             
+            % Add inner radius mask.
+            if obj.innerRadius > 0
+                mask = stage.builtin.stimuli.Ellipse();
+                mask.radiusX = obj.innerRadius;
+                mask.radiusY = obj.innerRadius;
+                mask.position = obj.canvasSize/2 + obj.centerOffset;
+                if strcmp(obj.stageClass, 'Video')
+                    mask.color = obj.backgroundIntensity;
+                else
+                    mask.color = obj.backgroundIntensity;
+                end
+
+                % Add the stimulus to the presentation.
+                p.addStimulus(mask);
+            end
+            
             if strcmp(obj.stageClass, 'LcrRGB')
                 % Control the spot color.
                 colorController = stage.builtin.controllers.PropertyController(spot, 'color', ...
