@@ -44,12 +44,15 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
             obj.recordingType = ip.Results.recordingType;
             obj.ipis = ip.Results.ipis;
             
+            axColors = [
+                0 0 0;
+                0.8 0 0;
+                0 0 0.8;
+                0 0.5 0;
+                ];
+            
             obj.ucvals = unique(obj.flash1Contrasts);
-            if length(obj.ucvals) == 1
-                obj.colors = zeros(1,3);
-            else
-                obj.colors = pmkmp(length(obj.ucvals),'IsoL');
-            end
+            obj.colors = axColors(1 : length(obj.ucvals),:);
             
             obj.uclegends = cell(1,length(obj.ucvals));
             for k = 1 : length(obj.ucvals)
