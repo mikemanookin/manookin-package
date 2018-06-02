@@ -14,7 +14,11 @@ switch onlineAnalysis
     case 'extracellular'
         response = wavefilter(response(:)', 6);
         if strcmpi(spikeAnalysis, 'k-means')
-            S = spikeDetectorOnline(response);
+%             try
+%                 S.sp = SpikeDetector(response);
+%             catch
+                S = spikeDetectorOnline(response);  
+%             end
 %             S.sp = getSpikeParameters(response,S.sp,sampleRate);
             spikesBinary = zeros(size(response));
             if ~isempty(S.sp)
