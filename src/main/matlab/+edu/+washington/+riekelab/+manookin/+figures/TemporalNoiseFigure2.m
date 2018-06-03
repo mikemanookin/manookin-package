@@ -136,7 +136,14 @@ classdef TemporalNoiseFigure2 < symphonyui.core.FigureHandler
                 %----------------------------------------------------------
                 % Get the first frame sequence.
                 numFrames = floor(obj.frameRate*obj.durations(1)/obj.frameDwell);
-                frameValues = getGaussianNoiseFrames(numFrames, obj.frameDwell, 0.3*obj.contrasts(1), seed);
+                switch obj.noiseClass
+                    case 'uniform'
+                        frameValues = getUniformNoiseFrames(numFrames, obj.frameDwell, obj.contrasts(1), seed);
+                    case 'binary'
+                        frameValues = getBinaryNoiseFrames(numFrames, obj.frameDwell, obj.contrasts(1), seed);
+                    otherwise % Gaussian default
+                        frameValues = getGaussianNoiseFrames(numFrames, obj.frameDwell, 0.3*obj.contrasts(1), seed);
+                end
                 
                 if binRate > obj.frameRate
                     n = round(binRate / obj.frameRate);
@@ -171,7 +178,14 @@ classdef TemporalNoiseFigure2 < symphonyui.core.FigureHandler
                 
                 if length(obj.durations) > 1
                     numFrames = floor(obj.frameRate*obj.durations(2)/obj.frameDwell);
-                    frameValues = getGaussianNoiseFrames(numFrames, obj.frameDwell, 0.3*obj.contrasts(2), seed);
+                    switch obj.noiseClass
+                        case 'uniform'
+                            frameValues = getUniformNoiseFrames(numFrames, obj.frameDwell, obj.contrasts(2), seed);
+                        case 'binary'
+                            frameValues = getBinaryNoiseFrames(numFrames, obj.frameDwell, obj.contrasts(2), seed);
+                        otherwise % Gaussian default
+                            frameValues = getGaussianNoiseFrames(numFrames, obj.frameDwell, 0.3*obj.contrasts(2), seed);
+                    end
 
                     if binRate > obj.frameRate
                         n = round(binRate / obj.frameRate);
