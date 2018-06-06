@@ -21,7 +21,7 @@ classdef RigA < symphonyui.core.descriptions.RigDescription
             obj.addDevice(trigger);
             
             % Add the filter wheel.
-            filterWheel = edu.washington.riekelab.manookin.devices.FilterWheelDevice('comPort', 'COM13');
+            filterWheel = edu.washington.riekelab.manookin.devices.FilterWheelDevice('comPort', 'COM3');
             
             % Binding the filter wheel to an unused stream only so its configuration settings are written to each epoch.
             filterWheel.bindStream(daq.getStream('doport1'));
