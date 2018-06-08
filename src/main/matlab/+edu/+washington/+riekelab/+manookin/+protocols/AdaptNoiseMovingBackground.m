@@ -139,13 +139,13 @@ classdef AdaptNoiseMovingBackground < edu.washington.riekelab.manookin.protocols
             
             function c = getSpotAchromaticGaussian(obj, time)
                 if time >= obj.onsets(1) && time < obj.onsets(2)
-                    c = obj.highContrast * 0.3 * obj.noiseHi.randn * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = obj.spotContrast * 0.3 * obj.noiseHi.randn * obj.backgroundIntensity + obj.backgroundIntensity;
                 elseif time >= obj.onsets(2) && time < obj.onsets(3)
-                    c = obj.highContrast * 0.3 * obj.noiseHiRep.randn * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = obj.spotContrast * 0.3 * obj.noiseHiRep.randn * obj.backgroundIntensity + obj.backgroundIntensity;
                 elseif time >= obj.onsets(3) && time < obj.onsets(4)
-                    c = obj.lowContrast * 0.3 * obj.noiseLo.randn * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = obj.spotContrast * 0.3 * obj.noiseLo.randn * obj.backgroundIntensity + obj.backgroundIntensity;
                 elseif time >= obj.onsets(4) && time <= obj.stimTime*1e-3
-                    c = obj.lowContrast * 0.3 * obj.noiseLoRep.randn * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = obj.spotContrast * 0.3 * obj.noiseLoRep.randn * obj.backgroundIntensity + obj.backgroundIntensity;
                 else
                     c = obj.backgroundIntensity;
                 end
@@ -153,13 +153,13 @@ classdef AdaptNoiseMovingBackground < edu.washington.riekelab.manookin.protocols
             
             function c = getSpotAchromaticBinary(obj, time)
                 if time >= obj.onsets(1) && time < obj.onsets(2)
-                    c = obj.highContrast * (2*(obj.noiseHi.rand>0.5)-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = obj.spotContrast * (2*(obj.noiseHi.rand>0.5)-1) * obj.backgroundIntensity + obj.backgroundIntensity;
                 elseif time >= obj.onsets(2) && time < obj.onsets(3)
-                    c = obj.highContrast * (2*(obj.noiseHiRep.rand>0.5)-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = obj.spotContrast * (2*(obj.noiseHiRep.rand>0.5)-1) * obj.backgroundIntensity + obj.backgroundIntensity;
                 elseif time >= obj.onsets(3) && time < obj.onsets(4)
-                    c = obj.lowContrast * (2*(obj.noiseLo.rand>0.5)-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = obj.spotContrast * (2*(obj.noiseLo.rand>0.5)-1) * obj.backgroundIntensity + obj.backgroundIntensity;
                 elseif time >= obj.onsets(4) && time <= obj.stimTime*1e-3
-                    c = obj.lowContrast * (2*(obj.noiseLoRep.rand>0.5)-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = obj.spotContrast * (2*(obj.noiseLoRep.rand>0.5)-1) * obj.backgroundIntensity + obj.backgroundIntensity;
                 else
                     c = obj.backgroundIntensity;
                 end
@@ -167,13 +167,13 @@ classdef AdaptNoiseMovingBackground < edu.washington.riekelab.manookin.protocols
             
             function c = getSpotAchromaticUniform(obj, time)
                 if time >= obj.onsets(1) && time < obj.onsets(2)
-                    c = obj.highContrast * (2*obj.noiseHi.rand-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = obj.spotContrast * (2*obj.noiseHi.rand-1) * obj.backgroundIntensity + obj.backgroundIntensity;
                 elseif time >= obj.onsets(2) && time < obj.onsets(3)
-                    c = obj.highContrast * (2*obj.noiseHiRep.rand-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = obj.spotContrast * (2*obj.noiseHiRep.rand-1) * obj.backgroundIntensity + obj.backgroundIntensity;
                 elseif time >= obj.onsets(3) && time < obj.onsets(4)
-                    c = obj.lowContrast * (2*obj.noiseLo.rand-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = obj.spotContrast * (2*obj.noiseLo.rand-1) * obj.backgroundIntensity + obj.backgroundIntensity;
                 elseif time >= obj.onsets(4) && time <= obj.stimTime*1e-3
-                    c = obj.lowContrast * (2*obj.noiseLoRep.rand-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = obj.spotContrast * (2*obj.noiseLoRep.rand-1) * obj.backgroundIntensity + obj.backgroundIntensity;
                 else
                     c = obj.backgroundIntensity;
                 end
