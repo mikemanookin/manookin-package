@@ -6,7 +6,7 @@ classdef AdaptNoiseFlash < edu.washington.riekelab.manookin.protocols.ManookinLa
         tailTime = 500                  % Stim trailing duration (ms)
         modulationContrasts = [0 1]     % Flash 1 contrast (-1:1)
         modulationDuration = 1250       % Flash 1 duration (ms)
-        flash2Contrasts = [0 -0.0625 0.0625 -0.0625 0.0625 -0.125 0.125 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Test flash contrasts (-1:1)
+        flash2Contrasts = [0 -0.0625 0.0625 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Test flash contrasts (-1:1)
         flash2Duration = 100            % Test flash duration
         ipis = [50 50]                  % Inter-pulse intervals (ms)
         radius = 105                    % Inner radius in pixels.
@@ -18,7 +18,7 @@ classdef AdaptNoiseFlash < edu.washington.riekelab.manookin.protocols.ManookinLa
         chromaticClass = 'achromatic'   % Chromatic class
         backgroundChromaticClass = 'achromatic' % Background chromatic class.
         onlineAnalysis = 'extracellular'% Online analysis type.
-        numberOfAverages = uint16(120)   % Number of epochs
+        numberOfAverages = uint16(180)   % Number of epochs
     end
     
     properties (Hidden)
@@ -74,21 +74,23 @@ classdef AdaptNoiseFlash < edu.washington.riekelab.manookin.protocols.ManookinLa
             
             % Check the color space.
             if strcmp(obj.chromaticClass,'achromatic') && strcmp(obj.backgroundChromaticClass,'achromatic')
-                obj.rgbMeans = 0.5;
+                obj.rgbMeans = obj.bkg;
                 obj.rgbValues = 1;
                 obj.backgroundMeans = obj.bkg*ones(1,3);
                 obj.bkgValues = 1;
             elseif ~strcmp(obj.chromaticClass,'achromatic') && ~strcmp(obj.backgroundChromaticClass,'achromatic')
                 [obj.rgbMeans, ~, obj.rgbValues] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
                 [obj.backgroundMeans, ~, obj.bkgValues] = getMaxContrast(obj.quantalCatch, obj.backgroundChromaticClass);
-                obj.backgroundMeans = obj.backgroundMeans(:)';
+                obj.backgroundMeans = obj.backgroundMeans(:)' * obj.bkg/0.5;
+                obj.rgbMeans = obj.rgbMeans * obj.bkg/0.5;
             elseif strcmp(obj.backgroundChromaticClass,'achromatic')
                 [obj.rgbMeans, ~, obj.rgbValues] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
+                obj.rgbMeans = obj.rgbMeans * obj.bkg/0.5;
                 obj.backgroundMeans = obj.rgbMeans;
                 obj.bkgValues = 1;
             else
                 [obj.backgroundMeans, ~, obj.bkgValues] = getMaxContrast(obj.quantalCatch, obj.backgroundChromaticClass);
-                obj.backgroundMeans = obj.backgroundMeans(:)';
+                obj.backgroundMeans = obj.backgroundMeans(:)' * obj.bkg/0.5;
                 obj.rgbMeans = obj.backgroundMeans;
                 obj.rgbValues = 1;
             end

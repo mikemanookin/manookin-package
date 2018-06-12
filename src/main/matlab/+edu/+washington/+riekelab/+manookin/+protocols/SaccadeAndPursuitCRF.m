@@ -8,7 +8,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         flashTime = 100                 % Spot flash time (ms)
         delayTimes = [50 50]            % Delay time (ms)
         spotRadius = 100                % Spot radius (pix).
-        contrasts = [0 1./[16 -16 16 -16 8 -8 8 -8 4 -4 2 -2 1+1/3 -1-1/3 1 -1]] % Spot contrasts (-1:1)
+        contrasts = [0 -0.0625 0.0625 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Spot contrasts (-1:1)
         speed = 2750                    % Background motion speed (pix/sec)
         stimulusIndex = 2               % Stimulus number (1:161)
         surroundContrast = 0.8          % Surround contrast (0-1)
@@ -23,7 +23,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         bgChromaticClass = 'achromatic' % Background color
         onlineAnalysis = 'extracellular'         % Type of online analysis
         stimulusSequence = 'saccade' % Interleaved sequence types.
-        numberOfAverages = uint16(204)    % Number of epochs
+        numberOfAverages = uint16(180)    % Number of epochs
     end
     
     properties (Hidden)
@@ -113,17 +113,18 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             
             % Check the color space.
             if strcmp(obj.chromaticClass,'achromatic')
-                obj.rgbMeans = 0.5;
+                obj.rgbMeans = obj.backgroundIntensity;
                 obj.rgbValues = 1;
                 obj.backgroundMeans = obj.backgroundIntensity*ones(1,3);
             else
                 [obj.rgbMeans, ~, deltaRGB] = getMaxContrast(obj.quantalCatch, obj.chromaticClass);
                 obj.rgbValues = deltaRGB*obj.backgroundIntensity + obj.backgroundIntensity;
-                obj.backgroundMeans = obj.rgbMeans(:)';
+                obj.backgroundMeans = obj.rgbMeans(:)' * obj.backgroundIntensity / 0.5;
             end
             
             if ~strcmp(obj.bgChromaticClass,'achromatic')
                 [rgMeans, ~, deltaRGB] = getMaxContrast(obj.quantalCatch, obj.bgChromaticClass);
+                rgMeans = rgMeans * obj.backgroundIntensity / 0.5;
                 % Convert the image back to pixel values.
                 imgTmp = 2*(double(obj.imageMatrix)/255) - 1;
                 imgTmp = 255*imgTmp;
@@ -171,8 +172,11 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             obj.backgroundIntensity = 0.5;
             
             [x,y] = meshgrid(...
-                linspace(-1536/2, 1536/2, 1536), ...
-                linspace(-1024/2, 1024/2, 1024));
+                linspace(-1650/2, 1650/2, 1650), ...
+                linspace(-512/2, 512/2, 512));
+%             [x,y] = meshgrid(...
+%                 linspace(-1536/2, 1536/2, 1536), ...
+%                 linspace(-1024/2, 1024/2, 1024));
             
             % Center the stimulus.
             x = x + obj.centerOffset(1);
