@@ -132,7 +132,7 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
                 
                 if prePts > 200
                     if strcmp(obj.recordingType, 'extracellular')
-                        obj.bgResponse = mean(y(1 : prePts-200));
+                        obj.bgResponse = 0; %mean(y(1 : prePts-200));
                     else
                         y = y - median(y(1 : prePts-200));
                         obj.bgResponse = 0;
