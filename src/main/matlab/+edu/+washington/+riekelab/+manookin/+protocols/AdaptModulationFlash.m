@@ -19,7 +19,7 @@ classdef AdaptModulationFlash < edu.washington.riekelab.manookin.protocols.Manoo
         chromaticClass = 'achromatic'   % Chromatic class
         backgroundChromaticClass = 'achromatic' % Background chromatic class.
         onlineAnalysis = 'extracellular'% Online analysis type.
-        numberOfAverages = uint16(180)   % Number of epochs
+        numberOfAverages = uint16(240)   % Number of epochs
     end
     
     properties (Hidden)

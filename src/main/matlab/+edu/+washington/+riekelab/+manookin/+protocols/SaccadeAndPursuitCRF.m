@@ -7,13 +7,14 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         waitTime = 1000                 % Stimulus wait duration (ms)
         flashTime = 100                 % Spot flash time (ms)
         delayTimes = [50 50]            % Delay time (ms)
-        spotRadius = 100                % Spot radius (pix).
+        spotRadius = 50                 % Spot radius (pix).
         contrasts = [0 -0.0625 0.0625 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Spot contrasts (-1:1)
         speed = 2750                    % Background motion speed (pix/sec)
         stimulusIndex = 2               % Stimulus number (1:161)
-        surroundContrast = 0.8          % Surround contrast (0-1)
-        surroundBarWidth = 50           % Surround bar width (pix)
+        surroundContrast = 0.5          % Surround contrast (0-1)
+        surroundBarWidth = 75           % Surround bar width (pix)
         maskRadius = 100                % Mask radius in pixels
+        blurMask = true                 % Gaussian blur of center mask? (t/f)
         apertureDiameter = 2000         % Aperture diameter in pixels.
         centerOffset = [0,0]            % Center offset in pixels (x,y)
         randomSeed = false              % Use a random (true) or repeating seed (false)
@@ -23,7 +24,7 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
         bgChromaticClass = 'achromatic' % Background color
         onlineAnalysis = 'extracellular'         % Type of online analysis
         stimulusSequence = 'saccade' % Interleaved sequence types.
-        numberOfAverages = uint16(180)    % Number of epochs
+        numberOfAverages = uint16(240)    % Number of epochs
     end
     
     properties (Hidden)
@@ -279,11 +280,21 @@ classdef SaccadeAndPursuitCRF < edu.washington.riekelab.manookin.protocols.Manoo
             end
 
             if (obj.maskRadius > 0) % Create mask
-                mask = stage.builtin.stimuli.Ellipse();
-                mask.position = obj.canvasSize/2 + obj.centerOffset;
-                mask.color = obj.backgroundMeans;
-                mask.radiusX = obj.maskRadius;
-                mask.radiusY = obj.maskRadius;
+                if obj.blurMask
+                    mask = stage.builtin.stimuli.Rectangle();
+                    mask.position = obj.canvasSize/2 + obj.centerOffset;
+                    mask.color = obj.backgroundMeans;
+                    mask.size = obj.maskRadius*2*ones(1,2);
+                    % Assign a gaussian envelope mask to the grating.
+                    msk = stage.core.Mask.createGaussianEnvelope(obj.maskRadius*2);
+                    mask.setMask(msk);
+                else
+                    mask = stage.builtin.stimuli.Ellipse();
+                    mask.position = obj.canvasSize/2 + obj.centerOffset;
+                    mask.color = obj.backgroundMeans;
+                    mask.radiusX = obj.maskRadius;
+                    mask.radiusY = obj.maskRadius;
+                end
                 p.addStimulus(mask); %add mask
             end
             
