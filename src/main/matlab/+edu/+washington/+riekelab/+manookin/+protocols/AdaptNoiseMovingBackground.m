@@ -8,7 +8,7 @@ classdef AdaptNoiseMovingBackground < edu.washington.riekelab.manookin.protocols
         repTime = 3500                  % Repeat period durations (ms)
         spotContrast = 1.0              % High contrast (0-1)
         gratingContrast = 0.5           % Low contrast (0-1)
-        barWidth = 50                   % Bar width (pixels)
+        barWidth = 75                   % Bar width (pixels)
         backgroundSpeed = 750           % Grating jitter/frame (pix/sec)
         radius = 100                    % Inner radius in pixels.
         apertureRadius = 150            % Aperture/blank radius in pixels.
