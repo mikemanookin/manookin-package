@@ -22,6 +22,7 @@ classdef VideoDevice < symphonyui.core.Device
             
             obj.addConfigurationSetting('canvasSize', canvasSize, 'isReadOnly', true);
             obj.addConfigurationSetting('monitorRefreshRate', obj.stageClient.getMonitorRefreshRate(), 'isReadOnly', true);
+            obj.addConfigurationSetting('centerOffset', [0 0], 'isReadOnly', true);
             obj.addConfigurationSetting('micronsPerPixel', ip.Results.micronsPerPixel, 'isReadOnly', true);
         end
         
@@ -36,6 +37,16 @@ classdef VideoDevice < symphonyui.core.Device
         
         function s = getCanvasSize(obj)
             s = obj.getConfigurationSetting('canvasSize');
+        end
+        
+        function setCenterOffset(obj, o)
+            delta = o - obj.getCenterOffset();
+            obj.stageClient.setCanvasProjectionTranslate(delta(1), delta(2), 0);
+            obj.setReadOnlyConfigurationSetting('centerOffset', [o(1) o(2)]);
+        end
+        
+        function o = getCenterOffset(obj)
+            o = obj.getConfigurationSetting('centerOffset');
         end
         
         function r = getMonitorRefreshRate(obj)

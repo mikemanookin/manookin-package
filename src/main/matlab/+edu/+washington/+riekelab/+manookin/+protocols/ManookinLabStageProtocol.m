@@ -38,8 +38,12 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
                 obj.stageClass = 'Video';
             end
             
-            % Get the quantal catch.
-            q = load('QCatch.mat');
+%             % Get the quantal catch.
+%             q = load('QCatch.mat');
+%             d = obj.rig.getDevices();
+%             r = d{7}.getResource('quantalCatch');
+%             r('10xND00')
+%             obj.rig.getDevice('Stage').name
             
             % Look for a filter wheel device.
             fw = obj.rig.getDevices('FilterWheel');
@@ -78,7 +82,7 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
                     ndString = ['0', ndString];
                 end
                 obj.quantalCatch = q.qCatch.(['ndf', ndString])([1 2 4],:);
-                obj.muPerPixel = 0;
+                obj.muPerPixel = 0.8;
                 obj.greenLEDName = 'Green_505nm';
                 
                 % Adjust the quantal catch depending on the objective.

@@ -48,6 +48,7 @@ classdef LcrVideoDevice < symphonyui.core.Device
             
             obj.addConfigurationSetting('canvasSize', canvasSize, 'isReadOnly', true);
             obj.addConfigurationSetting('trueCanvasSize', trueCanvasSize, 'isReadOnly', true);
+            obj.addConfigurationSetting('centerOffset', [0 0], 'isReadOnly', true);
             obj.addConfigurationSetting('monitorRefreshRate', refreshRate, 'isReadOnly', true);
             obj.addConfigurationSetting('prerender', false, 'isReadOnly', true);
             obj.addConfigurationSetting('lightCrafterLedEnables',  [auto, red, green, blue], 'isReadOnly', true);
@@ -73,6 +74,16 @@ classdef LcrVideoDevice < symphonyui.core.Device
         
         function s = getTrueCanvasSize(obj)
             s = obj.getConfigurationSetting('trueCanvasSize');
+        end
+        
+        function setCenterOffset(obj, o)
+            delta = o - obj.getCenterOffset();
+            obj.stageClient.setCanvasProjectionTranslate(delta(1), delta(2), 0);
+            obj.setReadOnlyConfigurationSetting('centerOffset', [o(1) o(2)]);
+        end
+        
+        function o = getCenterOffset(obj)
+            o = obj.getConfigurationSetting('centerOffset');
         end
         
         function r = getMonitorRefreshRate(obj)
