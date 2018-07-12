@@ -14,6 +14,7 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
         objectiveMag
         muPerPixel
         greenLEDName
+        labName
     end
     
     methods
@@ -38,8 +39,13 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
                 obj.stageClass = 'Video';
             end
             
-%             % Get the quantal catch.
-%             q = load('QCatch.mat');
+            rigDev = obj.rig.getDevices('rigProperty');
+            if ~isempty(rigDev)
+                obj.labName = rigDev{1}.getConfigurationSetting('laboratory');
+            else
+                obj.labName = 'RiekeLab';
+            end
+            
 %             d = obj.rig.getDevices();
 %             r = d{7}.getResource('quantalCatch');
 %             r('10xND00')
@@ -47,7 +53,10 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
             
             % Look for a filter wheel device.
             fw = obj.rig.getDevices('FilterWheel');
-            if ~isempty(fw)
+            if ~isempty(fw) && strcmp(obj.labName, 'ManookinLab')
+                % Get the quantal catch.
+                q = load('QCatch.mat');
+                
                 filterWheel = fw{1};% Get the microscope objective magnification.
                 obj.objectiveMag = filterWheel.getObjective();
                 
@@ -63,7 +72,6 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
                 else
                     obj.quantalCatch = q.qCatch.(['ndf', ndString])([1 3 4],:);
                 end
-%                 obj.quantalCatch = q.qCatch.(['ndf', ndString]);
                 obj.muPerPixel = filterWheel.getMicronsPerPixel();
                 
                 % Adjust the quantal catch depending on the objective.
@@ -73,24 +81,29 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
                     obj.quantalCatch = obj.quantalCatch .* ([0.664836;0.630064;0.732858]*ones(1,4));
                 end
                 
-                
+                % Get the EpochBlock persistor and save the quantal catch
+                % values.
+                if ~isempty(obj.persistor)
+                    eb = obj.persistor.currentEpochBlock;
+                    if ~isempty(eb)
+                        eb.setProperty('stageClass', obj.stageClass);
+                        eb.setProperty('ndf', obj.ndf);
+                        if obj.muPerPixel > 0
+                            eb.setProperty('micronsPerPixel', obj.muPerPixel);
+                            eb.setProperty('objectiveMag', obj.objectiveMag);
+                        end
+                        eb.setProperty('maxLCone', sum(obj.quantalCatch(:,1)));
+                        eb.setProperty('maxMCone', sum(obj.quantalCatch(:,2)));
+                        eb.setProperty('maxSCone', sum(obj.quantalCatch(:,3)));
+                        eb.setProperty('maxRod', sum(obj.quantalCatch(:,4)));
+                    end
+                end
             else
                 obj.objectiveMag = 'null';
-                obj.ndf = 4;
-                ndString = num2str(obj.ndf * 10);
-                if length(ndString) == 1
-                    ndString = ['0', ndString];
-                end
-                obj.quantalCatch = q.qCatch.(['ndf', ndString])([1 2 4],:);
+                obj.ndf = 0;
+                obj.quantalCatch = ones(3,4);
                 obj.muPerPixel = 0.8;
-                obj.greenLEDName = 'Green_505nm';
-                
-                % Adjust the quantal catch depending on the objective.
-                if obj.objectiveMag == 4
-                    obj.quantalCatch = obj.quantalCatch .* ([0.498627;0.4921139;0.453983]*ones(1,4));
-                elseif obj.objectiveMag == 60
-                    obj.quantalCatch = obj.quantalCatch .* ([0.664836;0.630064;0.732858]*ones(1,4));
-                end
+                obj.greenLEDName = 'null';
             end
             
             % Get the canvas size.
@@ -131,19 +144,21 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
             prepareEpoch@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj, epoch);
             
             epoch.addParameter('frameRate', obj.frameRate);
-            epoch.addParameter('stageClass', obj.stageClass);
-            epoch.addParameter('ndf', obj.ndf);
-            if obj.muPerPixel > 0
-                epoch.addParameter('micronsPerPixel', obj.muPerPixel);
-                epoch.addParameter('objectiveMag', obj.objectiveMag);
-            end
-            epoch.addParameter('maxLCone', sum(obj.quantalCatch(:,1)));
-            epoch.addParameter('maxMCone', sum(obj.quantalCatch(:,2)));
-            epoch.addParameter('maxSCone', sum(obj.quantalCatch(:,3)));
-            epoch.addParameter('maxRod', sum(obj.quantalCatch(:,4)));
+%             epoch.addParameter('stageClass', obj.stageClass);
+%             epoch.addParameter('ndf', obj.ndf);
+%             if obj.muPerPixel > 0
+%                 epoch.addParameter('micronsPerPixel', obj.muPerPixel);
+%                 epoch.addParameter('objectiveMag', obj.objectiveMag);
+%             end
+%             epoch.addParameter('maxLCone', sum(obj.quantalCatch(:,1)));
+%             epoch.addParameter('maxMCone', sum(obj.quantalCatch(:,2)));
+%             epoch.addParameter('maxSCone', sum(obj.quantalCatch(:,3)));
+%             epoch.addParameter('maxRod', sum(obj.quantalCatch(:,4)));
             
             % Check for 2P scanning devices.
-            obj.checkImaging(epoch);
+            if strcmp(obj.labName, 'ManookinLab')
+                obj.checkImaging(epoch);
+            end
             
             %--------------------------------------------------------------
             % Set up the amplifiers for recording.
@@ -160,15 +175,17 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
             end
             
             % Record the frame sync pulses.
-            if strcmpi(obj.stageClass, 'LightCrafter')
-%                 frameMonitor = obj.rig.getDevices('Frame Sync');
-%                 if ~isempty(frameMonitor)
-%                     epoch.addResponse(frameMonitor{1});
-%                 end
-            elseif strcmpi(obj.stageClass, 'Video')
-                frameMonitor = obj.rig.getDevices('Red Sync');
-                if ~isempty(frameMonitor)
-                    epoch.addResponse(frameMonitor{1});
+            if strcmp(obj.labName, 'ManookinLab')
+                if strcmpi(obj.stageClass, 'LightCrafter')
+    %                 frameMonitor = obj.rig.getDevices('Frame Sync');
+    %                 if ~isempty(frameMonitor)
+    %                     epoch.addResponse(frameMonitor{1});
+    %                 end
+                elseif strcmpi(obj.stageClass, 'Video')
+                    frameMonitor = obj.rig.getDevices('Red Sync');
+                    if ~isempty(frameMonitor)
+                        epoch.addResponse(frameMonitor{1});
+                    end
                 end
             end
         end

@@ -10,6 +10,10 @@ classdef SimulatedStage < symphonyui.core.descriptions.RigDescription
             daq = HekaSimulationDaqController();
             obj.daqController = daq;
             
+            % Rig name and laboratory.
+            rigDev = edu.washington.riekelab.manookin.devices.RigPropertyDevice('ManookinLab','SimulatedStage');
+            obj.addDevice(rigDev);
+            
             amp1 = MultiClampDevice('Amp1', 1).bindStream(daq.getStream('ao0')).bindStream(daq.getStream('ai0'));
             obj.addDevice(amp1);
             
@@ -44,7 +48,7 @@ classdef SimulatedStage < symphonyui.core.descriptions.RigDescription
             frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai7'));
             obj.addDevice(frameMonitor);
             
-            microdisplay = edu.washington.riekelab.manookin.devices.VideoDevice('micronsPerPixel', 0.67);
+            microdisplay = edu.washington.riekelab.manookin.devices.VideoDevice('micronsPerPixel', 0.8);
             microdisplay.addResource('quantalCatch', containers.Map( ...
                 {'10xND00','10xND05','10xND10','10xND20','10xND30','10xND40','60xND00','60xND05','60xND10','60xND20','60xND30','60xND40'}, {...
                 importdata(edu.washington.riekelab.manookin.Package.getCalibrationResource('rigs', 'rig_A', 'LCR10xND00.txt')), ...
