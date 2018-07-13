@@ -7,6 +7,10 @@ classdef RigA_Amp2_Lcr < manookinlab.rigs.RigA
             
             daq = obj.daqController;
             
+            % Rig name and laboratory.
+            rigDev = manookinlab.devices.RigPropertyDevice('ManookinLab','ManookinA');
+            obj.addDevice(rigDev);
+            
             % Add the amplifier
             amp2 = MultiClampDevice('Amp2', 1).bindStream(daq.getStream('ao1')).bindStream(daq.getStream('ai1'));
             obj.addDevice(amp2);

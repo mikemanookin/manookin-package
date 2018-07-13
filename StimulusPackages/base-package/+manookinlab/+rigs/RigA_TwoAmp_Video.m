@@ -5,6 +5,10 @@ classdef RigA_TwoAmp_Video < manookinlab.rigs.RigA
             import symphonyui.builtin.devices.*;
             import symphonyui.core.*;
             daq = obj.daqController;
+            
+            % Rig name and laboratory.
+            rigDev = manookinlab.devices.RigPropertyDevice('ManookinLab','ManookinA');
+            obj.addDevice(rigDev);
 
             % Add the amplifiers
             amp1 = MultiClampDevice('Amp1', 1).bindStream(daq.getStream('ao0')).bindStream(daq.getStream('ai0'));

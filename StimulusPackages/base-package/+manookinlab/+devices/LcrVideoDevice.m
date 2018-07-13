@@ -104,17 +104,18 @@ classdef LcrVideoDevice < symphonyui.core.Device
         
         function play(obj, presentation)
             canvasSize = obj.getCanvasSize();
+            centerOffset = obj.getCenterOffset();
             
             background = stage.builtin.stimuli.Rectangle();
             background.size = canvasSize;
-            background.position = canvasSize/2;
+            background.position = canvasSize/2 - centerOffset;
             background.color = presentation.backgroundColor;
             presentation.setBackgroundColor(0);
             presentation.insertStimulus(1, background);
             
             tracker = stage.builtin.stimuli.Rectangle();
             tracker.size = [canvasSize(1) * 1/8, canvasSize(2)];
-            tracker.position = [canvasSize(1) - (canvasSize(1)/16), canvasSize(2)/2];
+            tracker.position = [canvasSize(1) - (canvasSize(1)/16), canvasSize(2)/2] - centerOffset;
             presentation.addStimulus(tracker);
             
             trackerColor = stage.builtin.controllers.PropertyController(tracker, 'color', @(s)mod(s.frame, 2) && double(s.time + (1/s.frameRate) < presentation.duration));
@@ -141,9 +142,6 @@ classdef LcrVideoDevice < symphonyui.core.Device
         end
         
         function setLedEnables(obj, auto, red, green, blue)
-            obj.lightCrafter.setLedEnables(auto, red, green, blue);
-            [a, r, g, b] = obj.lightCrafter.getLedEnables();
-            obj.setReadOnlyConfigurationSetting('lightCrafterLedEnables', [a, r, g, b]);
         end
         
         function [auto, red, green, blue] = getLedEnables(obj)
@@ -151,28 +149,24 @@ classdef LcrVideoDevice < symphonyui.core.Device
         end
         
         function r = availablePatternRates(obj)
-            r = obj.patternRatesToAttributes.keys;
+            r = {'60'};
         end
         
         function setPatternRate(obj, rate)
-            if ~obj.patternRatesToAttributes.isKey(rate)
-                error([num2str(rate) ' is not an available pattern rate']);
-            end
-            attributes = obj.patternRatesToAttributes(rate);
-            obj.lightCrafter.setPatternAttributes(attributes{:});
-            obj.setReadOnlyConfigurationSetting('lightCrafterPatternRate', obj.lightCrafter.currentPatternRate());
-            
-            renderer = stage.builtin.renderers.PatternRenderer(attributes{3}, attributes{1});
-            obj.stageClient.setCanvasRenderer(renderer);
         end
         
         function r = getPatternRate(obj)
-            r = obj.lightCrafter.currentPatternRate();
+            r = [];
         end
         
         function p = um2pix(obj, um)
             micronsPerPixel = obj.getConfigurationSetting('micronsPerPixel');
             p = round(um / micronsPerPixel);
+        end
+        
+        function u = pix2um(obj, pix)
+            micronsPerPixel = obj.getConfigurationSetting('micronsPerPixel');
+            u = pix * micronsPerPixel;
         end
         
         function inverse = getGammaRampFromFunction(obj) %#ok<MANU>

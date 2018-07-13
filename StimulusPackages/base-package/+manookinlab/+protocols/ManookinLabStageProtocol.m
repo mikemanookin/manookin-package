@@ -1,7 +1,7 @@
 classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabStageProtocol
     
     properties
-        interpulseInterval = 1          % Duration between pulses (s)
+        interpulseInterval = 0.5          % Duration between pulses (s)
     end
     
     properties (Hidden)
@@ -80,24 +80,6 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
                 elseif obj.objectiveMag == 60
                     obj.quantalCatch = obj.quantalCatch .* ([0.664836;0.630064;0.732858]*ones(1,4));
                 end
-                
-                % Get the EpochBlock persistor and save the quantal catch
-                % values.
-                if ~isempty(obj.persistor)
-                    eb = obj.persistor.currentEpochBlock;
-                    if ~isempty(eb)
-                        eb.setProperty('stageClass', obj.stageClass);
-                        eb.setProperty('ndf', obj.ndf);
-                        if obj.muPerPixel > 0
-                            eb.setProperty('micronsPerPixel', obj.muPerPixel);
-                            eb.setProperty('objectiveMag', obj.objectiveMag);
-                        end
-                        eb.setProperty('maxLCone', sum(obj.quantalCatch(:,1)));
-                        eb.setProperty('maxMCone', sum(obj.quantalCatch(:,2)));
-                        eb.setProperty('maxSCone', sum(obj.quantalCatch(:,3)));
-                        eb.setProperty('maxRod', sum(obj.quantalCatch(:,4)));
-                    end
-                end
             else
                 obj.objectiveMag = 'null';
                 obj.ndf = 0;
@@ -143,17 +125,26 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
         function prepareEpoch(obj, epoch)
             prepareEpoch@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj, epoch);
             
+            if obj.numEpochsCompleted == 0 && ~isempty(obj.persistor)
+                % Get the EpochBlock persistor and save the quantal catch
+                % values.
+                eb = obj.persistor.currentEpochBlock;
+                if ~isempty(eb)
+                    eb.setProperty('stageClass', obj.stageClass);
+                    eb.setProperty('ndf', obj.ndf);
+                    if obj.muPerPixel > 0
+                        eb.setProperty('micronsPerPixel', obj.muPerPixel);
+                        eb.setProperty('objectiveMag', obj.objectiveMag);
+                    end
+                    eb.setProperty('maxLCone', sum(obj.quantalCatch(:,1)));
+                    eb.setProperty('maxMCone', sum(obj.quantalCatch(:,2)));
+                    eb.setProperty('maxSCone', sum(obj.quantalCatch(:,3)));
+                    eb.setProperty('maxRod', sum(obj.quantalCatch(:,4)));
+                end
+            end
+            
+            
             epoch.addParameter('frameRate', obj.frameRate);
-%             epoch.addParameter('stageClass', obj.stageClass);
-%             epoch.addParameter('ndf', obj.ndf);
-%             if obj.muPerPixel > 0
-%                 epoch.addParameter('micronsPerPixel', obj.muPerPixel);
-%                 epoch.addParameter('objectiveMag', obj.objectiveMag);
-%             end
-%             epoch.addParameter('maxLCone', sum(obj.quantalCatch(:,1)));
-%             epoch.addParameter('maxMCone', sum(obj.quantalCatch(:,2)));
-%             epoch.addParameter('maxSCone', sum(obj.quantalCatch(:,3)));
-%             epoch.addParameter('maxRod', sum(obj.quantalCatch(:,4)));
             
             % Check for 2P scanning devices.
             if strcmp(obj.labName, 'ManookinLab')
