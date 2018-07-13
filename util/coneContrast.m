@@ -1,6 +1,6 @@
 function ct = coneContrast(quantalCatch, gunWeights, contrastType)
 
-iMean = sum(quantalCatch);
+iMean = sum(quantalCatch)*0.5;
 iDelta = sum((gunWeights(:)*ones(1,4)).*quantalCatch);
 iMax = iMean + iDelta;
 iMin = iMean - iDelta;
