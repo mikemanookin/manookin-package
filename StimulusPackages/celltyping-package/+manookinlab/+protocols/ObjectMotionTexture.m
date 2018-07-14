@@ -1,29 +1,29 @@
 classdef ObjectMotionTexture < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
-        preTime = 500                   % Grating leading duration (ms)
-        stimTime = 6000                 % Grating duration (ms)
-        tailTime = 500                  % Grating trailing duration (ms)
-        contrast = 1.0                  % Grating contrast (0-1)
-        orientation = 0.0               % Grating orientation (deg)
+        preTime = 250                   % Texture leading duration (ms)
+        tailTime = 250                  % Texture trailing duration (ms)
+        waitTime = 2000                 % Time texture is presented before moving (ms)
+        moveTime = 2000                 % Move duration (ms)
+        contrast = 1.0                  % Texture contrast (0-1)
         textureStdev = 25               % Texture standard deviation (pixels)
-        jitterSpeed = 1000              % Grating jitter/frame (pix/sec)
-        driftSpeed = 1000               % Center drift speed (pix/sec)
+        driftSpeed = 1000               % Texture drift speed (pix/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        centerOffset = [0,0]            % Center offset in pixels (x,y)
-        innerRadius = 100               % Center radius in pixels.
-        apertureRadius = 150            % Aperature radius between inner and outer gratings.     
+        apertureRadius = 100            % Aperature radius between inner and outer gratings.     
         onlineAnalysis = 'extracellular' % Type of online analysis
         useRandomSeed = false            % Random or repeated seed?
         numberOfAverages = uint16(24)   % Number of epochs
     end
     
+    properties (Dependent) 
+        stimTime
+    end
+    
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
-        stimulusClasses = {'eye+object','eye','object','eye+object drift'}
+        stimulusClasses = {'center','surround','global','differential'}
         stimulusClass
-        driftStep
         seed
         backgroundTexture
         centerTexture
@@ -48,12 +48,13 @@ classdef ObjectMotionTexture < manookinlab.protocols.ManookinLabStageProtocol
                     'sweepColor',colors,...
                     'groupBy',{'stimulusClass'});
             end
-            obj.driftStep = obj.driftSpeed / obj.frameRate;
             
             if ~obj.useRandomSeed
                 % Generate the texture.
                 obj.backgroundTexture = generateTexture(max(obj.canvasSize), obj.textureStdev, obj.contrast, 1);
                 obj.centerTexture = generateTexture(max(obj.canvasSize), obj.textureStdev, obj.contrast, 1782);
+                obj.backgroundTexture = uint8(obj.backgroundTexture*255);
+                obj.centerTexture = uint8(obj.centerTexture*255);
             end
         end
         
@@ -63,103 +64,90 @@ classdef ObjectMotionTexture < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity); % Set background intensity
             
             % Generate the center texture.
-            
-            
-            % Generate the background texture.
-            
-            % Create the background grating.
-            if ~strcmp(obj.stimulusClass, 'object')
-                switch obj.spatialClass
-                    case 'sinewave'
-                        bGrating = stage.builtin.stimuli.Grating('sine');
-                    otherwise % Square-wave grating
-                        bGrating = stage.builtin.stimuli.Grating('square'); 
+            if ~strcmp(obj.stimulusClass,'surround')
+                center = stage.builtin.stimuli.Image(obj.centerTexture);
+                center.position = obj.canvasSize / 2;
+                center.size = max(obj.canvasSize)*ones(1,2);
+                
+                % Set the minifying and magnifying functions to form discrete
+                % stixels.
+                center.setMinFunction(GL.NEAREST);
+                center.setMagFunction(GL.NEAREST);
+
+                % Add the stimulus to the presentation.
+                p.addStimulus(center);
+
+                if strcmp(obj.stimulusClass,'differential')
+                    cenController = stage.builtin.controllers.PropertyController(center, 'position',...
+                        @(state)orthogonalTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
+                else
+                    cenController = stage.builtin.controllers.PropertyController(center, 'position',...
+                        @(state)objectTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
                 end
-                bGrating.orientation = obj.orientation;
-                bGrating.size = max(obj.canvasSize) * ones(1,2);
-                bGrating.position = obj.canvasSize/2 + obj.centerOffset;
-                bGrating.spatialFreq = 1/(2*obj.barWidth); %convert from bar width to spatial freq
-                bGrating.contrast = obj.contrast;
-                bGrating.color = 2*obj.backgroundIntensity;
+                p.addController(cenController);
             end
             
-            if ~strcmp(obj.stimulusClass, 'object')
-                bGrating.phase = obj.phaseShift + obj.spatialPhase; 
-                p.addStimulus(bGrating);
-                
-                % Make the grating visible only during the stimulus time.
-                grate2Visible = stage.builtin.controllers.PropertyController(bGrating, 'visible', ...
+            % Generate the background texture.
+            if ~strcmp(obj.stimulusClass,'center')
+                bground = stage.builtin.stimuli.Image(obj.backgroundTexture);
+                bground.position = obj.canvasSize / 2;
+                bground.size = min(obj.canvasSize)*ones(1,2);
+
+                % Set the minifying and magnifying functions to form discrete
+                % stixels.
+                bground.setMinFunction(GL.NEAREST);
+                bground.setMagFunction(GL.NEAREST);
+
+                % Make the aperture
+                [x,y] = meshgrid(linspace(-size(obj.backgroundTexture,1)/2,size(obj.backgroundTexture,1)/2,size(obj.backgroundTexture,1)), ...
+                        linspace(-size(obj.backgroundTexture,2)/2,size(obj.backgroundTexture,2)/2,size(obj.backgroundTexture,2)));
+                % Center the stimulus.
+                distanceMatrix = sqrt(x.^2 + y.^2);
+                circle = uint8((distanceMatrix >= obj.apertureRadius) * 255);
+                mask = stage.core.Mask(circle);
+                bground.setMask(mask);
+
+                % Add the stimulus to the presentation.
+                p.addStimulus(bground);
+            end
+            
+            % Create the background grating. {'center','surround','global','differential'}
+            % Make the grating visible only during the stimulus time.
+            if ~strcmp(obj.stimulusClass,'surround')
+                centerVisible = stage.builtin.controllers.PropertyController(center, 'visible', ...
                     @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
-                p.addController(grate2Visible);
-                
-                bgController = stage.builtin.controllers.PropertyController(bGrating, 'phase',...
-                    @(state)surroundTrajectory(obj, state.time - obj.preTime * 1e-3));
+                p.addController(centerVisible);
+            end
+            
+            if ~strcmp(obj.stimulusClass,'center')
+                backgroundVisible = stage.builtin.controllers.PropertyController(bground, 'visible', ...
+                    @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                p.addController(backgroundVisible);
+
+                bgController = stage.builtin.controllers.PropertyController(bground, 'position',...
+                    @(state)objectTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
                 p.addController(bgController);
             end
             
-            if obj.apertureRadius > obj.innerRadius
-                mask = stage.builtin.stimuli.Ellipse();
-                mask.color = obj.backgroundIntensity;
-                mask.radiusX = obj.apertureRadius;
-                mask.radiusY = obj.apertureRadius;
-                mask.position = obj.canvasSize / 2 + obj.centerOffset;
-                p.addStimulus(mask);
-            end
-            
-            % Add the grating.
-            p.addStimulus(grate);
-            
-            % Make the grating visible only during the stimulus time.
-            grateVisible = stage.builtin.controllers.PropertyController(grate, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
-            p.addController(grateVisible);
             
             %--------------------------------------------------------------
-            % Control the grating phase.
-            
-            %{'eye+object','eye','object','eye+object drift'}
-            switch obj.stimulusClass
-                case 'eye+object drift'
-                    imgController = stage.builtin.controllers.PropertyController(grate, 'phase',...
-                        @(state)objectDriftTrajectory(obj, state.time - obj.preTime * 1e-3));
-                otherwise
-                    imgController = stage.builtin.controllers.PropertyController(grate, 'phase',...
-                        @(state)objectTrajectory(obj, state.time - obj.preTime * 1e-3));
-            end
-            p.addController(imgController);
-            
-            % Object/center trajectory.
+            % Control the texture position.
             function p = objectTrajectory(obj, time)
                 if time > 0
-                    p = obj.noiseStream.randn*2*pi * obj.stepSize / obj.barWidth;
+                    p = [obj.driftSpeed*time 0] + obj.canvasSize / 2;
                 else
-                    p = 0;
+                    p = obj.canvasSize / 2;
                 end
-                obj.centerPhase = obj.centerPhase + p;
-                p = obj.centerPhase*180/pi + obj.phaseShift + obj.spatialPhase;
             end
             
-            % Set the drifting grating.
-            function phase = objectDriftTrajectory(obj, time)
-                if time >= 0
-                    phase = (obj.driftStep/obj.barWidth * 2 * pi)+(obj.noiseStream.randn*2*pi * obj.stepSize / obj.barWidth);
-                else
-                    phase = 0;
-                end
-                obj.centerPhase = obj.centerPhase + phase;
-                phase = obj.centerPhase*180/pi + obj.phaseShift + obj.spatialPhase;
-            end
-            
-            % Surround trajectory
-            function p = surroundTrajectory(obj, time)
+            function p = orthogonalTrajectory(obj, time)
                 if time > 0
-                    p = obj.noiseStream2.randn*2*pi * obj.stepSize / obj.barWidth;
+                    p = [0 -obj.driftSpeed*time] + obj.canvasSize / 2;
                 else
-                    p = 0;
+                    p = obj.canvasSize / 2;
                 end
-                obj.surroundPhase = obj.surroundPhase + p;
-                p = obj.surroundPhase*180/pi + obj.phaseShift + obj.spatialPhase;
             end
+            
         end
         
         function prepareEpoch(obj, epoch)
@@ -185,7 +173,13 @@ classdef ObjectMotionTexture < manookinlab.protocols.ManookinLabStageProtocol
                 % Generate the texture.
                 obj.backgroundTexture = generateTexture(max(obj.canvasSize), obj.textureStdev, obj.contrast, 1);
                 obj.centerTexture = generateTexture(max(obj.canvasSize), obj.textureStdev, obj.contrast, 1782);
+                obj.backgroundTexture = uint8(obj.backgroundTexture*255);
+                obj.centerTexture = uint8(obj.centerTexture*255);
             end
+        end
+        
+        function stimTime = get.stimTime(obj)
+            stimTime = obj.waitTime + obj.moveTime;
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
