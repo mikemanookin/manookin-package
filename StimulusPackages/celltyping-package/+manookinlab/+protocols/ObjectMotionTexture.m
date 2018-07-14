@@ -6,10 +6,11 @@ classdef ObjectMotionTexture < manookinlab.protocols.ManookinLabStageProtocol
         waitTime = 2000                 % Time texture is presented before moving (ms)
         moveTime = 2000                 % Move duration (ms)
         contrast = 1.0                  % Texture contrast (0-1)
-        textureStdev = 25               % Texture standard deviation (pixels)
+        textureStdev = 15               % Texture standard deviation (pixels)
         driftSpeed = 1000               % Texture drift speed (pix/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        apertureRadius = 100            % Aperature radius between inner and outer gratings.     
+        radius = 200                    % Center radius (pixels)
+        apertureRadius = 250            % Aperature radius between inner and outer textures (pixels).     
         onlineAnalysis = 'extracellular' % Type of online analysis
         useRandomSeed = false            % Random or repeated seed?
         numberOfAverages = uint16(24)   % Number of epochs
@@ -51,10 +52,22 @@ classdef ObjectMotionTexture < manookinlab.protocols.ManookinLabStageProtocol
             
             if ~obj.useRandomSeed
                 % Generate the texture.
-                obj.backgroundTexture = generateTexture(max(obj.canvasSize), obj.textureStdev, obj.contrast, 1);
-                obj.centerTexture = generateTexture(max(obj.canvasSize), obj.textureStdev, obj.contrast, 1782);
+                obj.backgroundTexture = generateTexture(round((max(obj.canvasSize)+round(obj.moveTime*1e-3*obj.driftSpeed*2))/5), obj.textureStdev/5, obj.contrast, 1);
                 obj.backgroundTexture = uint8(obj.backgroundTexture*255);
-                obj.centerTexture = uint8(obj.centerTexture*255);
+                obj.getCenterTexture();
+            end
+        end
+        
+        function getCenterTexture(obj)
+            numFrames = ceil(obj.moveTime * 1e-3 * obj.frameRate) + 15;
+            
+            obj.centerTexture = uint8(zeros(round(obj.radius*2/5),round(obj.radius*2/5),numFrames));
+            center = round(size(obj.backgroundTexture,1)/2);
+            shiftPerFrame = obj.driftSpeed/5 / obj.frameRate;
+            xpos = center-round(center/2) + (1 : round(obj.radius*2/5));
+            for k = 1 : numFrames
+                ypos = round((k-1)*shiftPerFrame) + center-round(center/2) + (1 : round(obj.radius*2/5));
+                obj.centerTexture(:,:,k) = obj.backgroundTexture(ypos,xpos);
             end
         end
         
@@ -63,77 +76,107 @@ classdef ObjectMotionTexture < manookinlab.protocols.ManookinLabStageProtocol
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3); %create presentation of specified duration
             p.setBackgroundColor(obj.backgroundIntensity); % Set background intensity
             
+            % Generate the background texture.
+            bground = stage.builtin.stimuli.Image(obj.backgroundTexture);
+            bground.position = obj.canvasSize / 2;
+            bground.size = max(obj.canvasSize)*ones(1,2)+round(obj.moveTime*1e-3*obj.driftSpeed*2);
+
+            % Set the minifying and magnifying functions to form discrete
+            % stixels.
+            bground.setMinFunction(GL.NEAREST);
+            bground.setMagFunction(GL.NEAREST);
+            
+            % Add the stimulus to the presentation.
+            p.addStimulus(bground);
+
+            % Make the aperture{'center','surround','global','differential'}
+            if strcmp(obj.stimulusClass,'center')
+                % Size is 0 to 1
+                sz = (obj.radius*2)/min(obj.canvasSize);
+                % Create the outer mask.
+                if sz < 1
+                    aperture = stage.builtin.stimuli.Rectangle();
+                    aperture.position = obj.canvasSize/2;
+                    aperture.color = obj.backgroundIntensity;
+                    aperture.size = obj.canvasSize;
+                    [x,y] = meshgrid(linspace(-obj.canvasSize(1)/2,obj.canvasSize(1)/2,obj.canvasSize(1)), ...
+                        linspace(-obj.canvasSize(2)/2,obj.canvasSize(2)/2,obj.canvasSize(2)));
+                    distanceMatrix = sqrt(x.^2 + y.^2);
+                    circle = uint8((distanceMatrix >= obj.radius) * 255);
+                    mask = stage.core.Mask(circle);
+                    aperture.setMask(mask);
+                    p.addStimulus(aperture); %add aperture
+                end
+            elseif strcmp(obj.stimulusClass,'surround') || (strcmp(obj.stimulusClass,'differential') && obj.radius < obj.apertureRadius)
+                bg = stage.builtin.stimuli.Ellipse();
+                bg.color = obj.backgroundIntensity;
+                bg.radiusX = obj.apertureRadius;
+                bg.radiusY = obj.apertureRadius;
+                bg.position = obj.canvasSize/2;
+                p.addStimulus(bg);
+            elseif strcmp(obj.stimulusClass,'global')  && obj.radius < obj.apertureRadius
+                aperture = stage.builtin.stimuli.Rectangle();
+                aperture.position = obj.canvasSize/2;
+                aperture.color = obj.backgroundIntensity;
+                aperture.size = obj.canvasSize;
+                [x,y] = meshgrid(linspace(-obj.canvasSize(1)/2,obj.canvasSize(1)/2,obj.canvasSize(1)), ...
+                    linspace(-obj.canvasSize(2)/2,obj.canvasSize(2)/2,obj.canvasSize(2)));
+                distanceMatrix = sqrt(x.^2 + y.^2);
+                circle = uint8((distanceMatrix <= obj.apertureRadius & distanceMatrix > obj.radius) * 255);
+                mask = stage.core.Mask(circle);
+                aperture.setMask(mask);
+                p.addStimulus(aperture); %add aperture
+            end
+            
+
+            
+            
+            % Create the background grating. {'center','surround','global','differential'}
+            % Make the grating visible only during the stimulus time.
+            backgroundVisible = stage.builtin.controllers.PropertyController(bground, 'visible', ...
+                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+            p.addController(backgroundVisible);
+
+            bgController = stage.builtin.controllers.PropertyController(bground, 'position',...
+                @(state)objectTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
+            p.addController(bgController);
+            
             % Generate the center texture.
-            if ~strcmp(obj.stimulusClass,'surround')
-                center = stage.builtin.stimuli.Image(obj.centerTexture);
+            if strcmp(obj.stimulusClass,'differential')
+                center = stage.builtin.stimuli.Image(obj.centerTexture(:,:,1));
                 center.position = obj.canvasSize / 2;
-                center.size = max(obj.canvasSize)*ones(1,2);
+                center.size = obj.radius*2*ones(1,2);
                 
                 % Set the minifying and magnifying functions to form discrete
                 % stixels.
                 center.setMinFunction(GL.NEAREST);
                 center.setMagFunction(GL.NEAREST);
+                
+                [x,y] = meshgrid(linspace(-size(obj.centerTexture,1)/2,size(obj.centerTexture,1)/2,size(obj.centerTexture,1)), ...
+                    linspace(-size(obj.centerTexture,2)/2,size(obj.centerTexture,2)/2,size(obj.centerTexture,2)));
+                % Center the stimulus.
+                distanceMatrix = sqrt(x.^2 + y.^2);
+                circle = uint8((distanceMatrix <= obj.radius/5) * 255);
+                mask = stage.core.Mask(circle);
+                center.setMask(mask);
 
                 % Add the stimulus to the presentation.
                 p.addStimulus(center);
-
-                if strcmp(obj.stimulusClass,'differential')
-                    cenController = stage.builtin.controllers.PropertyController(center, 'position',...
-                        @(state)orthogonalTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
-                else
-                    cenController = stage.builtin.controllers.PropertyController(center, 'position',...
-                        @(state)objectTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
-                end
+                
+                cenController = stage.builtin.controllers.PropertyController(center, 'imageMatrix',...
+                    @(state)orthogonalTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
                 p.addController(cenController);
-            end
-            
-            % Generate the background texture.
-            if ~strcmp(obj.stimulusClass,'center')
-                bground = stage.builtin.stimuli.Image(obj.backgroundTexture);
-                bground.position = obj.canvasSize / 2;
-                bground.size = min(obj.canvasSize)*ones(1,2);
-
-                % Set the minifying and magnifying functions to form discrete
-                % stixels.
-                bground.setMinFunction(GL.NEAREST);
-                bground.setMagFunction(GL.NEAREST);
-
-                % Make the aperture
-                [x,y] = meshgrid(linspace(-size(obj.backgroundTexture,1)/2,size(obj.backgroundTexture,1)/2,size(obj.backgroundTexture,1)), ...
-                        linspace(-size(obj.backgroundTexture,2)/2,size(obj.backgroundTexture,2)/2,size(obj.backgroundTexture,2)));
-                % Center the stimulus.
-                distanceMatrix = sqrt(x.^2 + y.^2);
-                circle = uint8((distanceMatrix >= obj.apertureRadius) * 255);
-                mask = stage.core.Mask(circle);
-                bground.setMask(mask);
-
-                % Add the stimulus to the presentation.
-                p.addStimulus(bground);
-            end
-            
-            % Create the background grating. {'center','surround','global','differential'}
-            % Make the grating visible only during the stimulus time.
-            if ~strcmp(obj.stimulusClass,'surround')
+                
                 centerVisible = stage.builtin.controllers.PropertyController(center, 'visible', ...
                     @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
                 p.addController(centerVisible);
-            end
-            
-            if ~strcmp(obj.stimulusClass,'center')
-                backgroundVisible = stage.builtin.controllers.PropertyController(bground, 'visible', ...
-                    @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
-                p.addController(backgroundVisible);
-
-                bgController = stage.builtin.controllers.PropertyController(bground, 'position',...
-                    @(state)objectTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
-                p.addController(bgController);
             end
             
             
             %--------------------------------------------------------------
             % Control the texture position.
             function p = objectTrajectory(obj, time)
-                if time > 0
+                if time > 0 && time <= obj.moveTime*1e-3
                     p = [obj.driftSpeed*time 0] + obj.canvasSize / 2;
                 else
                     p = obj.canvasSize / 2;
@@ -141,10 +184,11 @@ classdef ObjectMotionTexture < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             function p = orthogonalTrajectory(obj, time)
-                if time > 0
-                    p = [0 -obj.driftSpeed*time] + obj.canvasSize / 2;
+                if time > 0 && time <= obj.moveTime*1e-3
+                    fr = floor(time * obj.frameRate) + 1;
+                    p = obj.centerTexture(:,:,fr);
                 else
-                    p = obj.canvasSize / 2;
+                    p = obj.centerTexture(:,:,1);
                 end
             end
             
@@ -162,19 +206,13 @@ classdef ObjectMotionTexture < manookinlab.protocols.ManookinLabStageProtocol
             else
                 obj.seed = 1;
             end
-            if strcmp(obj.stimulusClass,'eye+object')
-                seed2 = obj.seed + 1781;
-            else
-                seed2 = obj.seed;
-            end
-            epoch.addParameter('surroundSeed', seed2);
+            epoch.addParameter('seed', obj.seed);
             
             if obj.useRandomSeed
                 % Generate the texture.
-                obj.backgroundTexture = generateTexture(max(obj.canvasSize), obj.textureStdev, obj.contrast, 1);
-                obj.centerTexture = generateTexture(max(obj.canvasSize), obj.textureStdev, obj.contrast, 1782);
+                obj.backgroundTexture = generateTexture(round((max(obj.canvasSize)+round(obj.moveTime*1e-3*obj.driftSpeed*2))/5), obj.textureStdev/5, obj.contrast, obj.seed);
                 obj.backgroundTexture = uint8(obj.backgroundTexture*255);
-                obj.centerTexture = uint8(obj.centerTexture*255);
+                obj.getCenterTexture();
             end
         end
         
