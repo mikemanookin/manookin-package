@@ -33,7 +33,10 @@ classdef ChromaticSpot < manookinlab.protocols.ManookinLabStageProtocol
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            obj.showFigure('symphonyui.builtin.figures.MeanResponseFigure', obj.rig.getDevice(obj.amp));
+            obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                'sweepColor',[30 144 255]/255,...
+                'groupBy',{'frameRate'});
             
             % Get the canvas size.
             obj.canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
