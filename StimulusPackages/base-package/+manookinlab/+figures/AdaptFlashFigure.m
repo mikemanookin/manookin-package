@@ -123,7 +123,7 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
             
             % Get your sample regions.
             prePts = timeToPts(obj.preTime);
-            sample = round([1 timeToPts(obj.flash2Duration)] + prePts + ...
+            sample = round([timeToPts(30) timeToPts(obj.flash2Duration)] + prePts + ...
                 timeToPts(obj.flash1Duration + ipiTime));
             
             if numel(quantities) > 0

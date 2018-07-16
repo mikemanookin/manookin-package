@@ -88,11 +88,13 @@ classdef MeanResponseFigure < symphonyui.core.FigureHandler
             if numel(quantities) > 0
                 y = quantities;
                 
-                y = responseByType(y, obj.recordingType, 0, sampleRate);
+                y = manookinlab.util.responseByType(y, obj.recordingType, 0, sampleRate);
                 
                 if strcmp(obj.recordingType, 'extracellular') || strcmp(obj.recordingType, 'spikes_CClamp')
-                    y = binData(y, 60, sampleRate);
-                    x = (1:length(y)) / 60;
+                    y = manookinlab.util.psth(y,6+2/3,sampleRate,1);
+                    x = (1:length(y)) / sampleRate;
+%                     y = manookinlab.util.binData(y, 60, sampleRate);
+%                     x = (1:length(y)) / 60;
                 else
                     x = (1:length(y)) / sampleRate;
                 end
