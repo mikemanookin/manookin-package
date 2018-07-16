@@ -8,9 +8,8 @@ classdef ChromaticSpot < manookinlab.protocols.ManookinLabStageProtocol
         innerRadius = 0                 % Inner radius in pixels.
         outerRadius = 1000              % Outer radius in pixels.
         chromaticClass = 'achromatic'   % Spot color
-        backgroundIntensity = 0.0       % Background light intensity (0-1)
-        centerOffset = [0,0]            % Center offset in pixels (x,y)        
-        onlineAnalysis = 'none'         % Online analysis type.
+        backgroundIntensity = 0.0       % Background light intensity (0-1)      
+        onlineAnalysis = 'extracellular' % Online analysis type.
         numberOfAverages = uint16(1)    % Number of epochs
     end
     
@@ -19,6 +18,7 @@ classdef ChromaticSpot < manookinlab.protocols.ManookinLabStageProtocol
         chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red','green','blue','yellow','S-iso','M-iso','L-iso','LM-iso'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         intensity
+        bgMean
     end
     
     methods
@@ -38,20 +38,24 @@ classdef ChromaticSpot < manookinlab.protocols.ManookinLabStageProtocol
                 'sweepColor',[30 144 255]/255,...
                 'groupBy',{'frameRate'});
             
-            % Get the canvas size.
-            obj.canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
-            
             % Check the chromatic type to set the intensity.
             if strcmp(obj.stageClass, 'Video')
                 % Set the LED weights.
-                obj.setColorWeights();
+                if contains(obj.chromaticClass,'iso')
+                    [obj.bgMean, ~, obj.colorWeights] = manookinlab.util.getMaxContrast(obj.quantalCatch, obj.chromaticClass);
+                    obj.bgMean = obj.bgMean(:)';
+                    obj.colorWeights = obj.colorWeights(:)';
+                else
+                    obj.setColorWeights();
+                    obj.bgMean = 0.5*ones(1,3);
+                end
                 if obj.backgroundIntensity > 0
-                    obj.intensity = obj.backgroundIntensity * (obj.contrast * obj.colorWeights) + obj.backgroundIntensity;
+                    obj.intensity = obj.bgMean .* (obj.contrast * obj.colorWeights) + obj.bgMean;
                 else
                     if isempty(strfind(obj.chromaticClass, 'iso'))
                         obj.intensity = obj.colorWeights * obj.contrast;
                     else
-                        obj.intensity = obj.contrast * (0.5 * obj.colorWeights + 0.5);
+                        obj.intensity = obj.contrast * (0.5 .* obj.colorWeights + 0.5);
                     end
                 end
             else
@@ -66,12 +70,16 @@ classdef ChromaticSpot < manookinlab.protocols.ManookinLabStageProtocol
         function p = createPresentation(obj)
 
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
-            p.setBackgroundColor(obj.backgroundIntensity);
+            if ~strcmp(obj.chromaticClass,'achromatic') && strcmp(obj.stageClass,'Video')
+                p.setBackgroundColor(obj.bgMean);
+            else
+                p.setBackgroundColor(obj.backgroundIntensity);
+            end
             
             spot = stage.builtin.stimuli.Ellipse();
             spot.radiusX = obj.outerRadius;
             spot.radiusY = obj.outerRadius;
-            spot.position = obj.canvasSize/2 + obj.centerOffset;
+            spot.position = obj.canvasSize/2;
             if strcmp(obj.stageClass, 'Video')
                 spot.color = obj.intensity;
             else
@@ -91,9 +99,9 @@ classdef ChromaticSpot < manookinlab.protocols.ManookinLabStageProtocol
                 mask = stage.builtin.stimuli.Ellipse();
                 mask.radiusX = obj.innerRadius;
                 mask.radiusY = obj.innerRadius;
-                mask.position = obj.canvasSize/2 + obj.centerOffset;
-                if strcmp(obj.stageClass, 'Video')
-                    mask.color = obj.backgroundIntensity;
+                mask.position = obj.canvasSize/2;
+                if ~strcmp(obj.chromaticClass,'achromatic') && strcmp(obj.stageClass,'Video')
+                    mask.color = obj.bgMean;
                 else
                     mask.color = obj.backgroundIntensity;
                 end
@@ -102,22 +110,6 @@ classdef ChromaticSpot < manookinlab.protocols.ManookinLabStageProtocol
                 p.addStimulus(mask);
             end
             
-            if strcmp(obj.stageClass, 'LcrRGB')
-                % Control the spot color.
-                colorController = stage.builtin.controllers.PropertyController(spot, 'color', ...
-                    @(state)getSpotColor(obj, state));
-                p.addController(colorController);
-            end
-            
-            function c = getSpotColor(obj, state)
-                if state.pattern == 0
-                    c = obj.intensity(1);
-                elseif state.pattern == 1
-                    c = obj.intensity(2);
-                else
-                    c = obj.intensity(3);
-                end
-            end
         end
         
         % Same presentation each epoch in a run. Replay.

@@ -96,13 +96,13 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
         function setColorWeights(obj)
             switch obj.chromaticClass
                 case 'red'
-                    obj.colorWeights = [1 0 0];
+                    obj.colorWeights = [1 -1 -1];
                 case 'green'
-                    obj.colorWeights = [0 1 0];
+                    obj.colorWeights = [-1 1 -1];
                 case 'blue'
-                    obj.colorWeights = [0 0 1];
+                    obj.colorWeights = [-1 -1 1];
                 case 'yellow'
-                    obj.colorWeights = [1 1 0];
+                    obj.colorWeights = [1 1 -1];
                 case 'L-iso'
                     obj.colorWeights = obj.quantalCatch(:,1:3)' \ [1 0 0]';
                     obj.colorWeights = obj.colorWeights/max(abs(obj.colorWeights));
