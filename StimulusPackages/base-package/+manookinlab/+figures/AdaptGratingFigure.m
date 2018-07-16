@@ -89,7 +89,7 @@ classdef AdaptGratingFigure < symphonyui.core.FigureHandler
             
             if numel(quantities) > 0
                 % Parse the response by type.
-                y = responseByType(quantities, obj.recordingType, obj.preTime, sampleRate);
+                y = manookinlab.util.responseByType(quantities, obj.recordingType, obj.preTime, sampleRate);
                 epochTag = epoch.parameters('epochTag');
                 obj.sweeps = [obj.sweeps; y(:)'];
                 obj.epochTags{end+1} = epochTag;
