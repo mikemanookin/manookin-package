@@ -6,12 +6,11 @@ classdef ConeRatioSearch < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Stimulus trailing duration (ms)
         radius = 200                    % Radius in pixels.
         temporalFrequency = 2.0         % Temporal frequency (Hz)
-        greenContrasts = -0.54:0.02:-0.25  % Green LED contrasts (-0.54 -0.25 bracket the range)
+        greenContrasts = -0.55:0.02:-0.23  % Green LED contrasts (-0.54 -0.25 bracket the range)
         stimulusClass = 'full-field'    % Stimulus class
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular'         % Online analysis type.
-        centerOffset = [0,0]            % Center offset in pixels (x,y)
-        numberOfAverages = uint16(45)   % Number of epochs
+        numberOfAverages = uint16(51)   % Number of epochs
     end
     
     properties (Hidden)
@@ -43,7 +42,7 @@ classdef ConeRatioSearch < manookinlab.protocols.ManookinLabStageProtocol
                 spot = stage.builtin.stimuli.Ellipse();
                 spot.radiusX = obj.radius;
                 spot.radiusY = obj.radius; 
-                spot.position = obj.canvasSize/2 + obj.centerOffset;
+                spot.position = obj.canvasSize/2;
             else
                 spot = stage.builtin.stimuli.Rectangle();
                 spot.size = obj.canvasSize;
@@ -60,7 +59,7 @@ classdef ConeRatioSearch < manookinlab.protocols.ManookinLabStageProtocol
                 mask = stage.builtin.stimuli.Ellipse();
                 mask.radiusX = obj.radius;
                 mask.radiusY = obj.radius;
-                mask.position = obj.canvasSize/2 + obj.centerOffset;
+                mask.position = obj.canvasSize/2;
                 mask.color = obj.backgroundIntensity; 
                 p.addStimulus(mask);
             end
