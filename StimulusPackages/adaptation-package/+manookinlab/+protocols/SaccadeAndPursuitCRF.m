@@ -2,7 +2,6 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stimulus leading duration (ms)
-        stimTime = 1250                 % Stimulus duration (ms)
         tailTime = 250                  % Stimulus trailing duration (ms)
         waitTime = 1000                 % Stimulus wait duration (ms)
         flashTime = 100                 % Spot flash time (ms)
@@ -25,6 +24,10 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysis = 'extracellular'         % Type of online analysis
         stimulusSequence = 'saccade' % Interleaved sequence types.
         numberOfAverages = uint16(240)    % Number of epochs
+    end
+    
+    properties (Dependent) 
+        stimTime
     end
     
     properties (Hidden)
@@ -378,6 +381,10 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('magnificationFactor', obj.magnificationFactor);
             epoch.addParameter('currentStimSet',obj.currentStimSet);
             epoch.addParameter('contrast', obj.contrast);
+        end
+        
+        function stimTime = get.stimTime(obj)
+            stimTime = obj.waitTime + max(obj.delayTimes) + obj.flashTime;
         end
         
         function tf = shouldContinuePreparingEpochs(obj)

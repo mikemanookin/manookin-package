@@ -2,7 +2,6 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-%         stimTime = 1500                 % Stim duration (ms)
         tailTime = 500                  % Stim trailing duration (ms)
         modulationContrasts = [0 1]     % Flash 1 contrast (-1:1)
         modulationDuration = 1250       % Flash 1 duration (ms)
