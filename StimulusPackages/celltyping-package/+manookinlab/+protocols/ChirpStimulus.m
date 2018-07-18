@@ -4,21 +4,20 @@ classdef ChirpStimulus < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 500                   % Stimulus leading duration (ms)
         tailTime = 500                  % Stimulus trailing duration (ms)
         stepTime = 500                  % Step duration (ms)
-        frequencyTime = 10000
-        contrastTime = 10000
+        frequencyTime = 8000
+        contrastTime = 8000
         interTime = 1000 
         stepContrast = 1.0              % Step contrast (0 - 1)
         frequencyContrast = 1.0;
         radius = 200                    % Radius in pixels.
         frequencyMin = 0.0
-        frequencyMax = 30.0
+        frequencyMax = 8.0
         contrastMin = 0.02
         contrastMax = 1.0
         contrastFrequency = 2.0
         stimulusClass = 'spot'          % Stimulus class
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular'         % Online analysis type.
-        centerOffset = [0,0]            % Center offset in pixels (x,y)
         numberOfAverages = uint16(5)   % Number of epochs
     end
     
@@ -54,7 +53,7 @@ classdef ChirpStimulus < manookinlab.protocols.ManookinLabStageProtocol
                 spot = stage.builtin.stimuli.Ellipse();
                 spot.radiusX = obj.radius;
                 spot.radiusY = obj.radius; 
-                spot.position = obj.canvasSize/2 + obj.centerOffset;
+                spot.position = obj.canvasSize/2;
             else
                 spot = stage.builtin.stimuli.Rectangle();
                 spot.size = obj.canvasSize;
@@ -71,7 +70,7 @@ classdef ChirpStimulus < manookinlab.protocols.ManookinLabStageProtocol
                 mask = stage.builtin.stimuli.Ellipse();
                 mask.radiusX = obj.radius;
                 mask.radiusY = obj.radius;
-                mask.position = obj.canvasSize/2 + obj.centerOffset;
+                mask.position = obj.canvasSize/2;
                 mask.color = obj.backgroundIntensity; 
                 p.addStimulus(mask);
             end
