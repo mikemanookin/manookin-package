@@ -2,7 +2,7 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 1500                 % Stim duration (ms)
+%         stimTime = 1500                 % Stim duration (ms)
         tailTime = 500                  % Stim trailing duration (ms)
         modulationContrasts = [0 1]     % Flash 1 contrast (-1:1)
         modulationDuration = 1250       % Flash 1 duration (ms)
@@ -20,6 +20,10 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
         backgroundChromaticClass = 'achromatic' % Background chromatic class.
         onlineAnalysis = 'extracellular'% Online analysis type.
         numberOfAverages = uint16(240)   % Number of epochs
+    end
+    
+    properties (Dependent) 
+        stimTime
     end
     
     properties (Hidden)
@@ -176,6 +180,10 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('flash1Contrast', obj.modulationContrast);
             epoch.addParameter('flash2Contrast', obj.flash2Contrast);
             epoch.addParameter('ipi',obj.ipi);
+        end
+        
+        function stimTime = get.stimTime(obj)
+            stimTime = obj.modulationDuration + max(obj.ipis) + obj.flash2Duration;
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
