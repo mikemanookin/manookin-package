@@ -5,7 +5,7 @@ classdef ConeRatioSearch < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 1500                 % Stimulus duration (ms)
         tailTime = 250                  % Stimulus trailing duration (ms)
         radius = 200                    % Radius in pixels.
-        temporalFrequency = 2.0         % Temporal frequency (Hz)
+        temporalFrequency = 4.0         % Temporal frequency (Hz)
         greenContrasts = -0.55:0.02:-0.23  % Green LED contrasts (-0.54 -0.25 bracket the range)
         stimulusClass = 'full-field'    % Stimulus class
         backgroundIntensity = 0.5       % Background light intensity (0-1)
@@ -31,6 +31,16 @@ classdef ConeRatioSearch < manookinlab.protocols.ManookinLabStageProtocol
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            
+            if ~strcmp(obj.onlineAnalysis, 'none')
+                obj.showFigure('manookinlab.figures.ContrastResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'preTime',obj.preTime,...
+                    'stimTime',obj.stimTime,...
+                    'contrasts',unique(obj.greenContrasts),...
+                    'temporalClass','drifting',...
+                    'temporalFrequency',obj.temporalFrequency);
+            end
         end
         
         function p = createPresentation(obj)
@@ -93,7 +103,8 @@ classdef ConeRatioSearch < manookinlab.protocols.ManookinLabStageProtocol
                 0
                 ];
             
-            % Save the seed.
+            % Save the led contrasts.
+            epoch.addParameter('contrast', obj.greenContrasts(mod(obj.numEpochsCompleted,length(obj.greenContrasts))+1));
             epoch.addParameter('ledContrasts', obj.ledContrasts);
         end
         
