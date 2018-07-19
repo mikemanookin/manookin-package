@@ -4,17 +4,17 @@ classdef ChirpStimulus < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 500                   % Stimulus leading duration (ms)
         tailTime = 500                  % Stimulus trailing duration (ms)
         stepTime = 500                  % Step duration (ms)
-        frequencyTime = 8000
-        contrastTime = 8000
-        interTime = 1000 
+        frequencyTime = 10000           % Frequency sweep duration (ms)
+        contrastTime = 8000             % Contrast sweep duration (ms)
+        interTime = 1000                % Duration between stimuli (ms)
         stepContrast = 1.0              % Step contrast (0 - 1)
-        frequencyContrast = 1.0;
+        frequencyContrast = 1.0         % Contrast during frequency sweep (0-1)
         radius = 200                    % Radius in pixels.
-        frequencyMin = 0.0
-        frequencyMax = 8.0
-        contrastMin = 0.02
-        contrastMax = 1.0
-        contrastFrequency = 2.0
+        frequencyMin = 0.0              % Minimum temporal frequency (Hz)
+        frequencyMax = 10.0             % Maximum temporal frequency (Hz)
+        contrastMin = 0.02              % Minimum contrast (0-1)
+        contrastMax = 1.0               % Maximum contrast (0-1)
+        contrastFrequency = 2.0         % Temporal frequency of contrast sweep (Hz)
         stimulusClass = 'spot'          % Stimulus class
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular'         % Online analysis type.
@@ -83,12 +83,12 @@ classdef ChirpStimulus < manookinlab.protocols.ManookinLabStageProtocol
             frequencyDelta = (obj.frequencyMax - obj.frequencyMin)/(obj.frequencyTime*1e-3);
             contrastDelta = (obj.contrastMax - obj.contrastMin)/(obj.contrastTime*1e-3);
             
-%             numFrames = ceil(obj.stimTime*1e-3*obj.frameRate);
-%             chirpFrames = zeros(1,numFrames);
-%             freqT = 1/obj.frameRate : 1/obj.frameRate : obj.frequencyTime*1e-3;
-%             freqChange = linspace(obj.frequencyMin, obj.frequencyMax, length(freqT));
-%             freqPhase = cumsum(freqChange/obj.frameRate);
-            %sin(2*pi*(obj.frequencyMin*t+frequencyDelta*t.^2))
+            numFrames = ceil(obj.stimTime*1e-3*obj.frameRate);
+            chirpFrames = zeros(1,numFrames);
+            freqT = 1/obj.frameRate : 1/obj.frameRate : obj.frequencyTime*1e-3;
+            freqChange = linspace(obj.frequencyMin, obj.frequencyMax, length(freqT));
+            freqPhase = cumsum(freqChange/obj.frameRate);
+            sin(2*pi*(obj.frequencyMin*t+frequencyDelta*t.^2))
             
             % Control the spot color.
             colorController = stage.builtin.controllers.PropertyController(spot, 'color', ...
