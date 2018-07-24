@@ -143,7 +143,6 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
                 end
             end
             
-            
             epoch.addParameter('frameRate', obj.frameRate);
             
             % Check for 2P scanning devices.
