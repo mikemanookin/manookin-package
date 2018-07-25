@@ -72,26 +72,6 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
                 'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
                 'frameRate', obj.frameRate, 'numFrames', numFrames);
 
-            % Automated analysis figure.
-%             if ~strcmp(obj.onlineAnalysis,'none')
-%                 % custom figure handler
-%                 if isempty(obj.analysisFigure) || ~isvalid(obj.analysisFigure)
-%                     obj.analysisFigure = obj.showFigure('symphonyui.builtin.figures.CustomFigure', @obj.getSTRF);
-%                     f = obj.analysisFigure.getFigureHandle();
-%                     set(f, 'Name', 'spatial receptive field');
-%                     obj.analysisFigure.userData.axesHandle = axes('Parent', f);
-%                 end
-%
-%                 % Init the strf.
-%                 if strcmp(obj.chromaticClass, 'achromatic')
-%                     obj.strf = zeros(obj.numYChecks, obj.numXChecks, floor(obj.frameRate*0.5/obj.frameDwell));
-%                     obj.spatialRF = zeros(obj.numYChecks, obj.numXChecks);
-%                 else
-%                     obj.strf = zeros(3, obj.numYChecks, obj.numXChecks, floor(obj.frameRate*0.5/obj.frameDwell));
-%                     obj.spatialRF = zeros(obj.numYChecks, obj.numXChecks, 3);
-%                 end
-%             end
-
             % Get the frame values for repeating epochs.
             if ~obj.useRandomSeed
                 obj.seed = 1;
@@ -319,11 +299,6 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
 
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
-
-%             device = obj.rig.getDevice(obj.amp);
-%             duration = (obj.preTime + obj.stimTime + obj.tailTime) / 1e3;
-%             epoch.addDirectCurrentStimulus(device, device.background, duration, obj.sampleRate);
-%             epoch.addResponse(device);
 
             % Deal with the seed.
             if obj.useRandomSeed

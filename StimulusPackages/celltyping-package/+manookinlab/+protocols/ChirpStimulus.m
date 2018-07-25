@@ -83,12 +83,12 @@ classdef ChirpStimulus < manookinlab.protocols.ManookinLabStageProtocol
             frequencyDelta = (obj.frequencyMax - obj.frequencyMin)/(obj.frequencyTime*1e-3);
             contrastDelta = (obj.contrastMax - obj.contrastMin)/(obj.contrastTime*1e-3);
             
-            numFrames = ceil(obj.stimTime*1e-3*obj.frameRate);
-            chirpFrames = zeros(1,numFrames);
-            freqT = 1/obj.frameRate : 1/obj.frameRate : obj.frequencyTime*1e-3;
-            freqChange = linspace(obj.frequencyMin, obj.frequencyMax, length(freqT));
-            freqPhase = cumsum(freqChange/obj.frameRate);
-            sin(2*pi*(obj.frequencyMin*t+frequencyDelta*t.^2))
+%             numFrames = ceil(obj.stimTime*1e-3*obj.frameRate);
+%             chirpFrames = zeros(1,numFrames);
+%             freqT = 1/obj.frameRate : 1/obj.frameRate : obj.frequencyTime*1e-3;
+%             freqChange = linspace(obj.frequencyMin, obj.frequencyMax, length(freqT));
+%             freqPhase = cumsum(freqChange/obj.frameRate);
+%             sin(2*pi*(obj.frequencyMin*t+frequencyDelta*t.^2))
             
             % Control the spot color.
             colorController = stage.builtin.controllers.PropertyController(spot, 'color', ...

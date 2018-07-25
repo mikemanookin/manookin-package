@@ -10,15 +10,15 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         contrasts = [0 -0.0625 0.0625 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Spot contrasts (-1:1)
         speed = 2750                    % Background motion speed (pix/sec)
         stimulusIndex = 2               % Stimulus number (1:161)
-        surroundContrast = 0.5          % Surround contrast (0-1)
+        surroundContrast = 1.0          % Surround contrast (0-1)
         surroundBarWidth = 75           % Surround bar width (pix)
         maskRadius = 100                % Mask radius in pixels
         blurMask = true                 % Gaussian blur of center mask? (t/f)
         apertureDiameter = 2000         % Aperture diameter in pixels.
-        centerOffset = [0,0]            % Center offset in pixels (x,y)
         randomSeed = false              % Use a random (true) or repeating seed (false)
+        backgroundIntensity = 0.5       % Mean background intenstiy
         centerClass = 'spot'            % Center stimulus class
-        surroundClass = 'grating'       % Background stimulus type.
+        surroundClass = 'pink grating'       % Background stimulus type.
         chromaticClass = 'achromatic'   % Spot color
         bgChromaticClass = 'achromatic' % Background color
         onlineAnalysis = 'extracellular'         % Type of online analysis
@@ -33,13 +33,12 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         centerClassType = symphonyui.core.PropertyType('char', 'row', {'spot','high freq grating', 'low freq grating'})
-        surroundClassType = symphonyui.core.PropertyType('char', 'row', {'natural image','plaid','grating'})
+        surroundClassType = symphonyui.core.PropertyType('char', 'row', {'square grating','sine grating','gaussian texture','chirp grating','pink grating','random grating','natural image','plaid'})
         chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red-green isoluminant','red-green isochromatic'})
         bgChromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red-green isoluminant','red-green isochromatic'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         stimulusSequenceType = symphonyui.core.PropertyType('char', 'row', {'tremor-saccade','pursuit-saccade','tremor','saccade'})
         imageMatrix
-        backgroundIntensity
         backgroundMeans
         imageName
         subjectName
@@ -107,8 +106,20 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
                     obj.getImageSubject();
                 case 'plaid'
                     obj.getPlaid();
-                case 'grating'
+                case {'square grating','sine grating'}
                     obj.getGrating();
+                case 'gaussian texture'
+                    obj.getGaussianTexture();
+                case 'chirp grating'
+                    obj.getChirpGrating();
+            end
+            
+            if strcmp(obj.surroundClass, 'pink grating')
+                obj.seed = 1;
+                obj.getPinkGrating();
+            elseif strcmp(obj.surroundClass, 'random grating')
+                obj.seed = 1;
+                obj.getRandomGrating();
             end
             
             if strcmp(obj.stageClass,'LightCrafter')
@@ -145,20 +156,14 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             nframes = ceil(obj.stimTime * obj.frameRate) + 10;
             xy = obj.noiseStream.randn(nframes,2)*obj.speed/obj.frameRate;            
-            obj.xyTable = obj.canvasSize/2 + obj.centerOffset + cumsum(xy);
+            obj.xyTable = obj.canvasSize/2 + cumsum(xy);
         end
         
         function getPlaid(obj)
-            obj.backgroundIntensity = 0.5;
-            obj.backgroundMeans
             
             [x,y] = meshgrid(...
                 linspace(-1536/2, 1536/2, 1536), ...
                 linspace(-1024/2, 1024/2, 1024));
-            
-            % Center the stimulus.
-            x = x + obj.centerOffset(1);
-            y = y + obj.centerOffset(2);
             
             x = x / (obj.surroundBarWidth*2/obj.magnificationFactor) * 2 * pi;
             y = y / (obj.surroundBarWidth*2/obj.magnificationFactor) * 2 * pi;
@@ -166,33 +171,112 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate the raw plaid image.
             img = obj.surroundContrast*sign(cos((cos(pi)*x + sin(pi) * y)) + cos((cos(pi/2)*x + sin(pi/2) * y)));
             
-            img = 0.5*img + 0.5;
+            img = obj.backgroundIntensity*img + obj.backgroundIntensity;
             
             img = img*255; %rescale s.t. brightest point is maximum monitor level
             obj.imageMatrix = uint8(img);
         end
         
         function getGrating(obj)
-            obj.backgroundIntensity = 0.5;
-            
-            [x,y] = meshgrid(...
-                linspace(-1650/2, 1650/2, 1650), ...
-                linspace(-512/2, 512/2, 512));
-%             [x,y] = meshgrid(...
-%                 linspace(-1536/2, 1536/2, 1536), ...
-%                 linspace(-1024/2, 1024/2, 1024));
-            
-            % Center the stimulus.
-            x = x + obj.centerOffset(1);
-            y = y + obj.centerOffset(2);
+            x = linspace(-1650/2, 1650/2, 1650);
             
             x = x / (obj.surroundBarWidth*2/obj.magnificationFactor) * 2 * pi;
-            y = y / (obj.surroundBarWidth*2/obj.magnificationFactor) * 2 * pi;
+            x = repmat(x,[512 1]);
             
             % Calculate the raw grating image.
-            img = obj.surroundContrast*sign(cos(x));
+            if strcmp(obj.surroundClass,'square grating')
+                img = obj.surroundContrast*sign(sin(x));
+            else
+                img = obj.surroundContrast*sin(x);
+            end
             
-            img = 0.5*img + 0.5;
+            img = obj.backgroundIntensity*img + obj.backgroundIntensity;
+            
+            img = img*255; %rescale s.t. brightest point is maximum monitor level
+            obj.imageMatrix = uint8(img);
+        end
+        
+        function getGaussianTexture(obj)
+            DIM = 1650;
+            img = manookinlab.util.generateTexture(DIM, obj.surroundBarWidth/obj.magnificationFactor, 1);
+            img = img(600+(1:512),:);
+            img(241:272,810:841) = 0.5;
+            img = obj.surroundContrast * (2*img-1);
+            img = obj.backgroundIntensity*img + obj.backgroundIntensity;
+            
+            img = img*255; %rescale s.t. brightest point is maximum monitor level
+            obj.imageMatrix = uint8(img);
+        end
+        
+        function getChirpGrating(obj)
+            frequencyMin = 1;
+            frequencyMax = 1650/(obj.surroundBarWidth*2/obj.magnificationFactor*2);
+            frequencyDelta = (frequencyMax - frequencyMin)/2;
+
+
+            x = linspace(-1, 1, 1650);
+            x = obj.surroundContrast*sin(2*pi*(frequencyMin*x+frequencyDelta*x.^2));
+            img = repmat(x,[512 1]);
+            img = obj.backgroundIntensity*img + obj.backgroundIntensity;
+            
+            img = img*255; %rescale s.t. brightest point is maximum monitor level
+            obj.imageMatrix = uint8(img);
+        end
+        
+        function getPinkGrating(obj)
+            obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
+            DIM = 1650;
+            BETA = -2;
+            % First quadrant are positive frequencies.  Zero frequency is at u(1,1).
+            u = [(0:floor(DIM/2)) -(ceil(DIM(1)/2)-1:-1:1)]/DIM;
+            
+            % Generate the power spectrum
+            S_f = (u.^2).^(BETA/2);
+
+            % Set any infinities to zero
+            S_f(S_f==inf) = 0;
+
+            % Generate a grid of random phase shifts
+            phi = 2*obj.noiseStream.rand(size(u)) - 1;
+            
+            % Zero out the very high frequencies.
+            S_f(133:end-123) = 0;
+
+            % Inverse Fourier transform to obtain the the spatial pattern
+            x = ifft(S_f.^0.5 .* (cos(2*pi*phi)+1i*sin(2*pi*phi)));
+
+            % Pick just the real component
+            x = real(x);
+            x(810:841) = 0;
+            img = repmat(obj.surroundContrast*x/max(abs(x)),[512 1]);
+            
+            img = obj.backgroundIntensity*img + obj.backgroundIntensity;
+            
+            img = img*255; %rescale s.t. brightest point is maximum monitor level
+            obj.imageMatrix = uint8(img);
+        end
+        
+        function getRandomGrating(obj)
+            obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
+            DIM = 1650;
+            % Generate the power spectrum
+            S_f = ones(1,DIM);
+            
+            % Generate a grid of random phase shifts
+            phi = obj.noiseStream.randn(size(S_f));
+            
+            % Zero out the very high frequencies.
+            S_f(133:end-132) = 0;
+
+            % Inverse Fourier transform to obtain the the spatial pattern
+            x = ifft(S_f.^0.5 .* (cos(2*pi*phi)+1i*sin(2*pi*phi)));
+
+            % Pick just the real component
+            x = real(x);
+            x(815:836) = 0;
+            img = repmat(obj.surroundContrast*x/max(abs(x)),[512 1]);
+            
+            img = obj.backgroundIntensity*img + obj.backgroundIntensity;
             
             img = img*255; %rescale s.t. brightest point is maximum monitor level
             obj.imageMatrix = uint8(img);
@@ -234,8 +318,7 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             % Create your scene.
             scene = stage.builtin.stimuli.Image(obj.imageMatrix);
             scene.size = [size(obj.imageMatrix,2) size(obj.imageMatrix,1)]*obj.magnificationFactor;
-            p0 = obj.canvasSize/2 + obj.centerOffset;
-            scene.position = p0;
+            scene.position = obj.canvasSize/2;
 
             scene.setMinFunction(GL.NEAREST);
             scene.setMagFunction(GL.NEAREST);
@@ -246,17 +329,17 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             %apply eye trajectories to move image around
             if strcmp(obj.backgroundType, 'pursuit')
                 scenePosition = stage.builtin.controllers.PropertyController(scene,...
-                    'position', @(state)getScenePosition(obj, state.time - obj.preTime*1e-3, p0));
+                    'position', @(state)getScenePosition(obj, state.time - obj.preTime*1e-3, obj.canvasSize/2));
                 % Add the controller.
                 p.addController(scenePosition);
             elseif strcmp(obj.backgroundType,'saccade')
                 scenePosition = stage.builtin.controllers.PropertyController(scene,...
-                    'position', @(state)getScenePositionFix(obj, state.time - obj.preTime*1e-3, p0));
+                    'position', @(state)getScenePositionFix(obj, state.time - obj.preTime*1e-3, obj.canvasSize/2));
                 % Add the controller.
                 p.addController(scenePosition);
             elseif strcmp(obj.backgroundType,'tremor')
                 scenePosition = stage.builtin.controllers.PropertyController(scene,...
-                    'position', @(state)getScenePositionTrem(obj, state.time - obj.preTime*1e-3, p0));
+                    'position', @(state)getScenePositionTrem(obj, state.time - obj.preTime*1e-3, obj.canvasSize/2));
                 % Add the controller.
                 p.addController(scenePosition);
             end
@@ -272,9 +355,6 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
                 aperture.size = obj.canvasSize;
                 [x,y] = meshgrid(linspace(-obj.canvasSize(1)/2,obj.canvasSize(1)/2,obj.canvasSize(1)), ...
                     linspace(-obj.canvasSize(2)/2,obj.canvasSize(2)/2,obj.canvasSize(2)));
-                % Center the stimulus.
-                x = x - obj.centerOffset(1);
-                y = y + obj.centerOffset(2);
                 distanceMatrix = sqrt(x.^2 + y.^2);
                 circle = uint8((distanceMatrix >= obj.apertureDiameter/2) * 255);
                 mask = stage.core.Mask(circle);
@@ -285,7 +365,7 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             if (obj.maskRadius > 0) % Create mask
                 if obj.blurMask
                     mask = stage.builtin.stimuli.Rectangle();
-                    mask.position = obj.canvasSize/2 + obj.centerOffset;
+                    mask.position = obj.canvasSize/2;
                     mask.color = obj.backgroundMeans;
                     mask.size = obj.maskRadius*2*ones(1,2);
                     % Assign a gaussian envelope mask to the grating.
@@ -293,7 +373,7 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
                     mask.setMask(msk);
                 else
                     mask = stage.builtin.stimuli.Ellipse();
-                    mask.position = obj.canvasSize/2 + obj.centerOffset;
+                    mask.position = obj.canvasSize/2;
                     mask.color = obj.backgroundMeans;
                     mask.radiusX = obj.maskRadius;
                     mask.radiusY = obj.maskRadius;
@@ -331,7 +411,7 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             spot = stage.builtin.stimuli.Ellipse();
             spot.radiusX = obj.spotRadius;
             spot.radiusY = obj.spotRadius;
-            spot.position = obj.canvasSize/2 + obj.centerOffset;
+            spot.position = obj.canvasSize/2;
             spot.color = obj.contrast*obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
             
             % Add the stimulus to the presentation.
@@ -361,6 +441,11 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             % Seed the random number generator.
             if obj.randomSeed
                 obj.seed = RandStream.shuffleSeed; % Generate a random seed.
+                if strcmp(obj.surroundClass, 'pink grating')
+                    obj.getPinkGrating();
+                elseif strcmp(obj.surroundClass,'random grating')
+                    obj.getRandomGrating();
+                end
             else
                 obj.seed = 1; % Repeating seed.
             end

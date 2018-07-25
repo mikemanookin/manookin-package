@@ -66,7 +66,7 @@ classdef GaussianTexture < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity);
             
             % Generate the texture.
-            imageMatrix = generateTexture(min(obj.canvasSize), obj.stdDev, obj.contrast);
+            imageMatrix = manookinlab.util.generateTexture(min(obj.canvasSize), obj.stdDev, obj.contrast);
             
             % Create your noise image.
             imageMatrix = uint8(imageMatrix * 255);
