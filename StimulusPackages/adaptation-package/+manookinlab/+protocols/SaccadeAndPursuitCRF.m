@@ -12,16 +12,16 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         stimulusIndex = 2               % Stimulus number (1:161)
         surroundContrast = 1.0          % Surround contrast (0-1)
         surroundBarWidth = 75           % Surround bar width (pix)
-        maskRadius = 100                % Mask radius in pixels
+        maskRadius = 0                  % Mask radius in pixels
         blurMask = true                 % Gaussian blur of center mask? (t/f)
         apertureDiameter = 2000         % Aperture diameter in pixels.
         randomSeed = false              % Use a random (true) or repeating seed (false)
         backgroundIntensity = 0.5       % Mean background intenstiy
         centerClass = 'spot'            % Center stimulus class
-        surroundClass = 'pink grating'       % Background stimulus type.
+        surroundClass = 'gaussian texture' % Background stimulus type.
         chromaticClass = 'achromatic'   % Spot color
         bgChromaticClass = 'achromatic' % Background color
-        onlineAnalysis = 'extracellular'         % Type of online analysis
+        onlineAnalysis = 'extracellular' % Type of online analysis
         stimulusSequence = 'saccade' % Interleaved sequence types.
         numberOfAverages = uint16(240)    % Number of epochs
     end
@@ -67,8 +67,7 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            obj.showFigure('manookinlab.figures.ResponseFigure', obj.rig.getDevices(obj.amp), ...
-                'numberOfAverages', obj.numberOfAverages);
+            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             
             if length(unique(obj.delayTimes)) > 1
                 obj.backgroundTypes = {'stationary','fixation'};
@@ -197,10 +196,13 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function getGaussianTexture(obj)
-            DIM = 1650;
+            DIM = 2000;
             img = manookinlab.util.generateTexture(DIM, obj.surroundBarWidth/obj.magnificationFactor, 1);
-            img = img(600+(1:512),:);
-            img(241:272,810:841) = 0.5;
+%             img = img(100+(1:512),:);
+            img = img(1,:);
+            img = repmat(img,[512 1]);
+%             img(241:272,(810:841)+175) = 0.5;
+            img(:,(800:851)+175) = 0.5;
             img = obj.surroundContrast * (2*img-1);
             img = obj.backgroundIntensity*img + obj.backgroundIntensity;
             
@@ -240,14 +242,14 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             phi = 2*obj.noiseStream.rand(size(u)) - 1;
             
             % Zero out the very high frequencies.
-            S_f(133:end-123) = 0;
+%             S_f(133:end-123) = 0;
 
             % Inverse Fourier transform to obtain the the spatial pattern
             x = ifft(S_f.^0.5 .* (cos(2*pi*phi)+1i*sin(2*pi*phi)));
 
             % Pick just the real component
             x = real(x);
-            x(810:841) = 0;
+            img(241:272,810:841) = 0;
             img = repmat(obj.surroundContrast*x/max(abs(x)),[512 1]);
             
             img = obj.backgroundIntensity*img + obj.backgroundIntensity;
@@ -273,7 +275,7 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
 
             % Pick just the real component
             x = real(x);
-            x(815:836) = 0;
+            img(241:272,810:841) = 0;
             img = repmat(obj.surroundContrast*x/max(abs(x)),[512 1]);
             
             img = obj.backgroundIntensity*img + obj.backgroundIntensity;
