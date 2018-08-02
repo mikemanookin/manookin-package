@@ -5,11 +5,11 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 6000                 % Stimulus duration (ms)
         tailTime = 500                  % Stimulus trailing duration (ms)
         waitTime = 1000                 % Stimulus wait duration (ms)
-        stimulusIndex = 2               % Stimulus number (1:161)
+        stimulusIndices = [2 6]         % Stimulus number (1:161)
         maskDiameter = 0                % Mask diameter in pixels
         apertureDiameter = 2000         % Aperture diameter in pixels.
         freezeFEMs = false
-        onlineAnalysis = 'none'         % Type of online analysis
+        onlineAnalysis = 'extracellular'% Type of online analysis
         numberOfAverages = uint16(6)    % Number of epochs
     end
     
@@ -25,6 +25,9 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
         subjectName
         magnificationFactor
         currentStimSet
+        stimulusIndex
+        pkgDir
+        im
     end
     
     methods
@@ -45,24 +48,27 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                 'sweepColor',[0 0 0]);
             
-            % Get the image and subject names.
-            obj.getImageSubject();
-        end
-        
-        function getImageSubject(obj)
             % Get the resources directory.
-            pkgDir = manookinlab.Package.getResourcePath();
+            obj.pkgDir = manookinlab.Package.getResourcePath();
             
             obj.currentStimSet = 'dovesFEMstims20160826.mat';
             
             % Load the current stimulus set.
-            im = load([pkgDir,'\',obj.currentStimSet]);
+            obj.im = load([obj.pkgDir,'\',obj.currentStimSet]);
             
+            % Get the image and subject names.
+            if length(unique(obj.stimulusIndices)) == 1
+                obj.stimulusIndex = unique(obj.stimulusIndices);
+                obj.getImageSubject();
+            end
+        end
+        
+        function getImageSubject(obj)
             % Get the image name.
-            obj.imageName = im.FEMdata(obj.stimulusIndex).ImageName;
+            obj.imageName = obj.im.FEMdata(obj.stimulusIndex).ImageName;
             
             % Load the image.
-            fileId = fopen([pkgDir,'\doves\images\', obj.imageName],'rb','ieee-be');
+            fileId = fopen([obj.pkgDir,'\doves\images\', obj.imageName],'rb','ieee-be');
             img = fread(fileId, [1536 1024], 'uint16');
             fclose(fileId);
             
@@ -74,11 +80,11 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
             
             %get appropriate eye trajectories, at 200Hz
             if (obj.freezeFEMs) %freeze FEMs, hang on fixations
-                obj.xTraj = im.FEMdata(obj.stimulusIndex).frozenX;
-                obj.yTraj = im.FEMdata(obj.stimulusIndex).frozenY;
+                obj.xTraj = obj.im.FEMdata(obj.stimulusIndex).frozenX;
+                obj.yTraj = obj.im.FEMdata(obj.stimulusIndex).frozenY;
             else %full FEM trajectories during fixations
-                obj.xTraj = im.FEMdata(obj.stimulusIndex).eyeX;
-                obj.yTraj = im.FEMdata(obj.stimulusIndex).eyeY;
+                obj.xTraj = obj.im.FEMdata(obj.stimulusIndex).eyeX;
+                obj.yTraj = obj.im.FEMdata(obj.stimulusIndex).eyeY;
             end
             obj.timeTraj = (0:(length(obj.xTraj)-1)) ./ 200; %sec
            
@@ -98,8 +104,8 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
             obj.yTraj = obj.yTraj .* 3.3/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel');
             
             % Load the fixations for the image.
-            f = load([pkgDir,'\doves\fixations\', obj.imageName, '.mat']);
-            obj.subjectName = f.subj_names_list{im.FEMdata(obj.stimulusIndex).SubjectIndex};
+            f = load([obj.pkgDir,'\doves\fixations\', obj.imageName, '.mat']);
+            obj.subjectName = f.subj_names_list{obj.im.FEMdata(obj.stimulusIndex).SubjectIndex};
             
             % Get the magnification factor. Exps were done with each pixel
             % = 1 arcmin == 1/60 degree; 200 um/degree...
@@ -177,7 +183,15 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
+            if length(unique(obj.stimulusIndices)) > 1
+                % Set the current stimulus trajectory.
+                obj.stimulusIndex = obj.stimulusIndices(mod(obj.numEpochsCompleted,...
+                    length(obj.stimulusIndices)) + 1);
+                obj.getImageSubject();
+            end
+            
             % Save the parameters.
+            epoch.addParameter('stimulusIndex', obj.stimulusIndex);
             epoch.addParameter('imageName', obj.imageName);
             epoch.addParameter('subjectName', obj.subjectName);
             epoch.addParameter('backgroundIntensity', obj.backgroundIntensity);
@@ -188,7 +202,7 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
         % Same presentation each epoch in a run. Replay.
         function controllerDidStartHardware(obj)
             controllerDidStartHardware@edu.washington.riekelab.protocols.RiekeLabProtocol(obj);
-            if (obj.numEpochsCompleted >= 1) && (obj.numEpochsCompleted < obj.numberOfAverages)
+            if (obj.numEpochsCompleted >= 1) && (obj.numEpochsCompleted < obj.numberOfAverages) && (length(unique(obj.stimulusIndices)) == 1)
                 obj.rig.getDevice('Stage').replay
             else
                 obj.rig.getDevice('Stage').play(obj.createPresentation());
