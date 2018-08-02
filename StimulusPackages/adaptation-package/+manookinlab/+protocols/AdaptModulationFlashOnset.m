@@ -1,17 +1,17 @@
-classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
+classdef AdaptModulationFlashOnset < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        tailTime = 750                  % Stim trailing duration (ms)
+        tailTime = 500                  % Stim trailing duration (ms)
         modulationContrasts = [0 1]     % Flash 1 contrast (-1:1)
-        modulationDuration = 1250       % Flash 1 duration (ms)
+        modulationDurations = [250 500 750 1000 1250]       % Modulation durations (ms)
         modulationFrequency = 30.0      % Modulation temporal frequency (Hz)
-        flash2Contrasts = [0 -0.0625 0.0625 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Test flash contrasts (-1:1)
+        flash2Contrast = 0.5            % Test flash contrast (-1:1)
         flash2Duration = 100            % Test flash duration
-        ipis = [50 50]                  % Inter-pulse intervals (ms)
-        radius = 105                    % Inner radius in pixels.
+        interPulseInterval = 50         % Inter-pulse intervals (ms)
+        radius = 50                     % Inner radius in pixels.
         apertureRadius = 105            % Blank aperture radius (pix)
-        backgroundIntensity = 0.5       % Background light intensity (0-1)
+        backgroundIntensity = 0.5       % Background light intensity (0-1) 
         modulationClass = 'full-field'  % Adapting flash class
         flash2Class = 'spot'            % Test flash class
         chromaticClass = 'achromatic'   % Chromatic class
@@ -33,10 +33,11 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
         flash2ClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field'})
         bkg
         modulationContrast
-        flash2Contrast
-        ipi
+        modulationDuration
         rgbMeans
         rgbValues
+        ipis
+        ipi
         backgroundMeans
         bkgValues
     end
@@ -53,14 +54,17 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            
+            % Set the ipis so the analysis figure works.
+            obj.ipis = obj.modulationDurations - min(obj.modulationDurations) + obj.interPulseInterval;
             if ~strcmp(obj.onlineAnalysis, 'none')
                 obj.showFigure('manookinlab.figures.AdaptFlashFigure', ...
                     obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                     'preTime',obj.preTime,...
-                    'flash1Duration',obj.modulationDuration,...
+                    'flash1Duration',min(obj.modulationDurations),...
                     'flash2Duration',obj.flash2Duration,...
                     'flash1Contrasts',unique(obj.modulationContrasts),...
-                    'flash2Contrasts',unique(obj.flash2Contrasts),...
+                    'flash2Contrasts',obj.flash2Contrast,...
                     'ipis',obj.ipis);
             end
             
@@ -159,7 +163,7 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
             
             % Control when the spot is visible.
             spotVisible = stage.builtin.controllers.PropertyController(spot, 'visible', ...
-                @(state)state.time >= (obj.preTime + obj.modulationDuration + obj.ipi) * 1e-3 && state.time < (obj.preTime + obj.modulationDuration + obj.ipi + obj.flash2Duration) * 1e-3);
+                @(state)state.time >= (obj.preTime + obj.modulationDuration + obj.interPulseInterval) * 1e-3 && state.time < (obj.preTime + obj.modulationDuration + obj.interPulseInterval + obj.flash2Duration) * 1e-3);
             p.addController(spotVisible);
         end
         
@@ -168,20 +172,19 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the current first flash contrast.
             obj.modulationContrast = obj.modulationContrasts(mod(obj.numEpochsCompleted, length(obj.modulationContrasts))+1);
-            % Get the current test flash contrast.
-            obj.flash2Contrast = obj.flash2Contrasts(mod(floor(obj.numEpochsCompleted/length(obj.modulationContrasts)), length(obj.flash2Contrasts))+1);
+            % Get the current modulation duration.
+            obj.modulationDuration = obj.modulationDurations(mod(floor(obj.numEpochsCompleted/length(obj.modulationContrasts)), length(obj.modulationDurations))+1);
             % Get the current inter-pulse interval.
             obj.ipi = obj.ipis(mod(floor(obj.numEpochsCompleted/length(obj.modulationContrasts)), length(obj.ipis))+1);
             
             % Save the Epoch-specific parameters.
-            epoch.addParameter('modulationContrast', obj.modulationContrast);
+            epoch.addParameter('modulationDuration', obj.modulationDuration);
             epoch.addParameter('flash1Contrast', obj.modulationContrast);
-            epoch.addParameter('flash2Contrast', obj.flash2Contrast);
             epoch.addParameter('ipi',obj.ipi);
         end
         
         function stimTime = get.stimTime(obj)
-            stimTime = obj.modulationDuration + max(obj.ipis) + obj.flash2Duration;
+            stimTime = max(obj.modulationDurations) + obj.interPulseInterval + obj.flash2Duration;
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
