@@ -14,6 +14,10 @@ classdef Package < handle
             p = fullfile(calibrationPath, varargin{:});
         end
         
+        function p = getResourcePath()
+            parentPath = fileparts(fileparts(fileparts(fileparts(((((mfilename('fullpath')))))))));
+            p = fullfile(parentPath, 'resources');
+        end
     end
     
 end

@@ -8,7 +8,6 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
         stimulusIndex = 2               % Stimulus number (1:161)
         maskDiameter = 0                % Mask diameter in pixels
         apertureDiameter = 2000         % Aperture diameter in pixels.
-        centerOffset = [0,0]            % Center offset in pixels (x,y)
         freezeFEMs = false
         onlineAnalysis = 'none'         % Type of online analysis
         numberOfAverages = uint16(6)    % Number of epochs
@@ -46,27 +45,24 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                 'sweepColor',[0 0 0]);
             
-%             obj.muPerPixel = 0.6717;
-            
             % Get the image and subject names.
             obj.getImageSubject();
         end
         
         function getImageSubject(obj)
             % Get the resources directory.
-            tmp = strsplit(pwd,'\');
-            pkgDir = [tmp{1},'\',tmp{2},'\',tmp{3},'\Documents\GitRepos\Symphony2\manookin-package\'];
+            pkgDir = manookinlab.Package.getResourcePath();
             
             obj.currentStimSet = 'dovesFEMstims20160826.mat';
             
             % Load the current stimulus set.
-            im = load([pkgDir,'\resources\',obj.currentStimSet]);
+            im = load([pkgDir,'\',obj.currentStimSet]);
             
             % Get the image name.
             obj.imageName = im.FEMdata(obj.stimulusIndex).ImageName;
             
             % Load the image.
-            fileId = fopen([pkgDir,'resources\doves\images\', obj.imageName],'rb','ieee-be');
+            fileId = fopen([pkgDir,'\doves\images\', obj.imageName],'rb','ieee-be');
             img = fread(fileId, [1536 1024], 'uint16');
             fclose(fileId);
             
@@ -98,16 +94,16 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
             %also scale them to canvas pixels. 1 VH pixel = 1 arcmin = 3.3
             %um on monkey retina
             %canvasPix = (VHpix) * (um/VHpix)/(um/canvasPix)
-            obj.xTraj = obj.xTraj .* 3.3/obj.muPerPixel;
-            obj.yTraj = obj.yTraj .* 3.3/obj.muPerPixel;
+            obj.xTraj = obj.xTraj .* 3.3/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel');
+            obj.yTraj = obj.yTraj .* 3.3/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel');
             
             % Load the fixations for the image.
-            f = load([pkgDir,'resources\doves\fixations\', obj.imageName, '.mat']);
+            f = load([pkgDir,'\doves\fixations\', obj.imageName, '.mat']);
             obj.subjectName = f.subj_names_list{im.FEMdata(obj.stimulusIndex).SubjectIndex};
             
             % Get the magnification factor. Exps were done with each pixel
             % = 1 arcmin == 1/60 degree; 200 um/degree...
-            obj.magnificationFactor = round(1/60*200/obj.muPerPixel);
+            obj.magnificationFactor = round(1/60*200/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel'));
         end
         
         function p = createPresentation(obj)
@@ -117,7 +113,7 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
             % Create your scene.
             scene = stage.builtin.stimuli.Image(obj.imageMatrix);
             scene.size = [size(obj.imageMatrix,2) size(obj.imageMatrix,1)]*obj.magnificationFactor;
-            p0 = obj.canvasSize/2 + obj.centerOffset;
+            p0 = obj.canvasSize/2;
             scene.position = p0;
             
             scene.setMinFunction(GL.NEAREST);
@@ -161,9 +157,6 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
                 aperture.size = obj.canvasSize;
                 [x,y] = meshgrid(linspace(-obj.canvasSize(1)/2,obj.canvasSize(1)/2,obj.canvasSize(1)), ...
                     linspace(-obj.canvasSize(2)/2,obj.canvasSize(2)/2,obj.canvasSize(2)));
-                % Center the stimulus.
-                x = x - obj.centerOffset(1);
-                y = y + obj.centerOffset(2);
                 distanceMatrix = sqrt(x.^2 + y.^2);
                 circle = uint8((distanceMatrix >= obj.apertureDiameter/2) * 255);
                 mask = stage.core.Mask(circle);
@@ -173,7 +166,7 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
             
             if (obj.maskDiameter > 0) % Create mask
                 mask = stage.builtin.stimuli.Ellipse();
-                mask.position = obj.canvasSize/2 + obj.centerOffset;
+                mask.position = obj.canvasSize/2;
                 mask.color = obj.backgroundIntensity;
                 mask.radiusX = obj.maskDiameter/2;
                 mask.radiusY = obj.maskDiameter/2;
