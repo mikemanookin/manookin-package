@@ -5,12 +5,12 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 6000                 % Stimulus duration (ms)
         tailTime = 500                  % Stimulus trailing duration (ms)
         waitTime = 1000                 % Stimulus wait duration (ms)
-        stimulusIndices = [2 6]         % Stimulus number (1:161)
+        stimulusIndices = [2 6 12 18 24 30 40 50]         % Stimulus number (1:161)
         maskDiameter = 0                % Mask diameter in pixels
         apertureDiameter = 2000         % Aperture diameter in pixels.
         freezeFEMs = false
         onlineAnalysis = 'extracellular'% Type of online analysis
-        numberOfAverages = uint16(6)    % Number of epochs
+        numberOfAverages = uint16(48)   % Number of epochs
     end
     
     properties (Hidden)
