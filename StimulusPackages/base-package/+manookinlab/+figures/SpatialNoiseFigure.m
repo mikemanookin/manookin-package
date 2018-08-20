@@ -61,11 +61,19 @@ classdef SpatialNoiseFigure < symphonyui.core.FigureHandler
         function createUi(obj)
             import appbox.*;
             
-            obj.axesHandle = axes( ...
+%             obj.axesHandle = axes( ...
+%                 'Parent', obj.figureHandle, ...
+%                 'FontName', get(obj.figureHandle, 'DefaultUicontrolFontName'), ...
+%                 'FontSize', get(obj.figureHandle, 'DefaultUicontrolFontSize'), ...
+%                 'XTickMode', 'auto');
+            for k = 1 : 4
+            obj.axesHandle(k) = subplot(2, 2, k, ...
                 'Parent', obj.figureHandle, ...
+                'FontUnits', get(obj.figureHandle, 'DefaultUicontrolFontUnits'), ...
                 'FontName', get(obj.figureHandle, 'DefaultUicontrolFontName'), ...
                 'FontSize', get(obj.figureHandle, 'DefaultUicontrolFontSize'), ...
                 'XTickMode', 'auto');
+            end
             
             obj.strf = zeros(obj.numYChecks, obj.numXChecks, floor(obj.frameRate*0.5));
             obj.spaceFilter = [];
@@ -75,7 +83,7 @@ classdef SpatialNoiseFigure < symphonyui.core.FigureHandler
         
         function setTitle(obj, t)
             set(obj.figureHandle, 'Name', t);
-            title(obj.axesHandle, t);
+%             title(obj.axesHandle, t);
         end
         
         function clear(obj)
@@ -158,14 +166,20 @@ classdef SpatialNoiseFigure < symphonyui.core.FigureHandler
                 end
                 
                 % Display the spatial RF.
-                if obj.numXChecks == 1 || obj.numYChecks == 1
-                    obj.imgHandle = imagesc(obj.spaceFilter, 'Parent', obj.axesHandle);
-                else
-                    obj.imgHandle = imagesc('XData',obj.xaxis,'YData',obj.yaxis,...
-                        'CData', obj.spaceFilter, 'Parent', obj.axesHandle);
-                    axis(obj.axesHandle, 'image');
+                for k = 1 : 4
+                    imagesc('XData',obj.xaxis,'YData',obj.yaxis,...
+                        'CData', obj.strf(:,:,k+1), 'Parent', obj.axesHandle(k));
+                    axis(obj.axesHandle(k),'tight');
+                    colormap(obj.axesHandle(k), 'gray');
                 end
-                colormap(obj.axesHandle, 'gray');
+%                 if obj.numXChecks == 1 || obj.numYChecks == 1
+%                     obj.imgHandle = imagesc(obj.spaceFilter, 'Parent', obj.axesHandle);
+%                 else
+%                     obj.imgHandle = imagesc('XData',obj.xaxis,'YData',obj.yaxis,...
+%                         'CData', obj.spaceFilter, 'Parent', obj.axesHandle);
+%                     axis(obj.axesHandle, 'image');
+%                 end
+%                 colormap(obj.axesHandle, 'gray');
             end
         end
         
