@@ -1,4 +1,8 @@
-function [LinearFilter] = getLinearFilterOnline(stimulus,response, samplerate, freqcutoff)
+function [LinearFilter] = getLinearFilterOnline(stimulus,response, samplerate, freqcutoff, lowFreqCutoff)
+
+if ~exist('lowFreqCutoff','var')
+    lowFreqCutoff = 4;
+end
 
 % this function will find the linear filter that changes row vector "signal" 
 % into a set of "responses" in rows.  "samplerate" and "freqcuttoff" 
@@ -13,6 +17,9 @@ FilterFft = mean((fft(response,[],2).*conj(fft(stimulus,[],2))),1)./mean(fft(sti
 
 freqcutoff_adjusted = round(freqcutoff/(samplerate/length(stimulus))) ; % this adjusts the freq cutoff for the length
 FilterFft(:,1+freqcutoff_adjusted:length(stimulus)-freqcutoff_adjusted) = 0 ; 
+% Nothing below X Hz.
+lowCutoff = round(lowFreqCutoff/(samplerate/length(stimulus)));
+FilterFft(:,1:lowCutoff) = 0;
 
 LinearFilter = real(ifft(FilterFft)) ;
 

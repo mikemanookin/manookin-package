@@ -3,26 +3,26 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 25000                % Stim duration (ms)
+        stimTime = 10000                % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
         stepDuration = 500              % Duration series (ms)
+        randsPerRep = 6                 % Number of random seeds per repeat
         radius = 100                    % Inner radius in pixels.
         apertureRadius = 100            % Aperture/blank radius in pixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         centerOffset = [0,0]            % Center offset in pixels (x,y) 
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
-        stimulusClass = 'spot'          % Stimulus class
+        stimulusClass = 'full-field'    % Stimulus class
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
-        randomSeed = true               % Use random noise seed?
-        numberOfAverages = uint16(8)    % Number of epochs
+        numberOfAverages = uint16(50)   % Number of epochs
     end
     
     properties (Hidden)
         ampType
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian','binary-gaussian'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
-        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'spot','center-const-surround','center-full', 'annulus', 'full-field','center-surround'})
+        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'center-const-surround', 'center-full', 'annulus', 'full-field', 'center-surround'})
         seed
         bkg
         noiseStream
@@ -150,10 +150,10 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
             % Deal with the seed.
-            if obj.randomSeed
-                obj.seed = RandStream.shuffleSeed;
-            else
+            if obj.randsPerRep > 0 && (mod(obj.numEpochsCompleted+1,obj.randsPerRep+1) == 0)
                 obj.seed = 1;
+            else
+                obj.seed = RandStream.shuffleSeed;
             end
             
             % Seed the random number generator.
