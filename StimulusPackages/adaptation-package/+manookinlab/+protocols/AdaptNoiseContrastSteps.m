@@ -3,15 +3,13 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 10000                % Stim duration (ms)
+        stimTime = 6000                 % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
         stepDuration = 500              % Duration series (ms)
         randsPerRep = 6                 % Number of random seeds per repeat
         radius = 100                    % Inner radius in pixels.
         apertureRadius = 100            % Aperture/blank radius in pixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        centerOffset = [0,0]            % Center offset in pixels (x,y) 
-        noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
         stimulusClass = 'full-field'    % Stimulus class
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
@@ -20,7 +18,6 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
     
     properties (Hidden)
         ampType
-        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian','binary-gaussian'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'center-const-surround', 'center-full', 'annulus', 'full-field', 'center-surround'})
         seed
@@ -159,23 +156,27 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
             % Seed the random number generator.
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             
-            % Get the contrast series.
-            obj.contrasts = 0.35*obj.noiseStream.rand(1, length(obj.durations));
+            % Get the contrast series. [0.05 to 0.35 RMS contrast]
+            obj.contrasts = 0.3*obj.noiseStream.rand(1, length(obj.durations)) + 0.05;
             
             % Re-seed the random number generator.
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             
             % Pre-generate frames for the epoch.
-            nframes = obj.stimTime*1e-3*obj.frameRate + 15;
-            if strcmp(obj.noiseClass,'binary')
-                obj.frameSeq = obj.noiseStream.rand(1,nframes) > 0.5;
-                obj.frameSeq = 2*obj.frameSeq - 1; 
-            else
-                obj.frameSeq = 0.3*obj.noiseStream.randn(1,nframes);
-            end
+            nframes = obj.stimTime*1e-3*obj.frameRate + 15; 
             eFrames = cumsum(obj.durations*1e-3*obj.frameRate);
-            sFrames = [0 eFrames]+1;
-            eFrames(end+1) = nframes;
+            sFrames = [0 eFrames(1:end-1)]+1;
+            eFrames(end) = nframes;
+            
+            % Generate the raw sequence.
+            obj.frameSeq = obj.noiseStream.randn(1,nframes);
+            
+            % Assign appropriate contrasts to the frame blocks.
+            for k = 1 : length(sFrames)
+                obj.frameSeq(sFrames(k) : eFrames(k)) = obj.frameSeq(sFrames(k) : eFrames(k)) * obj.contrasts(k);
+            end
+            obj.frameSeq(obj.frameSeq < -1) = -1;
+            obj.frameSeq(obj.frameSeq > 1) = 1;
             
             if strcmp(obj.stimulusClass,'center-const-surround')
                 obj.frameSeq = min(obj.contrasts)*obj.frameSeq;
@@ -192,7 +193,6 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
                 end
                 obj.frameSeqSurround = max(obj.contrasts)*obj.frameSeqSurround;
                 % Convert to LED contrast.
-                obj.frameSeq = obj.bkg*obj.frameSeq + obj.bkg;
                 obj.frameSeqSurround = obj.bkg*obj.frameSeqSurround + obj.bkg;
             else
                 for k = 1 : length(sFrames)
@@ -209,8 +209,6 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
                             obj.frameSeq(sFrames(k):eFrames(k));
                     end
                 end
-                % Convert to LED contrast.
-                obj.frameSeq = obj.bkg*obj.frameSeq + obj.bkg;
 
                 if strcmp(obj.stimulusClass, 'center-full') || strcmp(obj.stimulusClass, 'center-surround')
                     obj.frameSeqSurround = ones(size(obj.frameSeq))*obj.bkg;
@@ -226,6 +224,9 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
             epoch.addParameter('contrasts', obj.contrasts);
             epoch.addParameter('durations', obj.durations);
             epoch.addParameter('frameSeq', obj.frameSeq);
+            
+            % Convert to LED contrast.
+            obj.frameSeq = obj.bkg*obj.frameSeq + obj.bkg;
 
             % Add the radius to the epoch.
             if strcmp(obj.stimulusClass, 'annulus')
