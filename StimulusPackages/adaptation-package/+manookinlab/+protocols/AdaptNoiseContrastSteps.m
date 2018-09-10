@@ -10,6 +10,7 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
         radius = 100                    % Inner radius in pixels.
         apertureRadius = 100            % Aperture/blank radius in pixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
+        noiseClass = 'gaussian'         % Noise type (binary or Gaussian
         stimulusClass = 'full-field'    % Stimulus class
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
@@ -18,6 +19,7 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
     
     properties (Hidden)
         ampType
+        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian','binary-gaussian'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'center-const-surround', 'center-full', 'annulus', 'full-field', 'center-surround'})
         seed
