@@ -136,7 +136,7 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 
                 if strcmp(obj.recordingType,'extracellular') || strcmp(obj.recordingType, 'spikes_CClamp')
                     if sampleRate > binRate
-                        y = BinSpikeRate(y(prePts+1:end), binRate, sampleRate);
+                        y = manookinlab.util.BinSpikeRate(y(prePts+1:end), binRate, sampleRate);
                     else
                         y = y(prePts+1:end)*sampleRate;
                     end
@@ -148,7 +148,7 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                     else
                         y = y - median(y);
                     end
-                    y = binData(y(prePts+1:end), binRate, sampleRate);
+                    y = manookinlab.util.binData(y(prePts+1:end), binRate, sampleRate);
                 end
                 
                 % Make sure it's a row.
@@ -159,7 +159,7 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 
                 % Get the frame/current sequence.
                 if strcmpi(obj.stimulusClass, 'Stage')
-                    frameValues = getGaussianNoiseFrames(obj.numFrames, obj.frameDwell, obj.stdev, seed);
+                    frameValues = manookinlab.util.getGaussianNoiseFrames(obj.numFrames, obj.frameDwell, obj.stdev, seed);
                     
                     if binRate > obj.frameRate
                         n = round(binRate / obj.frameRate);
@@ -199,7 +199,7 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 % Convolve stimulus with filter to get generator signal.
                 pred = ifft(fft([frameValues(:)' zeros(1,100)]) .* fft(obj.linearFilter(:)'));
                 
-                pred = binData(pred, 60, binRate); pred=pred(:)';
+                pred = manookinlab.util.binData(pred, 60, binRate); pred=pred(:)';
                 obj.xaxis = [obj.xaxis, pred(1 : length(resp))];
                 
                 % Get the binned nonlinearity.

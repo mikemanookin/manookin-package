@@ -124,17 +124,17 @@ classdef sMTFFigure < symphonyui.core.FigureHandler
                 y = quantities;
                 
                 if strcmp(obj.recordingType,'extracellular')
-                    res = spikeDetectorOnline(y,[],sampleRate);
+                    res = manookinlab.util.spikeDetectorOnline(y,[],sampleRate);
                     y = zeros(size(y));
                     y(res.sp) = 1; %spike binary
-                    y = BinSpikeRate(y(prePts+1:end), binRate, sampleRate);
+                    y = manookinlab.util.BinSpikeRate(y(prePts+1:end), binRate, sampleRate);
                 else
                     if prePts > 0
                         y = y - median(y(1:prePts));
                     else
                         y = y - median(y);
                     end
-                    y = binData(y(prePts+1:end), binRate, sampleRate);
+                    y = manookinlab.util.binData(y(prePts+1:end), binRate, sampleRate);
                 end
                      
                 % Iterate the reps.
@@ -191,11 +191,11 @@ classdef sMTFFigure < symphonyui.core.FigureHandler
                 yd = abs(obj.yaxis(:)');
                 params0 = [max(yd) 200 0.1*max(yd) 400];
                 if strcmpi(obj.spatialType, 'spot')
-                    [Kc,sigmaC,Ks,sigmaS] = fitDoGAreaSummation(2*obj.xaxis(:)', yd, params0);
-                    res = DoGAreaSummation([Kc,sigmaC,Ks,sigmaS], 2*obj.xaxis(:)');
+                    [Kc,sigmaC,Ks,sigmaS] = manookinlab.util.fitDoGAreaSummation(2*obj.xaxis(:)', yd, params0);
+                    res = manookinlab.util.DoGAreaSummation([Kc,sigmaC,Ks,sigmaS], 2*obj.xaxis(:)');
                 else
-                    params = fitAnnulusAreaSum([obj.xaxis(:)' 456], yd, params0);
-                    res = annulusAreaSummation(params, [obj.xaxis(:)' 456]);
+                    params = manookinlab.util.fitAnnulusAreaSum([obj.xaxis(:)' 456], yd, params0);
+                    res = manookinlab.util.annulusAreaSummation(params, [obj.xaxis(:)' 456]);
                     sigmaC = params(2);
                     sigmaS  = params(4);
                 end

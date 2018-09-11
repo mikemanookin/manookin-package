@@ -78,7 +78,7 @@ classdef OrientationFigure < symphonyui.core.FigureHandler
                 y = quantities;
                 
                 if strcmp(obj.recordingType,'extracellular')
-                    res = spikeDetectorOnline(y,[],sampleRate);
+                    res = manookinlab.util.spikeDetectorOnline(y,[],sampleRate);
                     y = zeros(size(y));
                     y(res.sp) = 1; %spike binary
                     r = sum(y(prePts+1 : prePts+stimPts));

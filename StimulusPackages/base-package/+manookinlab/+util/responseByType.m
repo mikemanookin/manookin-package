@@ -12,7 +12,7 @@ leak = 0;
 
 switch onlineAnalysis
     case 'extracellular'
-        response = wavefilter(response(:)', 6);
+        response = manookinlab.util.DB4Filter(response(:)', 6);
         if strcmpi(spikeAnalysis, 'k-means')
 %             try
 %                 S.sp = SpikeDetector(response);

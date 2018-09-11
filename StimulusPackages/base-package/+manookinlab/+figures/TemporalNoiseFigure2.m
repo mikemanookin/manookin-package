@@ -122,7 +122,7 @@ classdef TemporalNoiseFigure2 < symphonyui.core.FigureHandler
                 end
                 
                 if sampleRate > binRate
-                    y = binData(y(prePts+1:end), binRate, sampleRate);
+                    y = manookinlab.util.binData(y(prePts+1:end), binRate, sampleRate);
                 else
                     y = y(prePts+1:end);
                 end
@@ -138,11 +138,11 @@ classdef TemporalNoiseFigure2 < symphonyui.core.FigureHandler
                 numFrames = floor(obj.frameRate*obj.durations(1)/obj.frameDwell);
                 switch obj.noiseClass
                     case 'uniform'
-                        frameValues = getUniformNoiseFrames(numFrames, obj.frameDwell, obj.contrasts(1), seed);
+                        frameValues = manookinlab.util.getUniformNoiseFrames(numFrames, obj.frameDwell, obj.contrasts(1), seed);
                     case 'binary'
-                        frameValues = getBinaryNoiseFrames(numFrames, obj.frameDwell, obj.contrasts(1), seed);
+                        frameValues = manookinlab.util.getBinaryNoiseFrames(numFrames, obj.frameDwell, obj.contrasts(1), seed);
                     otherwise % Gaussian default
-                        frameValues = getGaussianNoiseFrames(numFrames, obj.frameDwell, 0.3*obj.contrasts(1), seed);
+                        frameValues = manookinlab.util.getGaussianNoiseFrames(numFrames, obj.frameDwell, 0.3*obj.contrasts(1), seed);
                 end
                 
                 if binRate > obj.frameRate
@@ -174,17 +174,17 @@ classdef TemporalNoiseFigure2 < symphonyui.core.FigureHandler
                 prediction(isnan(prediction))=0;
                 
                 % Bin the nonlinearity
-                [xBin1, yBin1] = binNonlinearity(prediction, obj.response1, obj.nonlinearityBins); 
+                [xBin1, yBin1] = manookinlab.util.binNonlinearity(prediction, obj.response1, obj.nonlinearityBins); 
                 
                 if length(obj.durations) > 1
                     numFrames = floor(obj.frameRate*obj.durations(2)/obj.frameDwell);
                     switch obj.noiseClass
                         case 'uniform'
-                            frameValues = getUniformNoiseFrames(numFrames, obj.frameDwell, obj.contrasts(2), seed);
+                            frameValues = manookinlab.util.getUniformNoiseFrames(numFrames, obj.frameDwell, obj.contrasts(2), seed);
                         case 'binary'
-                            frameValues = getBinaryNoiseFrames(numFrames, obj.frameDwell, obj.contrasts(2), seed);
+                            frameValues = manookinlab.util.getBinaryNoiseFrames(numFrames, obj.frameDwell, obj.contrasts(2), seed);
                         otherwise % Gaussian default
-                            frameValues = getGaussianNoiseFrames(numFrames, obj.frameDwell, 0.3*obj.contrasts(2), seed);
+                            frameValues = manookinlab.util.getGaussianNoiseFrames(numFrames, obj.frameDwell, 0.3*obj.contrasts(2), seed);
                     end
 
                     if binRate > obj.frameRate
@@ -214,7 +214,7 @@ classdef TemporalNoiseFigure2 < symphonyui.core.FigureHandler
                     end
                     prediction(isnan(prediction))=0;
                     % Bin the nonlinearity
-                    [xBin2, yBin2] = binNonlinearity(prediction, obj.response2, obj.nonlinearityBins); 
+                    [xBin2, yBin2] = manookinlab.util.binNonlinearity(prediction, obj.response2, obj.nonlinearityBins); 
                 end
                 
                 plotLngth = floor(binRate/2);

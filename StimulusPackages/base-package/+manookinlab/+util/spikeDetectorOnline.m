@@ -24,7 +24,7 @@ ref_period_points = round(ref_period./SampleInterval); %data points
 
 [Ntraces,L] = size(D);
 % Dhighpass = highPassFilter(D,HighPassCut_spikes,SampleInterval);
-Dhighpass = wavefilter(D(:)', 6);
+Dhighpass = manookinlab.util.DB4Filter(D(:)', 6);
 
 %initialize output stuff...
 sp = cell(Ntraces,1);
@@ -44,7 +44,7 @@ for i=1:Ntraces
     
 
     %get peaks
-    [peaks,peak_times] = getPeaks(trace,1); %positive peaks
+    [peaks,peak_times] = manookinlab.util.getPeaks(trace,1); %positive peaks
     peak_times = peak_times(peaks>0); %only positive deflections
     peaks = trace(peak_times);
     peak_times = peak_times(peaks>thresh);      
