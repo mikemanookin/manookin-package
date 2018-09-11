@@ -109,7 +109,7 @@ classdef TemporalNoiseFigure2 < symphonyui.core.FigureHandler
             
             if numel(quantities) > 0
                 % Parse the response by type.
-                y = responseByType(quantities, obj.recordingType, obj.preTime, sampleRate);
+                y = manookinlab.util.responseByType(quantities, obj.recordingType, obj.preTime, sampleRate);
                 
                 if ~strcmp(obj.recordingType,'extracellular') && ~strcmp(obj.recordingType, 'spikes_CClamp')
                     % High-pass filter to get rid of drift.

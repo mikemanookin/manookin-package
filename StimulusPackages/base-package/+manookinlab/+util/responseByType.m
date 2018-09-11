@@ -17,7 +17,7 @@ switch onlineAnalysis
 %             try
 %                 S.sp = SpikeDetector(response);
 %             catch
-                S = spikeDetectorOnline(response);  
+                S = manookinlab.util.spikeDetectorOnline(response);  
 %             end
 %             S.sp = getSpikeParameters(response,S.sp,sampleRate);
             spikesBinary = zeros(size(response));
@@ -25,19 +25,19 @@ switch onlineAnalysis
                 spikesBinary(S.sp) = 1;
             end
         else
-            spikesBinary = ThresholdDetection(response, threshold);
+            spikesBinary = manookinlab.util.ThresholdDetection(response, threshold);
         end
         response = spikesBinary * sampleRate;
     case 'spikes_CClamp'
-        spikeTimes = getThresCross([0 diff(response(:)')], 1.5, 1);
+        spikeTimes = manookinlab.util.getThresCross([0 diff(response(:)')], 1.5, 1);
         spikesBinary = zeros(size(response));
         spikesBinary(spikeTimes) = 1;
         response = spikesBinary * sampleRate;
     case 'subthresh_CClamp'
-        spikeTimes = getThresCross([0 diff(response(:)')], 1.5, 1);
+        spikeTimes = manookinlab.util.getThresCross([0 diff(response(:)')], 1.5, 1);
         % Get the subthreshold potential.
         if ~isempty(spikeTimes)
-            response = getSubthreshold(response(:)', spikeTimes);
+            response = manookinlab.util.getSubthreshold(response(:)', spikeTimes);
         else
             response = response(:)';
         end

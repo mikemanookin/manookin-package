@@ -128,7 +128,7 @@ classdef AdaptFlashFigure < symphonyui.core.FigureHandler
             
             if numel(quantities) > 0
                 % Parse the response by type.
-                y = responseByType(quantities, obj.recordingType, obj.preTime, sampleRate);
+                y = manookinlab.util.responseByType(quantities, obj.recordingType, obj.preTime, sampleRate);
                 
                 if prePts > 200
                     if strcmp(obj.recordingType, 'extracellular')

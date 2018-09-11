@@ -136,7 +136,7 @@ classdef LinearSumFigure < symphonyui.core.FigureHandler
             if numel(quantities) > 0
                 y = quantities;
                 
-                y = responseByType(y, obj.recordingType, obj.preTime, sampleRate);
+                y = manookinlab.util.responseByType(y, obj.recordingType, obj.preTime, sampleRate);
                 x = (1:length(y)) / sampleRate;
                 
                 preSamples = obj.preTime*1e-3*sampleRate;
