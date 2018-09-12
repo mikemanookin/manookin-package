@@ -70,8 +70,8 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
                 surround.color = obj.backgroundIntensity;
                 surround.orientation = 0;
                 if strcmp(obj.stimulusClass, 'center-surround') || strcmp(obj.stimulusClass,'center-const-surround')
-                    surround.size = max(obj.canvasSize) * ones(1,2) + 2*max(abs(obj.centerOffset));
-                    surround.position = obj.canvasSize/2 + obj.centerOffset;
+                    surround.size = max(obj.canvasSize) * ones(1,2);
+                    surround.position = obj.canvasSize/2;
                     sc = (obj.apertureRadius)*2 / max(surround.size);
                     m = stage.core.Mask.createCircularAperture(sc);
                     surround.setMask(m);
@@ -96,7 +96,7 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
                 spot = stage.builtin.stimuli.Ellipse();
                 spot.radiusX = obj.radius;
                 spot.radiusY = obj.radius; 
-                spot.position = obj.canvasSize/2 + obj.centerOffset;
+                spot.position = obj.canvasSize/2;
             else
                 spot = stage.builtin.stimuli.Rectangle();
                 spot.size = obj.canvasSize;
@@ -113,7 +113,7 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
                 mask = stage.builtin.stimuli.Ellipse();
                 mask.radiusX = obj.apertureRadius;
                 mask.radiusY = obj.apertureRadius;
-                mask.position = obj.canvasSize/2 + obj.centerOffset;
+                mask.position = obj.canvasSize/2;
                 mask.color = obj.backgroundIntensity; 
                 p.addStimulus(mask);
             end
