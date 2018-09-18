@@ -3,9 +3,9 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 6000                 % Stim duration (ms)
+        stimTime = 10000                % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
-        stepDuration = 500              % Duration series (ms)
+        stepDuration = 2000             % Duration series (ms)
         randsPerRep = 6                 % Number of random seeds per repeat
         radius = 100                    % Inner radius in pixels.
         apertureRadius = 100            % Aperture/blank radius in pixels.
