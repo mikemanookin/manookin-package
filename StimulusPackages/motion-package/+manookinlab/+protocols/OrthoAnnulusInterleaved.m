@@ -10,7 +10,6 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
         minRadius = 50 
         maxRadius = 150
         backgroundIntensity = 0.5 % (0-1)
-        centerOffset = [0, 0] % [x,y] (pix)
         spatialClass = 'annulus'
         onlineAnalysis = 'extracellular'
         numberOfAverages = uint16(72) % number of epochs to queue
@@ -30,10 +29,6 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
         sequence
         directions
         contrastSeq
-    end
-    
-    properties (Hidden, Transient)
-        analysisFigure
     end
     
     methods
@@ -81,7 +76,7 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
             spot.color = obj.intensity;
             spot.radiusX = obj.moveRadius;
             spot.radiusY = obj.moveRadius;
-            spot.position = canvasSize/2 + obj.centerOffset;
+            spot.position = canvasSize/2;
             p.addStimulus(spot);
             
             spotVisible = stage.builtin.controllers.PropertyController(spot, 'visible', ...
@@ -109,7 +104,7 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
                 mask.color = obj.backgroundIntensity;
                 mask.radiusX = obj.moveRadius - obj.widthPix;
                 mask.radiusY = obj.moveRadius - obj.widthPix;
-                mask.position = canvasSize/2 + obj.centerOffset;
+                mask.position = canvasSize/2;
                 p.addStimulus(mask);
 
                 % Create a radius controller.
