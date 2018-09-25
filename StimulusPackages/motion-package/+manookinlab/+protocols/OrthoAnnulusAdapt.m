@@ -1,10 +1,12 @@
 classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
     properties
         preTime = 250
-        stimTime = 10000
+        adaptTime = 2000
+        waitTime = 50
         tailTime = 250
         contrast = 1
         testContrasts = [-0.125 0 1.25 0.25 0.5 0.75 1.0]
+        speed = 3000 % pix/sec
         widthPix = 40
         minRadius = 40
         maxRadius = 200
