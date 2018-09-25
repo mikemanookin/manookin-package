@@ -142,7 +142,11 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
             
             function r = getmaxRadius(obj, time)
                 if time > 0 && time <= obj.stimTime*1e-3
-                    r = obj.direction * obj.speed * time + obj.minRadius;
+                    if obj.direction > 0
+                        r = obj.direction * obj.speed * time + obj.minRadius;
+                    else
+                        r = obj.direction * obj.speed * time + obj.maxRadius;
+                    end
                     r = max(r, obj.minRadius);
                     r = min(r, obj.maxRadius);
                 else
@@ -173,7 +177,11 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
             
             function r = getInnerRadius(obj, time)
                 if time >= 0 && time <= obj.stimTime*1e-3
-                    r = obj.direction * obj.speed * time + obj.minRadius - obj.widthPix;
+                    if obj.direction > 0
+                        r = obj.direction * obj.speed * time + obj.minRadius - obj.widthPix;
+                    else
+                        r = obj.direction * obj.speed * time + obj.maxRadius - obj.widthPix;
+                    end
                     r = max(r, obj.minRadius - obj.widthPix);
                     r = min(r, obj.maxRadius - obj.widthPix);
                 else
@@ -194,10 +202,6 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
             
             % Deal with the seed.
             obj.seed = RandStream.shuffleSeed;
-            
-            obj.tiltDirection
-           obj.contrast
-           obj.direction
 
             
             epoch.addParameter('seed', obj.seed);
