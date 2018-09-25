@@ -2,26 +2,37 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
     properties
         preTime = 250
         adaptTime = 2000
-        waitTime = 50
-        tailTime = 250
-        contrast = 1
-        testContrasts = [-0.125 0 1.25 0.25 0.5 0.75 1.0]
-        speed = 3000 % pix/sec
+        waitTime = 100
+        tailTime = 500
+        adaptContrast = 1.0
+        testContrasts = [-1.0 0 0.25 0.5 0.75 1.0]
+        speed = 1000 % pix/sec
         widthPix = 40
         minRadius = 40
         maxRadius = 200
         backgroundIntensity = 0.5 % (0-1)
         onlineAnalysis = 'extracellular'
-        distributionClass = 'gaussian'      % Distribution type: gaussian or uniform
-        numberOfAverages = uint16(50)       % Number of epochs to queue
+        numberOfAverages = uint16(216)       % Number of epochs to queue
         amp
+    end
+    
+    properties (Dependent) 
+        stimTime
     end
     
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthreshold', 'analog'})
-        distributionClassType = symphonyui.core.PropertyType('char','row',{'gaussian', 'uniform'})
-        radii
+        numRings
+        tiltDirection
+        direction
+        contrast
+        numStimFrames
+        frameSequence
+        noiseStream
+        seed
+        tiltDirections = {'none','outward','inward'}
+        directions = [1,-1]
     end
     
     methods
@@ -41,6 +52,10 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                 'sweepColor',colors,...
                 'groupBy',{'frameRate'});
+            
+            obj.numRings = ceil((obj.maxRadius - obj.widthPix) / obj.widthPix)+1;
+            
+            obj.numStimFrames = obj.adaptTime*1e-3*obj.frameRate + 15;
         end
         
         function p = createPresentation(obj)
@@ -48,6 +63,62 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
             
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
+            
+            % Create the adaptation sequence.
+            
+                % Generate the glider frame sequence.
+            glider = [0 1 1; 1 1 0];
+            obj.frameSequence = makeGlider(obj.numRings, 1, ...
+                obj.numStimFrames, glider, 0, obj.seed);
+            % Squeeze to two dimensions.
+            obj.frameSequence = squeeze(obj.frameSequence);
+            
+            % Set the contrast.
+            obj.frameSequence = obj.adaptContrast * (2 * obj.frameSequence - 1);
+            % Convert to contrast.
+            obj.frameSequence(obj.frameSequence <= 0) = obj.frameSequence(obj.frameSequence <= 0)*obj.backgroundIntensity + obj.backgroundIntensity;
+            
+            if strcmpi(obj.tiltDirection,'none') % No adaptation
+                obj.frameSequence = obj.backgroundIntensity*ones(size(obj.frameSequence));
+            end
+            % Need to transpose at this point so that frames are rows.
+            obj.frameSequence = obj.frameSequence';
+            
+            % Flip the frame sequence for outward tilt.
+            if strcmp(obj.tiltDirection, 'inward')
+                obj.frameSequence = fliplr(obj.frameSequence);
+            end
+            
+            % Calculate the outer radii.
+            radii = obj.maxRadius - obj.widthPix*(0:obj.numRings-1);
+
+            % Create the rings.
+            for k = 1 : obj.numRings
+                spot = stage.builtin.stimuli.Ellipse();
+                spot.color = obj.backgroundIntensity;
+                spot.radiusX = radii(k);
+                spot.radiusY = radii(k);
+                spot.position = obj.canvasSize/2;
+                p.addStimulus(spot);
+
+                spotVisible = stage.builtin.controllers.PropertyController(spot, 'visible', ...
+                    @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.adaptTime) * 1e-3);
+                p.addController(spotVisible);
+
+                % Bar position controller
+                spotColor = stage.builtin.controllers.PropertyController(spot, 'color', ...
+                    @(state)frameSeq(obj, state.time - obj.preTime*1e-3, k));
+                p.addController(spotColor);
+            end
+            
+            function c = frameSeq(obj, time, whichSpot)
+                if time >= 0 && time <= obj.adaptTime*1e-3
+                    frame = floor(obj.frameRate * time) + 1;
+                    c = obj.frameSequence(frame, whichSpot);
+                else
+                    c = obj.frameSequence(1, whichSpot);
+                end
+            end
             
             spot = stage.builtin.stimuli.Ellipse();
             spot.color = obj.contrast * obj.backgroundIntensity + obj.backgroundIntensity;
@@ -57,21 +128,23 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
             p.addStimulus(spot);
             
             spotVisible = stage.builtin.controllers.PropertyController(spot, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                @(state)state.time >= (obj.preTime+obj.adaptTime+obj.waitTime) * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
             p.addController(spotVisible);
             
             % Create a radius controller.
-            outerRadiusX = stage.builtin.controllers.PropertyController(spot, 'radiusX',...
-                @(state)getOuterRadius(obj, state.time - obj.preTime/1e3));
-            p.addController(outerRadiusX);
+            maxRadiusX = stage.builtin.controllers.PropertyController(spot, 'radiusX',...
+                @(state)getmaxRadius(obj, state.time - (obj.preTime+obj.adaptTime+obj.waitTime)/1e3));
+            p.addController(maxRadiusX);
             
-            outerRadiusY = stage.builtin.controllers.PropertyController(spot, 'radiusY',...
-                @(state)getOuterRadius(obj, state.time - obj.preTime/1e3));
-            p.addController(outerRadiusY);
+            maxRadiusY = stage.builtin.controllers.PropertyController(spot, 'radiusY',...
+                @(state)getmaxRadius(obj, state.time - (obj.preTime+obj.adaptTime+obj.waitTime)/1e3));
+            p.addController(maxRadiusY);
             
-            function r = getOuterRadius(obj, time)
+            function r = getmaxRadius(obj, time)
                 if time > 0 && time <= obj.stimTime*1e-3
-                    r = obj.radii(floor(time*obj.frameRate)+1);
+                    r = obj.direction * obj.speed * time + obj.minRadius;
+                    r = max(r, obj.minRadius);
+                    r = min(r, obj.maxRadius);
                 else
                     r = 0;
                 end
@@ -84,19 +157,25 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
             mask.radiusY = 0;
             mask.position = canvasSize/2;
             p.addStimulus(mask);
+            
+            spotVisible = stage.builtin.controllers.PropertyController(mask, 'visible', ...
+                @(state)state.time >= (obj.preTime+obj.adaptTime+obj.waitTime) * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+            p.addController(spotVisible);
 
             % Create a radius controller.
             innerRadiusX = stage.builtin.controllers.PropertyController(mask, 'radiusX',...
-                @(state)getInnerRadius(obj, state.time - obj.preTime/1e3));
+                @(state)getInnerRadius(obj, state.time - (obj.preTime+obj.adaptTime+obj.waitTime)/1e3));
             p.addController(innerRadiusX);
 
             innerRadiusY = stage.builtin.controllers.PropertyController(mask, 'radiusY',...
-                @(state)getInnerRadius(obj, state.time - obj.preTime/1e3));
+                @(state)getInnerRadius(obj, state.time - (obj.preTime+obj.adaptTime+obj.waitTime)/1e3));
             p.addController(innerRadiusY);
             
             function r = getInnerRadius(obj, time)
-                if time > 0 && time <= obj.stimTime*1e-3
-                    r = obj.radii(floor(time*obj.frameRate)+1) - obj.widthPix;
+                if time >= 0 && time <= obj.stimTime*1e-3
+                    r = obj.direction * obj.speed * time + obj.minRadius - obj.widthPix;
+                    r = max(r, obj.minRadius - obj.widthPix);
+                    r = min(r, obj.maxRadius - obj.widthPix);
                 else
                     r = 0;
                 end
@@ -106,31 +185,33 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
+            obj.direction = obj.directions(mod(obj.numEpochsCompleted,2)+1);
+            % Tilt direction of adapting noise.
+            obj.tiltDirection = obj.tiltDirections{mod(floor(obj.numEpochsCompleted/2), length(obj.tiltDirections))+1};
+            % Test contrast.
+            obj.contrast = obj.testContrasts(mod(floor(obj.numEpochsCompleted/(2*length(obj.tiltDirections))),...
+                length(obj.testContrasts))+1);
+            
             % Deal with the seed.
-            if obj.randsPerRep > 0 && (mod(obj.numEpochsCompleted+1,obj.randsPerRep+1) == 0)
-                seed = 1;
+            obj.seed = RandStream.shuffleSeed;
+            
+            obj.tiltDirection
+           obj.contrast
+           obj.direction
+
+            
+            epoch.addParameter('seed', obj.seed);
+            if obj.direction < 0
+                epoch.addParameter('direction', 'inward');
             else
-                seed = RandStream.shuffleSeed;
+                epoch.addParameter('direction', 'outward');
             end
-            
-            % Seed the random number generator.
-            noiseStream = RandStream('mt19937ar', 'Seed', seed);
-            
-            % Get the outer radii. Gaussian distribution.
-            nframes = obj.stimTime*1e-3*obj.frameRate + 15; 
-            
-            if strcmpi(obj.distributionClass, 'gaussian')
-                obj.radii = 0.5*(0.3*noiseStream.randn(1, nframes))+0.5;
-                obj.radii(obj.radii < 0) = 0; 
-                obj.radii(obj.radii > 1) = 1;
-                obj.radii = (obj.maxRadius-obj.minRadius)*obj.radii+obj.minRadius;
-            else
-                obj.radii = (obj.maxRadius-obj.minRadius)*noiseStream.rand(1, nframes)+obj.minRadius;
-            end
-            obj.radii = round(obj.radii);
-            
-            epoch.addParameter('seed', seed);
-            epoch.addParameter('radii', obj.radii);
+            epoch.addParameter('adaptationType',obj.tiltDirection);
+            epoch.addParameter('contrast', obj.contrast);
+        end
+        
+        function stimTime = get.stimTime(obj)
+            stimTime = obj.adaptTime + obj.waitTime + 2*ceil((obj.maxRadius-obj.minRadius)/obj.speed*1e3);
         end
  
         function tf = shouldContinuePreparingEpochs(obj)

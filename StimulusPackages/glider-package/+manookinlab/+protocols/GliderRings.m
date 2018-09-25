@@ -153,7 +153,7 @@ classdef GliderRings < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             function c = frameSeq(obj, time, whichSpot)
-                if time >= 0 && time <= obj.stimTime*1e-3;
+                if time >= 0 && time <= obj.stimTime*1e-3
                     frame = floor(obj.frameRate * time) + 1;
                     c = obj.frameSequence(frame, whichSpot);
                 else
