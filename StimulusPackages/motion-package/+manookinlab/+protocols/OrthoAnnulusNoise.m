@@ -4,9 +4,9 @@ classdef OrthoAnnulusNoise < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 10000
         tailTime = 250
         contrast = 1
-        widthPix = 40
+        width = 40
         minRadius = 40
-        maxRadius = 200
+        maxRadius = 160
         randsPerRep = 8                     % Number of random seeds per repeat
         backgroundIntensity = 0.5 % (0-1)
         onlineAnalysis = 'extracellular'
@@ -20,6 +20,9 @@ classdef OrthoAnnulusNoise < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthreshold', 'analog'})
         distributionClassType = symphonyui.core.PropertyType('char','row',{'gaussian', 'uniform'})
         radii
+        widthPix
+        minRadiusPix
+        maxRadiusPix
     end
     
     methods
@@ -39,6 +42,12 @@ classdef OrthoAnnulusNoise < manookinlab.protocols.ManookinLabStageProtocol
                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                 'sweepColor',colors,...
                 'groupBy',{'frameRate'});
+            
+            % Convert from microns to pixels.
+            device = obj.rig.getDevice('Stage');
+            obj.widthPix = device.um2pix(obj.width);
+            obj.minRadiusPix = device.um2pix(obj.minRadius);
+            obj.maxRadiusPix = device.um2pix(obj.maxRadius);
         end
         
         function p = createPresentation(obj)
@@ -121,14 +130,17 @@ classdef OrthoAnnulusNoise < manookinlab.protocols.ManookinLabStageProtocol
                 obj.radii = 0.5*(0.3*noiseStream.randn(1, nframes))+0.5;
                 obj.radii(obj.radii < 0) = 0; 
                 obj.radii(obj.radii > 1) = 1;
-                obj.radii = (obj.maxRadius-obj.minRadius)*obj.radii+obj.minRadius;
+                obj.radii = (obj.maxRadiusPix-obj.minRadiusPix)*obj.radii+obj.minRadiusPix;
             else
-                obj.radii = (obj.maxRadius-obj.minRadius)*noiseStream.rand(1, nframes)+obj.minRadius;
+                obj.radii = (obj.maxRadiusPix-obj.minRadiusPix)*noiseStream.rand(1, nframes)+obj.minRadiusPix;
             end
             obj.radii = round(obj.radii);
             
             epoch.addParameter('seed', seed);
             epoch.addParameter('radii', obj.radii);
+            epoch.addParameter('widthPix', obj.widthPix);
+            epoch.addParameter('minRadiusPix', obj.minRadiusPix);
+            epoch.addParameter('maxRadiusPix', obj.maxRadiusPix);
         end
  
         function tf = shouldContinuePreparingEpochs(obj)

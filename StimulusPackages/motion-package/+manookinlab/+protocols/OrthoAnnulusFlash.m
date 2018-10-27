@@ -5,9 +5,9 @@ classdef OrthoAnnulusFlash < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 250
         tailTime = 500
         contrasts = [-1,1]
-        widthPix = 50
-        minRadius = 50 
-        maxRadius = 150
+        width = 40
+        minRadius = 40 
+        maxRadius = 140
         backgroundIntensity = 0.5 % (0-1)
         spatialClass = 'annulus'
         onlineAnalysis = 'extracellular'
@@ -23,6 +23,9 @@ classdef OrthoAnnulusFlash < manookinlab.protocols.ManookinLabStageProtocol
         outerRadius
         contrast
         radii
+        widthPix
+        minRadiusPix
+        maxRadiusPix
     end
     
     properties (Hidden, Transient)
@@ -47,9 +50,15 @@ classdef OrthoAnnulusFlash < manookinlab.protocols.ManookinLabStageProtocol
                 'sweepColor',colors,...
                 'groupBy',{'contrast'});
             
+            % Convert from microns to pixels.
+            device = obj.rig.getDevice('Stage');
+            obj.widthPix = device.um2pix(obj.width);
+            obj.minRadiusPix = device.um2pix(obj.minRadius);
+            obj.maxRadiusPix = device.um2pix(obj.maxRadius);
+            
             % Define the radii.
-            numRadii = ceil(2*(obj.maxRadius-obj.minRadius)/obj.widthPix) + 1;
-            obj.radii = linspace(obj.minRadius,obj.maxRadius,numRadii);
+            numRadii = ceil(2*(obj.maxRadiusPix-obj.minRadiusPix)/obj.widthPix) + 1;
+            obj.radii = linspace(obj.minRadiusPix,obj.maxRadiusPix,numRadii);
         end
         
         function p = createPresentation(obj)

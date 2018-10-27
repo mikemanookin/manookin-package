@@ -7,9 +7,9 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
         adaptContrast = 1.0
         testContrasts = [-1.0 0 0.25 0.5 0.75 1.0]
         speed = 1000 % pix/sec
-        widthPix = 40
+        width = 40
         minRadius = 40
-        maxRadius = 200
+        maxRadius = 160
         backgroundIntensity = 0.5 % (0-1)
         onlineAnalysis = 'extracellular'
         numberOfAverages = uint16(216)       % Number of epochs to queue
@@ -33,6 +33,9 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
         seed
         tiltDirections = {'none','outward','inward'}
         directions = [1,-1]
+        widthPix
+        minRadiusPix
+        maxRadiusPix
     end
     
     methods
@@ -53,7 +56,13 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
                 'sweepColor',colors,...
                 'groupBy',{'frameRate'});
             
-            obj.numRings = ceil((obj.maxRadius - obj.widthPix) / obj.widthPix)+1;
+            % Convert from microns to pixels.
+            device = obj.rig.getDevice('Stage');
+            obj.widthPix = device.um2pix(obj.width);
+            obj.minRadiusPix = device.um2pix(obj.minRadius);
+            obj.maxRadiusPix = device.um2pix(obj.maxRadius);
+            
+            obj.numRings = ceil((obj.maxRadiusPix - obj.widthPix) / obj.widthPix)+1;
             
             obj.numStimFrames = obj.adaptTime*1e-3*obj.frameRate + 15;
         end
@@ -90,7 +99,7 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Calculate the outer radii.
-            radii = obj.maxRadius - obj.widthPix*(0:obj.numRings-1);
+            radii = obj.maxRadiusPix - obj.widthPix*(0:obj.numRings-1);
 
             % Create the rings.
             for k = 1 : obj.numRings
@@ -132,23 +141,23 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
             p.addController(spotVisible);
             
             % Create a radius controller.
-            maxRadiusX = stage.builtin.controllers.PropertyController(spot, 'radiusX',...
-                @(state)getmaxRadius(obj, state.time - (obj.preTime+obj.adaptTime+obj.waitTime)/1e3));
-            p.addController(maxRadiusX);
+            maxRadiusPixX = stage.builtin.controllers.PropertyController(spot, 'radiusX',...
+                @(state)getmaxRadiusPix(obj, state.time - (obj.preTime+obj.adaptTime+obj.waitTime)/1e3));
+            p.addController(maxRadiusPixX);
             
-            maxRadiusY = stage.builtin.controllers.PropertyController(spot, 'radiusY',...
-                @(state)getmaxRadius(obj, state.time - (obj.preTime+obj.adaptTime+obj.waitTime)/1e3));
-            p.addController(maxRadiusY);
+            maxRadiusPixY = stage.builtin.controllers.PropertyController(spot, 'radiusY',...
+                @(state)getmaxRadiusPix(obj, state.time - (obj.preTime+obj.adaptTime+obj.waitTime)/1e3));
+            p.addController(maxRadiusPixY);
             
-            function r = getmaxRadius(obj, time)
+            function r = getmaxRadiusPix(obj, time)
                 if time > 0 && time <= obj.stimTime*1e-3
                     if obj.direction > 0
-                        r = obj.direction * obj.speed * time + obj.minRadius;
+                        r = obj.direction * obj.speed * time + obj.minRadiusPix;
                     else
-                        r = obj.direction * obj.speed * time + obj.maxRadius;
+                        r = obj.direction * obj.speed * time + obj.maxRadiusPix;
                     end
-                    r = max(r, obj.minRadius);
-                    r = min(r, obj.maxRadius);
+                    r = max(r, obj.minRadiusPix);
+                    r = min(r, obj.maxRadiusPix);
                 else
                     r = 0;
                 end
@@ -178,12 +187,12 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
             function r = getInnerRadius(obj, time)
                 if time >= 0 && time <= obj.stimTime*1e-3
                     if obj.direction > 0
-                        r = obj.direction * obj.speed * time + obj.minRadius - obj.widthPix;
+                        r = obj.direction * obj.speed * time + obj.minRadiusPix - obj.widthPix;
                     else
-                        r = obj.direction * obj.speed * time + obj.maxRadius - obj.widthPix;
+                        r = obj.direction * obj.speed * time + obj.maxRadiusPix - obj.widthPix;
                     end
-                    r = max(r, obj.minRadius - obj.widthPix);
-                    r = min(r, obj.maxRadius - obj.widthPix);
+                    r = max(r, obj.minRadiusPix - obj.widthPix);
+                    r = min(r, obj.maxRadiusPix - obj.widthPix);
                 else
                     r = 0;
                 end
@@ -212,10 +221,13 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
             end
             epoch.addParameter('adaptationType',obj.tiltDirection);
             epoch.addParameter('contrast', obj.contrast);
+            epoch.addParameter('widthPix', obj.widthPix);
+            epoch.addParameter('minRadiusPix', obj.minRadiusPix);
+            epoch.addParameter('maxRadiusPix', obj.maxRadiusPix);
         end
         
         function stimTime = get.stimTime(obj)
-            stimTime = obj.adaptTime + obj.waitTime + 2*ceil((obj.maxRadius-obj.minRadius)/obj.speed*1e3);
+            stimTime = obj.adaptTime + obj.waitTime + 2*ceil((obj.maxRadiusPix-obj.minRadiusPix)/obj.speed*1e3);
         end
  
         function tf = shouldContinuePreparingEpochs(obj)
