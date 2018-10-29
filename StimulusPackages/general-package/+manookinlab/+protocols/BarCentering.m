@@ -7,10 +7,10 @@ classdef BarCentering < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 1000                 % Spot trailing duration (ms)
         intensity = 1.0                 % Bar intensity (0-1)
         temporalFrequency = 2.0         % Modulation frequency (Hz)
-        barSize = [50 1000]              % Bar size [width, height] (pix)
+        barSize = [50 1000]              % Bar size [width, height] (um)
         searchAxis = 'xaxis'            % Search axis
         temporalClass = 'squarewave'    % Squarewave or pulse?
-        positions = -300:50:300         % Bar center position (pix)
+        positions = -300:50:300         % Bar center position (um)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         centerOffset = [0,0]            % Center offset in pixels (x,y) 
         chromaticClass = 'achromatic'   % Chromatic class
@@ -63,6 +63,8 @@ classdef BarCentering < manookinlab.protocols.ManookinLabStageProtocol
             % Get the array of radii.
             pos = obj.positions(:) * ones(1, numReps);
             pos = pos(:);
+            % Convert from um to pix
+            pos = obj.rig.getDevice('Stage').um2pix(pos);
             obj.xaxis = pos';
             obj.F1 = zeros(1,length(pos));
             obj.F2 = zeros(1,length(pos));
@@ -154,7 +156,7 @@ classdef BarCentering < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity);
             
             rect = stage.builtin.stimuli.Rectangle();
-            rect.size = obj.barSize;
+            rect.size = obj.rig.getDevice('Stage').um2pix(obj.barSize); % um -> pix
             rect.orientation = obj.orientation;
             rect.position = obj.canvasSize/2 + obj.position;
             

@@ -5,9 +5,9 @@ classdef OrthoAnnulusFlash < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 250
         tailTime = 500
         contrasts = [-1,1]
-        width = 40
-        minRadius = 40 
-        maxRadius = 140
+        width = 40 % um
+        minRadius = 40 % um
+        maxRadius = 140 % um
         backgroundIntensity = 0.5 % (0-1)
         spatialClass = 'annulus'
         onlineAnalysis = 'extracellular'

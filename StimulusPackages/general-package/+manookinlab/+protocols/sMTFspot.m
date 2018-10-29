@@ -5,11 +5,10 @@ classdef sMTFspot < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 500                   % Spot leading duration (ms)
         stimTime = 2500                 % Spot duration (ms)
         tailTime = 500                  % Spot trailing duration (ms)
-        contrast = 0.5                  % Contrast (0-1; -1-1 for pulse)
+        contrast = 1.0                  % Contrast (0-1; -1-1 for pulse)
         temporalFrequency = 2.0         % Modulation frequency (Hz)
-        radii = round(17.9596 * 10.^(-0.301:0.301/3:1.4047)) % Inner radius in pixels.
+        radii = round(17.9596 * 10.^(-0.301:0.301/3:1.4047)) % Inner radius in microns.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        centerOffset = [0,0]            % Center offset in pixels (x,y) 
         temporalClass = 'sinewave'      % Sinewave or squarewave?
         chromaticClass = 'achromatic'   % Spot color
         stimulusClass = 'spot'          % Stimulus class
@@ -26,6 +25,7 @@ classdef sMTFspot < manookinlab.protocols.ManookinLabStageProtocol
         currentRadius
         sequence
         bkg
+        radiiPix
     end
     
      % Analysis properties
@@ -52,6 +52,8 @@ classdef sMTFspot < manookinlab.protocols.ManookinLabStageProtocol
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            
+            obj.radiiPix = obj.rig.getDevice('Stage').um2pix(obj.radii);
             
             if ~strcmp(obj.onlineAnalysis, 'none')
                 obj.showFigure('manookinlab.figures.sMTFFigure', ...
@@ -147,9 +149,9 @@ classdef sMTFspot < manookinlab.protocols.ManookinLabStageProtocol
                 spot.position = obj.canvasSize/2;
             else
                 spot = stage.builtin.stimuli.Ellipse();
-                spot.radiusX = obj.currentRadius;
-                spot.radiusY = obj.currentRadius;
-                spot.position = obj.canvasSize/2 + obj.centerOffset;
+                spot.radiusX = obj.rig.getDevice('Stage').um2pix(obj.currentRadius);
+                spot.radiusY = obj.rig.getDevice('Stage').um2pix(obj.currentRadius);
+                spot.position = obj.canvasSize/2;
             end
             
             if strcmp(obj.stageClass, 'Video')
@@ -164,9 +166,9 @@ classdef sMTFspot < manookinlab.protocols.ManookinLabStageProtocol
             % Add an center mask if it's an annulus.
             if strcmp(obj.stimulusClass, 'annulus')
                 mask = stage.builtin.stimuli.Ellipse();
-                mask.radiusX = obj.currentRadius;
-                mask.radiusY = obj.currentRadius;
-                mask.position = obj.canvasSize/2 + obj.centerOffset;
+                mask.radiusX = obj.rig.getDevice('Stage').um2pix(obj.currentRadius);
+                mask.radiusY = obj.rig.getDevice('Stage').um2pix(obj.currentRadius);
+                mask.position = obj.canvasSize/2;
                 mask.color = obj.backgroundIntensity; 
                 p.addStimulus(mask);
             end
@@ -249,7 +251,7 @@ classdef sMTFspot < manookinlab.protocols.ManookinLabStageProtocol
         function organizeParameters(obj)
             
             % Create the matrix of bar positions.
-            numReps = ceil(double(obj.numberOfAverages) / length(obj.radii));
+            numReps = ceil(double(obj.numberOfAverages) / length(obj.radiiPix));
             
             % Get the array of radii.
             rads = obj.radii(:) * ones(1, numReps);
@@ -270,11 +272,6 @@ classdef sMTFspot < manookinlab.protocols.ManookinLabStageProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
-%             device = obj.rig.getDevice(obj.amp);
-%             duration = (obj.preTime + obj.stimTime + obj.tailTime) / 1e3;
-%             epoch.addDirectCurrentStimulus(device, device.background, duration, obj.sampleRate);
-%             epoch.addResponse(device);
-            
             % Set the current radius
             obj.currentRadius = obj.sequence( obj.numEpochsCompleted+1 );
 
@@ -283,6 +280,7 @@ classdef sMTFspot < manookinlab.protocols.ManookinLabStageProtocol
                 epoch.addParameter('outerRadius', min(obj.canvasSize/2));
             end
             epoch.addParameter('radius', obj.currentRadius);
+            epoch.addParameter('radiusPix', obj.rig.getDevice('Stage').um2pix(obj.currentRadius));
         end
         
         function tf = shouldContinuePreparingEpochs(obj)

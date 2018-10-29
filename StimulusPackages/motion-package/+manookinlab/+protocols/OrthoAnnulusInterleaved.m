@@ -2,18 +2,21 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
     properties
         preTime = 250
         waitTime = 1250
-        stimTime = 2000
-        tailTime = 1000
-        contrasts = [-1, 0.25, 0.25:0.25:1]
-        speed = 3000 % pix/sec
-        width = 40
-        minRadius = 40 
-        maxRadius = 160
+        tailTime = 500
+        contrasts = -1:0.25:1
+        speed = 1200 % um/sec
+        width = 40 % um
+        minRadius = 40 % um
+        maxRadius = 160 % um
         backgroundIntensity = 0.5 % (0-1)
         spatialClass = 'annulus'
         onlineAnalysis = 'extracellular'
-        numberOfAverages = uint16(72) % number of epochs to queue
+        numberOfAverages = uint16(144) % number of epochs to queue
         amp
+    end
+    
+    properties (Dependent) 
+        stimTime
     end
     
     properties (Hidden)
@@ -32,6 +35,7 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
         widthPix
         minRadiusPix
         maxRadiusPix
+        speedPix
     end
     
     methods
@@ -60,6 +64,7 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
             obj.widthPix = device.um2pix(obj.width);
             obj.minRadiusPix = device.um2pix(obj.minRadius);
             obj.maxRadiusPix = device.um2pix(obj.maxRadius);
+            obj.speedPix = device.um2pix(obj.speed);
         end
         
         function organizeParameters(obj)
@@ -102,7 +107,7 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
             p.addController(outerRadiusY);
             
             function r = getOuterRadius(obj, time)
-                r = obj.direction * obj.speed * time + obj.moveRadius;
+                r = obj.direction * obj.speedPix * time + obj.moveRadius;
                 r = max(r, obj.minRadiusPix);
                 r = min(r, obj.maxRadiusPix);
             end
@@ -127,7 +132,7 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
             end
             
             function r = getInnerRadius(obj, time)
-                r = obj.direction * obj.speed * time + obj.moveRadius - obj.widthPix;
+                r = obj.direction * obj.speedPix * time + obj.moveRadius - obj.widthPix;
                 r = max(r, obj.minRadiusPix - obj.widthPix);
                 r = min(r, obj.maxRadiusPix - obj.widthPix);
             end
@@ -174,6 +179,11 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
             epoch.addParameter('widthPix', obj.widthPix);
             epoch.addParameter('minRadiusPix', obj.minRadiusPix);
             epoch.addParameter('maxRadiusPix', obj.maxRadiusPix);
+            epoch.addParameter('speedPix', obj.speedPix);
+        end
+        
+        function stimTime = get.stimTime(obj)
+            stimTime = obj.waitTime + 2*ceil((obj.maxRadiusPix-obj.minRadiusPix)/obj.speedPix*1e3);
         end
  
         function tf = shouldContinuePreparingEpochs(obj)
