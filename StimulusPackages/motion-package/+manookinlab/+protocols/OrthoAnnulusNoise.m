@@ -1,16 +1,16 @@
 classdef OrthoAnnulusNoise < manookinlab.protocols.ManookinLabStageProtocol
     properties
-        preTime = 250
-        stimTime = 10000
-        tailTime = 250
-        contrast = 1
-        width = 40
-        minRadius = 40
-        maxRadius = 160
+        preTime = 250                       % Stimulus leading duration (ms)
+        stimTime = 10000                    % Stimulus duration (ms)
+        tailTime = 250                      % Stimulus trailing duration (ms)
+        contrast = 1                        % Stimulus contrast (-1 : 1)
+        width = 40                          % Annulus width (um)
+        minRadius = 40                      % Minimum annulus radius (um)
+        maxRadius = 120                     % Maximum annulus radius (um)
         randsPerRep = 8                     % Number of random seeds per repeat
-        backgroundIntensity = 0.5 % (0-1)
-        onlineAnalysis = 'extracellular'
-        distributionClass = 'gaussian'      % Distribution type: gaussian or uniform
+        backgroundIntensity = 0.5           % (0-1)
+        onlineAnalysis = 'extracellular'    % Online analysis type
+        distributionClass = 'uniform'       % Distribution type: gaussian or uniform
         numberOfAverages = uint16(50)       % Number of epochs to queue
         amp
     end
@@ -34,14 +34,12 @@ classdef OrthoAnnulusNoise < manookinlab.protocols.ManookinLabStageProtocol
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            % Get the color sequence for plotting.
-            colors = zeros(1,3);
-            
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+            obj.showFigure('manookinlab.figures.OrthoAnnulusNoiseFigure', ...
                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                'sweepColor',colors,...
-                'groupBy',{'frameRate'});
+                'noiseClass',obj.distributionClass,...
+                'preTime',obj.preTime,...
+                'stimTime', obj.stimTime);
             
             % Convert from microns to pixels.
             device = obj.rig.getDevice('Stage');
