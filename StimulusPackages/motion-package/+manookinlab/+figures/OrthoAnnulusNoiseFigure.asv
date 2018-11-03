@@ -136,8 +136,7 @@ classdef OrthoAnnulusNoiseFigure < symphonyui.core.FigureHandler
                     frameValues = frameValues(:);
                 end
                 fvals = zeros(size(y));
-                fvals(1 : floor(obj.stimTime*1e-3*binRate)) = frameValues(1 : floor(obj.stimTime*1e-3*binRate));
-                frameValues = fvals;
+                fvals(1 : floor(obj.stimTime*1e-3*binRate)) = fram
                 
                 % Make it the same size as the stim frames.
                 y = y(1 : length(frameValues));
@@ -170,11 +169,23 @@ classdef OrthoAnnulusNoiseFigure < symphonyui.core.FigureHandler
                 cla(obj.axesHandle);
                 line((1:plotLngth)/binRate, lf(1:plotLngth),...
                     'Parent', obj.axesHandle, 'Color', 'k');
+                if length(obj.durations) > 1
+                    hold(obj.axesHandle, 'on');
+                    line((1:plotLngth)/binRate, lf2(1:plotLngth),...
+                        'Parent', obj.axesHandle, 'Color', [0.8 0 0]);
+                    hold(obj.axesHandle, 'off');
+                end 
                 axis(obj.axesHandle, 'tight');
                 
                 cla(obj.nlAxesHandle);
                 line(xBin1, yBin1, ...
                     'Parent', obj.nlAxesHandle, 'Color', 'k', 'Marker', '.');
+                if length(obj.durations) > 1
+                    hold(obj.nlAxesHandle, 'on');
+                    line(xBin2, yBin2, ...
+                        'Parent', obj.nlAxesHandle, 'Color', [0.8 0 0], 'Marker', '.');
+                    hold(obj.nlAxesHandle, 'off');
+                end
                 axis(obj.nlAxesHandle, 'tight');
             end
         end  
