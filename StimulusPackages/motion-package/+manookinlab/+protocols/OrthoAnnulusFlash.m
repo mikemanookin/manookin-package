@@ -3,7 +3,7 @@ classdef OrthoAnnulusFlash < manookinlab.protocols.ManookinLabStageProtocol
         amp
         preTime = 500
         stimTime = 100
-        tailTime = 1000
+        tailTime = 900
         contrasts = [-1,1]
         width = 40 % um
         minRadius = 40 % um

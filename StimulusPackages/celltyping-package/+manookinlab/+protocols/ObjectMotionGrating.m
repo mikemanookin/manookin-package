@@ -6,14 +6,13 @@ classdef ObjectMotionGrating < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 500                  % Grating trailing duration (ms)
         contrast = 0.5                  % Grating contrast (0-1)
         orientation = 0.0               % Grating orientation (deg)
-        barWidth = 50                   % Bar width (pixels)
+        barWidth = 50                   % Bar width (microns)
         jitterSpeed = 1000              % Grating jitter/frame (pix/sec)
         driftSpeed = 1000               % Center drift speed (pix/sec)
         spatialPhase = 0.0              % Spatial phase of grating (deg)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        centerOffset = [0,0]            % Center offset in pixels (x,y)
-        innerRadius = 100               % Center radius in pixels.
-        apertureRadius = 150            % Aperature radius between inner and outer gratings.
+        innerRadius = 200               % Center radius in pixels.
+        apertureRadius = 250            % Aperature radius between inner and outer gratings.
         spatialClass = 'squarewave'     % Spatial type (sinewave or squarewave)      
         onlineAnalysis = 'extracellular' % Type of online analysis
         useRandomSeed = false            % Random or repeated seed?
@@ -36,6 +35,11 @@ classdef ObjectMotionGrating < manookinlab.protocols.ManookinLabStageProtocol
         stepSize
         centerPhase
         surroundPhase
+        barWidthPix
+        jitterSpeedPix
+        driftSpeedPix 
+        innerRadiusPix 
+        apertureRadiusPix
     end
     
     methods
@@ -58,8 +62,14 @@ classdef ObjectMotionGrating < manookinlab.protocols.ManookinLabStageProtocol
                     'groupBy',{'stimulusClass'});
             end
             
-            obj.stepSize = obj.jitterSpeed / obj.frameRate;
-            obj.driftStep = obj.driftSpeed / obj.frameRate;
+            obj.barWidthPix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
+            obj.jitterSpeedPix = obj.rig.getDevice('Stage').um2pix(obj.jitterSpeed);
+            obj.driftSpeedPix = obj.rig.getDevice('Stage').um2pix(obj.driftSpeed);
+            obj.innerRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.innerRadius);
+            obj.apertureRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.apertureRadius);
+            
+            obj.stepSize = obj.jitterSpeedPix / obj.frameRate;
+            obj.driftStep = obj.driftSpeedPix / obj.frameRate;
         end
         
         function p = createPresentation(obj)
@@ -79,8 +89,8 @@ classdef ObjectMotionGrating < manookinlab.protocols.ManookinLabStageProtocol
                 end
                 bGrating.orientation = obj.orientation;
                 bGrating.size = max(obj.canvasSize) * ones(1,2);
-                bGrating.position = obj.canvasSize/2 + obj.centerOffset;
-                bGrating.spatialFreq = 1/(2*obj.barWidth); %convert from bar width to spatial freq
+                bGrating.position = obj.canvasSize/2;
+                bGrating.spatialFreq = 1/(2*obj.barWidthPix); %convert from bar width to spatial freq
                 bGrating.contrast = obj.contrast;
                 bGrating.color = 2*obj.backgroundIntensity;
             end
@@ -93,9 +103,9 @@ classdef ObjectMotionGrating < manookinlab.protocols.ManookinLabStageProtocol
                     grate = stage.builtin.stimuli.Grating('square'); 
             end
             grate.orientation = obj.orientation;
-            grate.size = 2*obj.innerRadius*ones(1,2);
-            grate.position = obj.canvasSize/2 + obj.centerOffset;
-            grate.spatialFreq = 1/(2*obj.barWidth); %convert from bar width to spatial freq
+            grate.size = 2*obj.innerRadiusPix*ones(1,2);
+            grate.position = obj.canvasSize/2;
+            grate.spatialFreq = 1/(2*obj.barWidthPix); %convert from bar width to spatial freq
             grate.contrast = obj.contrast;
             grate.color = 2*obj.backgroundIntensity;
             %calc to apply phase shift s.t. a contrast-reversing boundary
@@ -109,7 +119,7 @@ classdef ObjectMotionGrating < manookinlab.protocols.ManookinLabStageProtocol
             obj.phaseShift = 360*(phaseShift_rad)/(2*pi); %phaseshift in degrees
             grate.phase = obj.phaseShift + obj.spatialPhase; %keep contrast reversing boundary in center
             % Make a circular mask.
-%             gMask = stage.core.Mask.createCircularAperture(obj.innerRadius*2/max(obj.canvasSize), 1024);
+%             gMask = stage.core.Mask.createCircularAperture(obj.innerRadiusPix*2/max(obj.canvasSize), 1024);
             gMask = stage.core.Mask.createCircularEnvelope(1024);
             grate.setMask(gMask);
             
@@ -127,12 +137,12 @@ classdef ObjectMotionGrating < manookinlab.protocols.ManookinLabStageProtocol
                 p.addController(bgController);
             end
             
-            if obj.apertureRadius > obj.innerRadius
+            if obj.apertureRadiusPix > obj.innerRadiusPix
                 mask = stage.builtin.stimuli.Ellipse();
                 mask.color = obj.backgroundIntensity;
-                mask.radiusX = obj.apertureRadius;
-                mask.radiusY = obj.apertureRadius;
-                mask.position = obj.canvasSize / 2 + obj.centerOffset;
+                mask.radiusX = obj.apertureRadiusPix;
+                mask.radiusY = obj.apertureRadiusPix;
+                mask.position = obj.canvasSize / 2;
                 p.addStimulus(mask);
             end
             
@@ -161,7 +171,7 @@ classdef ObjectMotionGrating < manookinlab.protocols.ManookinLabStageProtocol
             % Object/center trajectory.
             function p = objectTrajectory(obj, time)
                 if time > 0
-                    p = obj.noiseStream.randn*2*pi * obj.stepSize / obj.barWidth;
+                    p = obj.noiseStream.randn*2*pi * obj.stepSize / obj.barWidthPix;
                 else
                     p = 0;
                 end
@@ -172,7 +182,7 @@ classdef ObjectMotionGrating < manookinlab.protocols.ManookinLabStageProtocol
             % Set the drifting grating.
             function phase = objectDriftTrajectory(obj, time)
                 if time >= 0
-                    phase = (obj.driftStep/obj.barWidth * 2 * pi)+(obj.noiseStream.randn*2*pi * obj.stepSize / obj.barWidth);
+                    phase = (obj.driftStep/obj.barWidthPix * 2 * pi)+(obj.noiseStream.randn*2*pi * obj.stepSize / obj.barWidthPix);
                 else
                     phase = 0;
                 end
@@ -183,7 +193,7 @@ classdef ObjectMotionGrating < manookinlab.protocols.ManookinLabStageProtocol
             % Surround trajectory
             function p = surroundTrajectory(obj, time)
                 if time > 0
-                    p = obj.noiseStream2.randn*2*pi * obj.stepSize / obj.barWidth;
+                    p = obj.noiseStream2.randn*2*pi * obj.stepSize / obj.barWidthPix;
                 else
                     p = 0;
                 end
@@ -216,7 +226,7 @@ classdef ObjectMotionGrating < manookinlab.protocols.ManookinLabStageProtocol
             obj.noiseStream2 = RandStream('mt19937ar', 'Seed', seed2);
             
             % Get the spatial frequency.
-            obj.spatialFrequency = 1/(2*obj.barWidth);
+            obj.spatialFrequency = 1/(2*obj.barWidthPix);
 
             % Add the spatial frequency to the epoch.
             epoch.addParameter('spatialFrequency', obj.spatialFrequency);

@@ -2,7 +2,7 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
     properties
         preTime = 250
         waitTime = 1250
-        tailTime = 500
+        tailTime = 750
         contrasts = -1:0.25:1
         speed = 1200 % um/sec
         width = 40 % um

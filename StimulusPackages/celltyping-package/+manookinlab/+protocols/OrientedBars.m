@@ -4,11 +4,10 @@ classdef OrientedBars < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 500                   % Bar leading duration (ms)
         stimTime = 500                  % Bar duration (ms)
         tailTime = 500                  % Bar trailing duration (ms)
-        barSize = [100 1000]            % Bar size (x,y) in pixels
+        barSize = [100 1000]            % Bar size (x,y) in microns
         intensity = 1.0                 % Max light intensity (0-1)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         numberOfOrientations = 6        % Number of evenly spaced orientations
-        centerOffset = [0,0]            % Center offset in pixels (x,y)
         randomOrder = true              % Random sequence of orientations?
         temporalClass = 'pulse'         % Squarewave or pulse?
         chromaticClass = 'achromatic'   % Chromatic class
@@ -24,6 +23,7 @@ classdef OrientedBars < manookinlab.protocols.ManookinLabStageProtocol
         orientations
         orientation
         bkg
+        barSizePix
     end
     
     properties (Hidden, Transient)
@@ -47,6 +47,9 @@ classdef OrientedBars < manookinlab.protocols.ManookinLabStageProtocol
                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                 'sweepColor',colors,...
                 'groupBy',{'orientation'});
+            
+            
+            obj.barSizePix = obj.rig.getDevice('Stage').um2pix(obj.barSize);
             
             % Create the matrix of bar positions.
             numReps = ceil(double(obj.numberOfAverages) / obj.numberOfOrientations);
@@ -90,9 +93,9 @@ classdef OrientedBars < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity);
             
             rect = stage.builtin.stimuli.Rectangle();
-            rect.size = obj.barSize;
+            rect.size = obj.barSizePix;
             rect.orientation = obj.orientation;
-            rect.position = obj.canvasSize/2 + obj.centerOffset;
+            rect.position = obj.canvasSize/2;
             
             if strcmp(obj.stageClass, 'Video')
                 rect.color = obj.intensity*obj.colorWeights*obj.bkg + obj.bkg;
