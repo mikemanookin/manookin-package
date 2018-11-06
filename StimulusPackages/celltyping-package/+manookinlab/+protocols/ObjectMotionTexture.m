@@ -6,11 +6,11 @@ classdef ObjectMotionTexture < manookinlab.protocols.ManookinLabStageProtocol
         waitTime = 2000                 % Time texture is presented before moving (ms)
         moveTime = 2000                 % Move duration (ms)
         contrast = 1.0                  % Texture contrast (0-1)
-        textureStdev = 15               % Texture standard deviation (pixels)
-        driftSpeed = 1000               % Texture drift speed (pix/sec)
+        textureStdev = 15               % Texture standard deviation (microns)
+        driftSpeed = 1000               % Texture drift speed (um/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        radius = 200                    % Center radius (pixels)
-        apertureRadius = 250            % Aperature radius between inner and outer textures (pixels).     
+        radius = 200                    % Center radius (microns)
+        apertureRadius = 250            % Aperature radius between inner and outer textures (microns).     
         onlineAnalysis = 'extracellular' % Type of online analysis
         useRandomSeed = false            % Random or repeated seed?
         numberOfAverages = uint16(24)   % Number of epochs
