@@ -129,6 +129,8 @@ classdef OrthoAnnulusNoiseFigure < symphonyui.core.FigureHandler
                 else
                     frameValues = (maxRadius-minRadius)*noiseStream.rand(1, numFrames)+minRadius;
                 end
+                % Subtract the mean.
+                frameValues = frameValues - mean(frameValues(:));
                 
                 if binRate > obj.frameRate
                     n = round(binRate / obj.frameRate);

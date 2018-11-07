@@ -23,6 +23,7 @@ classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthreshold', 'analog'})
+        testContrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         numRings
         tiltDirection
         direction
