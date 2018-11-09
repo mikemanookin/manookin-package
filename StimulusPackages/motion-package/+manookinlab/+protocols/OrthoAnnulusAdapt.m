@@ -1,19 +1,19 @@
 classdef OrthoAnnulusAdapt < manookinlab.protocols.ManookinLabStageProtocol
     properties
-        preTime = 250
-        adaptTime = 2000
-        waitTime = 100
-        tailTime = 500
-        adaptContrast = 1.0
-        testContrasts = [-1.0 0 0.25 0.5 0.75 1.0]
-        speed = 1200 % um/sec
-        width = 40 % um
-        minRadius = 40 % um
-        maxRadius = 160 % um
-        backgroundIntensity = 0.5 % (0-1)
-        onlineAnalysis = 'extracellular'
-        numberOfAverages = uint16(216)       % Number of epochs to queue
         amp
+        preTime = 250                       % Stimulus leading duration (ms)
+        adaptTime = 2000                    % Stimulus adaptation duration (ms)
+        waitTime = 100                      % Delay between adaptation and probe (ms)
+        tailTime = 500                      % Stimulus trailing duration (ms)
+        adaptContrast = 0.5                 % Contrast for adapting stimulus
+        testContrasts = [0 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1.0 1.0] % Set of stimulus contrasts to probe (-1:1)
+        speed = 1000                        % Annulus speed (um/sec)
+        width = 40                          % Annulus width (um)
+        minRadius = 40                      % Minimum annulus radius (um)
+        maxRadius = 120                     % Maximum annulus radius (um)
+        backgroundIntensity = 0.5           % (0-1)
+        onlineAnalysis = 'extracellular'    % Online analysis type
+        numberOfAverages = uint16(216)      % Number of epochs to queue
     end
     
     properties (Dependent) 

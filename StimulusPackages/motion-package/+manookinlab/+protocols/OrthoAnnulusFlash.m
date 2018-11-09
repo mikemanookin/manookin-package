@@ -1,23 +1,24 @@
 classdef OrthoAnnulusFlash < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp
-        preTime = 500
-        stimTime = 100
-        tailTime = 900
-        contrasts = [-1,1]
-        width = 40 % um
-        minRadius = 40 % um
-        maxRadius = 120 % um
-        backgroundIntensity = 0.5 % (0-1)
-        spatialClass = 'annulus'
-        onlineAnalysis = 'extracellular'
-        numberOfAverages = uint16(100) % number of epochs to queue
+        preTime = 500                   % Stimulus leading duration (ms)
+        stimTime = 100                  % Flash duration (ms)
+        tailTime = 900                  % Stimulus trailing duration (ms)
+        contrasts = [-1,1]              % Flash contrasts to test
+        width = 40                      % Annulus width (um)
+        minRadius = 40                  % Minimum annulus radius (um)
+        maxRadius = 120                 % Maximum annulus radius (um)
+        backgroundIntensity = 0.5       % (0-1)
+        spatialClass = 'annulus'        % Spatial class
+        onlineAnalysis = 'extracellular'% Online analysis type
+        numberOfAverages = uint16(100)  % number of epochs to queue
     end
     
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthreshold', 'analog'})
         spatialClassType = symphonyui.core.PropertyType('char', 'row', {'annulus','spot','grating'})
+        contrastsType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
         intensity
         innerRadius
         outerRadius

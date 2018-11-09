@@ -1,18 +1,18 @@
 classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtocol
     properties
-        preTime = 250
-        waitTime = 1250
-        tailTime = 750
-        contrasts = -1:0.25:1
-        speed = 1200 % um/sec
-        width = 40 % um
-        minRadius = 40 % um
-        maxRadius = 160 % um
-        backgroundIntensity = 0.5 % (0-1)
-        spatialClass = 'annulus'
-        onlineAnalysis = 'extracellular'
-        numberOfAverages = uint16(144) % number of epochs to queue
         amp
+        preTime = 250                       % Stimulus leading duration (ms)
+        waitTime = 2000                     % Wait time between flashing on annulus and motion onset (ms)
+        tailTime = 750                      % Stimulus trailing duration (ms)
+        contrasts = [0 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1.0 1.0] % Stimulus contrasts to test (-1:1)
+        speed = 800                         % Annulus speed (um/sec)
+        width = 40                          % Annulus width (um)
+        minRadius = 40                      % Minimum annulus radius (um)
+        maxRadius = 120                     % Maximum annulus radius (um)
+        backgroundIntensity = 0.5           % (0-1)
+        spatialClass = 'annulus'            % Stimulus spatial class
+        onlineAnalysis = 'extracellular'    % Online analysis type
+        numberOfAverages = uint16(144)      % number of epochs to queue
     end
     
     properties (Dependent) 
@@ -23,6 +23,7 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthreshold', 'analog'})
         spatialClassType = symphonyui.core.PropertyType('char', 'row', {'annulus','spot','grating'})
+        contrastsType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
         intensity
         direction
         maskRadius

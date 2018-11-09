@@ -3,7 +3,7 @@ classdef OrthoAnnulusNoise < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                       % Stimulus leading duration (ms)
         stimTime = 10000                    % Stimulus duration (ms)
         tailTime = 250                      % Stimulus trailing duration (ms)
-        contrast = 1                        % Stimulus contrast (-1 : 1)
+        contrast = 0.5                      % Stimulus contrast (-1 : 1)
         width = 40                          % Annulus width (um)
         minRadius = 40                      % Minimum annulus radius (um)
         maxRadius = 120                     % Maximum annulus radius (um)
