@@ -9,6 +9,24 @@ classdef RigA < symphonyui.core.descriptions.RigDescription
             daq = HekaDaqController();
             obj.daqController = daq;
             
+            red = UnitConvertingDevice('Red LED', 'V').bindStream(daq.getStream('ao1'));
+            red.addConfigurationSetting('ndfs', {}, ...
+                'type', PropertyType('cellstr', 'row', {'B1', 'B2', 'B3', 'B4', 'B5', 'B11'}));
+            red.addResource('ndfAttenuations', containers.Map( ...
+                {'B1', 'B2', 'B3', 'B4', 'B5', 'B11'}, ...
+                {0.29, 0.61, 1.01, 2.08, 4.41, 3.94}));
+            red.addConfigurationSetting('gain', '', ...
+                'type', PropertyType('char', 'row', {'', 'low', 'medium', 'high'}));
+%             red.addResource('fluxFactorPaths', containers.Map( ...
+%                 {'low', 'medium', 'high'}, { ...
+%                 riekelab.Package.getCalibrationResource('rigs', 'two_photon', 'red_led_low_flux_factors.txt'), ...
+%                 riekelab.Package.getCalibrationResource('rigs', 'two_photon', 'red_led_medium_flux_factors.txt'), ...
+%                 riekelab.Package.getCalibrationResource('rigs', 'two_photon', 'red_led_high_flux_factors.txt')}));
+%             red.addConfigurationSetting('lightPath', '', ...
+%                 'type', PropertyType('char', 'row', {'', 'below', 'above'}));
+%             red.addResource('spectrum', importdata(riekelab.Package.getCalibrationResource('rigs', 'two_photon', 'red_led_spectrum.txt')));
+            obj.addDevice(red);
+            
             temperature = UnitConvertingDevice('Temperature Controller', 'V', 'manufacturer', 'Warner Instruments').bindStream(daq.getStream('ai7'));
             obj.addDevice(temperature);
             
@@ -29,9 +47,9 @@ classdef RigA < symphonyui.core.descriptions.RigDescription
             obj.addDevice(filterWheel);
             
             % SciScan Trigger.
-            trigger2 = UnitConvertingDevice('SciScan Trigger', symphonyui.core.Measurement.UNITLESS).bindStream(daq.getStream('doport1'));
-            daq.getStream('doport1').setBitPosition(trigger2, 1);
-            obj.addDevice(trigger2);
+%             trigger2 = UnitConvertingDevice('SciScan Trigger', symphonyui.core.Measurement.UNITLESS).bindStream(daq.getStream('doport1'));
+%             daq.getStream('doport1').setBitPosition(trigger2, 1);
+%             obj.addDevice(trigger2);
         end
     end
     
