@@ -15,6 +15,10 @@ classdef RigA_Amp1_Video < manookinlab.rigs.RigA
             amp1 = MultiClampDevice('Amp1', 1).bindStream(daq.getStream('ao0')).bindStream(daq.getStream('ai0'));
             obj.addDevice(amp1);
             
+            % Add the red LED.
+            red = UnitConvertingDevice('Red LED', 'V').bindStream(daq.getStream('ao1'));
+            obj.addDevice(red);
+            
             % Get calibration resources.
             ramps = containers.Map();
             ramps('red')    = 65535 * importdata(manookinlab.Package.getCalibrationResource('rigs', 'rig_A', 'red_gamma_ramp.txt'));

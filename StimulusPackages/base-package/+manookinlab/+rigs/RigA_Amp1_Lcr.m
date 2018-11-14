@@ -15,6 +15,10 @@ classdef RigA_Amp1_Lcr < manookinlab.rigs.RigA
             amp1 = MultiClampDevice('Amp1', 1).bindStream(daq.getStream('ao0')).bindStream(daq.getStream('ai0'));
             obj.addDevice(amp1);
             
+            % Add the red LED.
+            red = UnitConvertingDevice('Red LED', 'V').bindStream(daq.getStream('ao1'));
+            obj.addDevice(red);
+            
             % Add the LightCrafter
             lightCrafter = edu.washington.riekelab.devices.LightCrafterDevice('micronsPerPixel', 0.8);
             
