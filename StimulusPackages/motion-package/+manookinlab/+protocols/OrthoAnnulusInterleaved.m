@@ -3,7 +3,7 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
         amp
         preTime = 250                       % Stimulus leading duration (ms)
         waitTime = 2000                     % Wait time between flashing on annulus and motion onset (ms)
-        tailTime = 750                      % Stimulus trailing duration (ms)
+        tailTime = 1000                     % Stimulus trailing duration (ms)
         contrasts = [0 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1.0 1.0] % Stimulus contrasts to test (-1:1)
         speed = 800                         % Annulus speed (um/sec)
         width = 40                          % Annulus width (um)
