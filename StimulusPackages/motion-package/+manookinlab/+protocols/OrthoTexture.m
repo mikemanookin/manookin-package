@@ -4,10 +4,10 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Texture leading duration (ms)
         tailTime = 250                  % Texture trailing duration (ms)
         waitTime = 2000                 % Time texture is presented before moving (ms)
-        moveTime = 500                  % Move duration (ms)
+        moveTime = 1000                  % Move duration (ms)
         contrast = 1.0                  % Texture contrast (0-1)
         textureStdev = 15               % Texture standard deviation (microns)
-        moveSpeed = 1000                % Texture approach speed (um/sec)
+        moveSpeed = 5000                % Texture approach speed (um/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         radius = 200                    % Center radius (microns)
         apertureRadius = 250            % Aperature radius between inner and outer textures (microns).     
@@ -61,7 +61,7 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
             
             if ~obj.useRandomSeed
                 % Generate the texture.
-                obj.backgroundTexture = generateTexture(max(obj.canvasSize), obj.textureStdevPix, obj.contrast, 1);
+                obj.backgroundTexture = generateTexture(round(max(obj.canvasSize)/5), obj.textureStdevPix/5, obj.contrast, 1);
                 obj.backgroundTexture = uint8(obj.backgroundTexture*255);
             end
         end
@@ -113,7 +113,7 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
                 if time > 0 && time <= obj.moveTime*1e-3
                     p = (obj.driftSpeedPix*obj.moveTime*1e-3 + max(obj.canvasSize))*ones(1,2) - obj.driftSpeedPix*time*ones(1,2);
                 else
-                    p = max(obj.canvasSize)*ones(1,2);
+                    p = (obj.driftSpeedPix*obj.moveTime*1e-3 + max(obj.canvasSize))*ones(1,2);
                 end
             end
             
@@ -135,7 +135,7 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
             
             if obj.useRandomSeed
                 % Generate the texture.
-                obj.backgroundTexture = generateTexture(max(obj.canvasSize), obj.textureStdevPix, obj.contrast, obj.seed);
+                obj.backgroundTexture = generateTexture(round(max(obj.canvasSize)/5), obj.textureStdevPix/5, obj.contrast, obj.seed);
                 obj.backgroundTexture = uint8(obj.backgroundTexture*255);
             end
         end
