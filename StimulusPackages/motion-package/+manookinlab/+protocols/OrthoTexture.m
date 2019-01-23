@@ -4,16 +4,16 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Texture leading duration (ms)
         tailTime = 250                  % Texture trailing duration (ms)
         waitTime = 2000                 % Time texture is presented before moving (ms)
-        moveTime = 1000                  % Move duration (ms)
+        moveTime = 1000                 % Move duration (ms)
         contrast = 1.0                  % Texture contrast (0-1)
         textureStdev = 15               % Texture standard deviation (microns)
-        moveSpeed = 5000                % Texture approach speed (um/sec)
+        moveSpeed = 400                 % Texture approach speed (um/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         radius = 200                    % Center radius (microns)
         apertureRadius = 250            % Aperature radius between inner and outer textures (microns).     
         onlineAnalysis = 'extracellular' % Type of online analysis
-        useRandomSeed = false            % Random or repeated seed?
-        numberOfAverages = uint16(24)   % Number of epochs
+        useRandomSeed = true            % Random or repeated seed?
+        numberOfAverages = uint16(100)  % Number of epochs
     end
     
     properties (Dependent) 
@@ -32,6 +32,7 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
         driftSpeedPix
         radiusPix
         apertureRadiusPix
+        maxTextureSize
     end
     
     methods
@@ -94,6 +95,8 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
                 bgController = stage.builtin.controllers.PropertyController(bground, 'size',...
                     @(state)approachTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
             else
+                % Compute the maximum texture size.
+                obj.maxTextureSize = exp(log(max(obj.canvasSize)/200) + obj.driftSpeedPix/200*obj.moveTime*1e-3)*200;
                 bgController = stage.builtin.controllers.PropertyController(bground, 'size',...
                     @(state)recedeTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
             end
@@ -103,7 +106,8 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
             % Control the texture position.
             function p = approachTrajectory(obj, time)
                 if time > 0 && time <= obj.moveTime*1e-3
-                    p = (obj.driftSpeedPix*time + max(obj.canvasSize))*ones(1,2);
+%                     p = (obj.driftSpeedPix*time + max(obj.canvasSize))*ones(1,2);
+                    p = exp(log(max(obj.canvasSize)/200) + obj.driftSpeedPix/200*time)*200*ones(1,2);
                 else
                     p = max(obj.canvasSize)*ones(1,2);
                 end
@@ -111,9 +115,11 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
             
             function p = recedeTrajectory(obj, time)
                 if time > 0 && time <= obj.moveTime*1e-3
-                    p = (obj.driftSpeedPix*obj.moveTime*1e-3 + max(obj.canvasSize))*ones(1,2) - obj.driftSpeedPix*time*ones(1,2);
+%                     p = (obj.driftSpeedPix*obj.moveTime*1e-3 + max(obj.canvasSize))*ones(1,2) - obj.driftSpeedPix*time*ones(1,2);
+                    p = exp(log(obj.maxTextureSize/200) - obj.driftSpeedPix/200*time)*200*ones(1,2);
                 else
-                    p = (obj.driftSpeedPix*obj.moveTime*1e-3 + max(obj.canvasSize))*ones(1,2);
+%                     p = (obj.driftSpeedPix*obj.moveTime*1e-3 + max(obj.canvasSize))*ones(1,2);
+                    p = obj.maxTextureSize*ones(1,2);
                 end
             end
             
