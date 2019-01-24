@@ -19,10 +19,6 @@ classdef RigA_Amp1_Lcr < manookinlab.rigs.RigA
             red = UnitConvertingDevice('Red LED', 'V').bindStream(daq.getStream('ao1'));
             obj.addDevice(red);
             
-            % Add the frame syncs
-            frameTTL = UnitConvertingDevice('LCR TTL', 'V').bindStream(obj.daqController.getStream('ai3'));
-            obj.addDevice(frameTTL);
-            
             % Add the LightCrafter
             lightCrafter = edu.washington.riekelab.devices.LightCrafterDevice('micronsPerPixel', 0.8);
             
@@ -60,7 +56,9 @@ classdef RigA_Amp1_Lcr < manookinlab.rigs.RigA
             
             obj.addDevice(lightCrafter);
             
-            
+            % Add the frame syncs
+            frameTTL = UnitConvertingDevice('Frame TTL', 'V').bindStream(obj.daqController.getStream('ai3'));
+            obj.addDevice(frameTTL);
         end
     end
 end
