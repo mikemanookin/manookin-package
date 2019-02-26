@@ -15,15 +15,18 @@ classdef RigA_Amp1_Lcr < manookinlab.rigs.RigA
             amp1 = MultiClampDevice('Amp1', 1).bindStream(daq.getStream('ao0')).bindStream(daq.getStream('ai0'));
             obj.addDevice(amp1);
             
+            % Add the frame syncs
+%             fMonitor = UnitConvertingDevice('White Sync', 'V', 'manufacturer', 'Texas Instruments').bindStream(daq.getStream('ai6'));
+%             obj.addDevice(fMonitor);
+            
             % Add the red LED.
-            red = UnitConvertingDevice('Red LED', 'V').bindStream(daq.getStream('ao1'));
-            obj.addDevice(red);
+%             red = UnitConvertingDevice('Red LED', 'V').bindStream(daq.getStream('ao1'));
+%             obj.addDevice(red);
             
             % Add the LightCrafter
             lightCrafter = edu.washington.riekelab.devices.LightCrafterDevice('micronsPerPixel', 0.8);
             
             % Binding the lightCrafter to an unused stream only so its configuration settings are written to each epoch.
-            daq = obj.daqController;
             lightCrafter.bindStream(daq.getStream('doport1'));
             daq.getStream('doport1').setBitPosition(lightCrafter, 15);
             
@@ -56,9 +59,7 @@ classdef RigA_Amp1_Lcr < manookinlab.rigs.RigA
             
             obj.addDevice(lightCrafter);
             
-            % Add the frame syncs
-            frameTTL = UnitConvertingDevice('Frame TTL', 'V').bindStream(obj.daqController.getStream('ai3'));
-            obj.addDevice(frameTTL);
+            
         end
     end
 end

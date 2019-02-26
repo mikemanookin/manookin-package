@@ -9,7 +9,7 @@ classdef AdaptGrating < manookinlab.protocols.ManookinLabStageProtocol
         highContrast = 1.0              % High-contrast value (0-1)
         highDuration = 2000             % High-contrast duration (ms)
         barWidths = [40 400]            % Bar widths (pix)
-        temporalFrequencies = [6 6] % Temporal frequencies (Hz)
+        temporalFrequencies = [12 12] % Temporal frequencies (Hz)
         orientation = 0                 % Stimulus orientiation (degrees)
         spatialPhase = 0.0              % Spatial phase of grating (deg)
         backgroundIntensity = 0.5       % Background light intensity (0-1)

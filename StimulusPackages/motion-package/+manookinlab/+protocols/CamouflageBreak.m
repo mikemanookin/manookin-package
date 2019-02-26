@@ -9,14 +9,13 @@ classdef CamouflageBreak < manookinlab.protocols.ManookinLabStageProtocol
         moveTime = 250
         moveSpeed = 1250
         barWidth = 50
-        numObjectBars = 3
+        numObjectBars = 5
         contrastClass = 'gaussian'
         backgroundContrast = 1.0
         objectContrast = 1.0
         randomSeed = true               % Random or repeating seed
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular'         % Online analysis type.
-        centerOffset = [0,0]            % Center offset in pixels (x,y)
         numberOfAverages = uint16(40)   % Number of epochs
     end
     
@@ -84,7 +83,7 @@ classdef CamouflageBreak < manookinlab.protocols.ManookinLabStageProtocol
             %--------------------------------------------------------------
             % Create your background image.
             checkerboard = stage.builtin.stimuli.Image(imageMatrix);
-            checkerboard.position = obj.canvasSize / 2 + obj.centerOffset;
+            checkerboard.position = obj.canvasSize / 2;
             checkerboard.size = [numBars*obj.barWidth obj.canvasSize(2)];
             
             % Set the minifying and magnifying functions to form discrete
@@ -107,7 +106,7 @@ classdef CamouflageBreak < manookinlab.protocols.ManookinLabStageProtocol
             %--------------------------------------------------------------
             % Create your background image.
             objectImg = stage.builtin.stimuli.Image(objectMatrix);
-            objectImg.position = obj.canvasSize / 2 + obj.centerOffset;
+            objectImg.position = obj.canvasSize / 2;
             objectImg.size = [obj.numObjectBars*obj.barWidth obj.canvasSize(2)];
             
             % Set the minifying and magnifying functions to form discrete
@@ -129,7 +128,7 @@ classdef CamouflageBreak < manookinlab.protocols.ManookinLabStageProtocol
 
             function p = getBackgroundPosition(obj, time)
                 if time <= 0
-                    p = obj.canvasSize / 2 + [obj.centerOffset(1) 0];
+                    p = obj.canvasSize / 2;
                 else
                     fr = min(ceil(time*obj.frameRate), size(obj.backgroundPosition,1));
                     p = obj.backgroundPosition(fr,:);
@@ -138,7 +137,7 @@ classdef CamouflageBreak < manookinlab.protocols.ManookinLabStageProtocol
             
             function p = getObjectPosition(obj, time)
                 if time <= 0
-                    p = obj.canvasSize / 2 + [obj.centerOffset(1) 0];
+                    p = obj.canvasSize / 2;
                 else
                     fr = min(ceil(time*obj.frameRate), size(obj.objectPosition,1));
                     p = obj.objectPosition(fr,:);
@@ -161,12 +160,12 @@ classdef CamouflageBreak < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the background and object trajectories.
             obj.backgroundPosition = cumsum(obj.backgroundSpeed/obj.frameRate*noiseStream.randn(obj.numFrames,1))...
-                *[1 0] + ones(obj.numFrames,1)*(obj.canvasSize/2+[obj.centerOffset(1) 0]);
+                *[1 0] + ones(obj.numFrames,1)*(obj.canvasSize/2);
             obj.objectPosition = obj.backgroundPosition;
             % Calculate the frame to start moving.
             mvFrame = floor(obj.waitTime * 1e-3 * obj.frameRate)+1;
             mvFrames = (1:length(mvFrame:obj.numFrames))*obj.moveSpeed/obj.frameRate;
-            if obj.objectPosition(mvFrame) > (obj.canvasSize(1)/2 + obj.centerOffset(1))
+            if obj.objectPosition(mvFrame) > (obj.canvasSize(1)/2)
                 mvFrames = -mvFrames;
             end
             obj.objectPosition(mvFrame:obj.numFrames,1) = mvFrames' + obj.objectPosition(mvFrame-1,1);
