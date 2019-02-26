@@ -9,7 +9,7 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
         flash2Contrasts = [0 -0.0625 0.0625 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Test flash contrasts (-1:1)
         flash2Duration = 100            % Test flash duration
         ipis = [50 50]                  % Inter-pulse intervals (ms)
-        radius = 105                    % Inner radius in pixels.
+        radius = 50                     % Inner radius in pixels.
         apertureRadius = 105            % Blank aperture radius (pix)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         modulationClass = 'full-field'  % Adapting flash class
