@@ -5,7 +5,7 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 750                  % Stim trailing duration (ms)
         modulationContrasts = [0 1]     % Flash 1 contrast (-1:1)
         modulationDuration = 1250       % Flash 1 duration (ms)
-        modulationFrequency = 30.0      % Modulation temporal frequency (Hz)
+        modulationFrequency = 15.0      % Modulation temporal frequency (Hz)
         flash2Contrasts = [0 -0.0625 0.0625 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Test flash contrasts (-1:1)
         flash2Duration = 100            % Test flash duration
         ipis = [50 50]                  % Inter-pulse intervals (ms)
@@ -40,6 +40,7 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
         rgbValues
         backgroundMeans
         bkgValues
+        temporalPhase
     end
     
      methods
@@ -103,6 +104,9 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundMeans);
             
+            cycleLength = round(obj.frameRate/obj.modulationFrequency);
+            obj.temporalPhase = round((cycleLength-1) * rand);
+            
             if strcmp(obj.modulationClass, 'spot')
                 modulation = stage.builtin.stimuli.Ellipse();
                 modulation.radiusX = obj.radius;
@@ -129,11 +133,11 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
             
             % Control the spot color.
             colorController = stage.builtin.controllers.PropertyController(modulation, 'color', ...
-                @(state)getModContrast(obj, state.frame, round(obj.frameRate/obj.modulationFrequency)));
+                @(state)getModContrast(obj, state.frame, cycleLength));
             p.addController(colorController);
             
             function c = getModContrast(obj, frame, cycleLength)
-                c = (obj.modulationContrast*(2*mod(floor(frame/cycleLength*2),2)-1))...
+                c = (obj.modulationContrast*(2*mod(floor(frame/cycleLength*2)+obj.temporalPhase,2)-1))...
                     *obj.bkgValues.*obj.backgroundMeans + obj.backgroundMeans;
             end
             

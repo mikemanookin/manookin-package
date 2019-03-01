@@ -6,10 +6,11 @@ classdef AdaptNoiseFlash < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 500                  % Stim trailing duration (ms)
         modulationContrasts = [0 1]     % Flash 1 contrast (-1:1)
         modulationDuration = 1250       % Flash 1 duration (ms)
+        frequencyCutoff = 15            % Cutoff frequency in Hz.
         flash2Contrasts = [0 -0.0625 0.0625 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Test flash contrasts (-1:1)
         flash2Duration = 100            % Test flash duration
         ipis = [50 50]                  % Inter-pulse intervals (ms)
-        radius = 105                    % Inner radius in pixels.
+        radius = 50                     % Inner radius in pixels.
         apertureRadius = 105            % Blank aperture radius (pix)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         centerOffset = [0,0]            % Center offset in pixels (x,y) 
@@ -37,6 +38,7 @@ classdef AdaptNoiseFlash < manookinlab.protocols.ManookinLabStageProtocol
         backgroundMeans
         bkgValues
         noiseStream
+        frameSequence
     end
     
      methods
@@ -131,8 +133,7 @@ classdef AdaptNoiseFlash < manookinlab.protocols.ManookinLabStageProtocol
             
             function c = getModContrast(obj, time)
                 if time >= 0 && time < obj.modulationDuration*1e-3
-                    c = (obj.modulationContrast*(2*(obj.noiseStream.rand > 0.5)-1))...
-                        *obj.bkgValues.*obj.backgroundMeans + obj.backgroundMeans;
+                    c = obj.frameSequence(1+floor(time * obj.frameRate),:);
                 else
                     c = obj.backgroundMeans;
                 end
@@ -181,6 +182,17 @@ classdef AdaptNoiseFlash < manookinlab.protocols.ManookinLabStageProtocol
             
             % Seed the random number generator.
             obj.noiseStream = RandStream('mt19937ar', 'Seed', seed);
+            
+            fseq = ((2*(obj.noiseStream.rand(1,ceil(obj.modulationDuration*1e-3*obj.frameRate)+20) > 0.5)-1));
+            fseq = (highPassFilter(2*fseq-1,obj.frequencyCutoff,1/obj.frameRate)>0);
+            if length(obj.bkgValues) == 1
+                fseq = (obj.modulationContrast*fseq(:)*obj.bkgValues)*ones(1,3);
+            else
+                fseq = (obj.modulationContrast*fseq(:))*obj.bkgValues(:)';
+            end
+            
+            obj.frameSequence = fseq.*...
+                (ones(size(fseq,1),1)*obj.backgroundMeans(:)') + ones(size(fseq,1),1)*obj.backgroundMeans(:)';
             
             % Save the seed.
             epoch.addParameter('seed', seed);

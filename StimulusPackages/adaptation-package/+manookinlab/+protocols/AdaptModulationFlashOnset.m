@@ -5,7 +5,7 @@ classdef AdaptModulationFlashOnset < manookinlab.protocols.ManookinLabStageProto
         tailTime = 500                  % Stim trailing duration (ms)
         modulationContrasts = [0 1]     % Flash 1 contrast (-1:1)
         modulationDurations = [250 500 750 1000 1250]       % Modulation durations (ms)
-        modulationFrequency = 30.0      % Modulation temporal frequency (Hz)
+        modulationFrequency = 15.0      % Modulation temporal frequency (Hz)
         flash2Contrast = 0.5            % Test flash contrast (-1:1)
         flash2Duration = 100            % Test flash duration
         interPulseInterval = 50         % Inter-pulse intervals (ms)
@@ -40,6 +40,7 @@ classdef AdaptModulationFlashOnset < manookinlab.protocols.ManookinLabStageProto
         ipi
         backgroundMeans
         bkgValues
+        temporalPhase
     end
     
      methods
@@ -106,6 +107,9 @@ classdef AdaptModulationFlashOnset < manookinlab.protocols.ManookinLabStageProto
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundMeans);
             
+            cycleLength = round(obj.frameRate/obj.modulationFrequency);
+            obj.temporalPhase = round((cycleLength-1) * rand);
+            
             if strcmp(obj.modulationClass, 'spot')
                 modulation = stage.builtin.stimuli.Ellipse();
                 modulation.radiusX = obj.radius;
@@ -136,7 +140,7 @@ classdef AdaptModulationFlashOnset < manookinlab.protocols.ManookinLabStageProto
             p.addController(colorController);
             
             function c = getModContrast(obj, frame, cycleLength)
-                c = (obj.modulationContrast*(2*mod(floor(frame/cycleLength*2),2)-1))...
+                c = (obj.modulationContrast*(2*mod(floor(frame/cycleLength*2)+obj.temporalPhase,2)-1))...
                     *obj.bkgValues.*obj.backgroundMeans + obj.backgroundMeans;
             end
             
