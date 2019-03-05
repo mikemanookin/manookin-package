@@ -29,6 +29,9 @@ classdef AdaptNoiseFlash < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         modulationClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field'})
         flash2ClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field'})
+        flash2ContrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        modulationContrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        ipisType = symphonyui.core.PropertyType('denserealdouble','matrix')
         bkg
         modulationContrast
         flash2Contrast

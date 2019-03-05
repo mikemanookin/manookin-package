@@ -12,17 +12,17 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         stimulusIndex = 2               % Stimulus number (1:161)
         surroundContrast = 1.0          % Surround contrast (0-1)
         surroundBarWidth = 75           % Surround bar width (pix)
-        maskRadius = 0                  % Mask radius in pixels
-        blurMask = true                 % Gaussian blur of center mask? (t/f)
+        maskRadius = 75                 % Mask radius in pixels
+        blurMask = false                % Gaussian blur of center mask? (t/f)
         apertureDiameter = 2000         % Aperture diameter in pixels.
         randomSeed = false              % Use a random (true) or repeating seed (false)
         backgroundIntensity = 0.5       % Mean background intenstiy
         centerClass = 'spot'            % Center stimulus class
-        surroundClass = 'gaussian texture' % Background stimulus type.
+        surroundClass = 'sine grating'  % Background stimulus type.
         chromaticClass = 'achromatic'   % Spot color
         bgChromaticClass = 'achromatic' % Background color
         onlineAnalysis = 'extracellular' % Type of online analysis
-        stimulusSequence = 'saccade' % Interleaved sequence types.
+        stimulusSequence = 'saccade'    % Interleaved sequence types.
         numberOfAverages = uint16(240)    % Number of epochs
     end
     
@@ -38,6 +38,8 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         bgChromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red-green isoluminant','red-green isochromatic'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         stimulusSequenceType = symphonyui.core.PropertyType('char', 'row', {'tremor-saccade','pursuit-saccade','tremor','saccade'})
+        contrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        delayTimesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         imageMatrix
         backgroundMeans
         imageName

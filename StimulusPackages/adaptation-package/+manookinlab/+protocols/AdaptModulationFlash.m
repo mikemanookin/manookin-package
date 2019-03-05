@@ -4,7 +4,7 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Stim leading duration (ms)
         tailTime = 750                  % Stim trailing duration (ms)
         modulationContrasts = [0 1]     % Flash 1 contrast (-1:1)
-        modulationDuration = 1250       % Flash 1 duration (ms)
+        modulationDuration = 1000       % Flash 1 duration (ms)
         modulationFrequency = 15.0      % Modulation temporal frequency (Hz)
         flash2Contrasts = [0 -0.0625 0.0625 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Test flash contrasts (-1:1)
         flash2Duration = 100            % Test flash duration
@@ -31,7 +31,9 @@ classdef AdaptModulationFlash < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         modulationClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field'})
         flash2ClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus', 'full-field'})
+        modulationContrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         flash2ContrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        ipisType = symphonyui.core.PropertyType('denserealdouble','matrix')
         bkg
         modulationContrast
         flash2Contrast
