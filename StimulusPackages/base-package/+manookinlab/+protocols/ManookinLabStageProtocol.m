@@ -167,10 +167,10 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
             % Record the frame sync pulses.
             if strcmp(obj.labName, 'ManookinLab')
                 if strcmpi(obj.stageClass, 'LightCrafter')
-    %                 frameMonitor = obj.rig.getDevices('Frame Sync');
-    %                 if ~isempty(frameMonitor)
-    %                     epoch.addResponse(frameMonitor{1});
-    %                 end
+                    frameMonitor = obj.rig.getDevices('White Sync');
+                    if ~isempty(frameMonitor)
+                        epoch.addResponse(frameMonitor{1});
+                    end
                 elseif strcmpi(obj.stageClass, 'Video')
                     frameMonitor = obj.rig.getDevices('Red Sync');
                     if ~isempty(frameMonitor)

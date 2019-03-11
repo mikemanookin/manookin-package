@@ -16,8 +16,8 @@ classdef RigA_Amp1_Lcr < manookinlab.rigs.RigA
             obj.addDevice(amp1);
             
             % Add the frame syncs
-%             fMonitor = UnitConvertingDevice('White Sync', 'V', 'manufacturer', 'Texas Instruments').bindStream(daq.getStream('ai6'));
-%             obj.addDevice(fMonitor);
+            fMonitor = UnitConvertingDevice('White Sync', 'V').bindStream(daq.getStream('ai5'));
+            obj.addDevice(fMonitor);
             
             % Add the red LED.
 %             red = UnitConvertingDevice('Red LED', 'V').bindStream(daq.getStream('ao1'));

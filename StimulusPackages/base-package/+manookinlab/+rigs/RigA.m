@@ -10,8 +10,8 @@ classdef RigA < symphonyui.core.descriptions.RigDescription
             obj.daqController = daq;
             
             % Add the frame syncs
-            fMonitor = UnitConvertingDevice('White Sync', 'V').bindStream(daq.getStream('ai6'));
-            obj.addDevice(fMonitor);
+%             fMonitor = UnitConvertingDevice('White Sync', 'V').bindStream(daq.getStream('ai6'));
+%             obj.addDevice(fMonitor);
             
             % Add the green and blue LEDs
 %             green = UnitConvertingDevice('Green LED', 'V').bindStream(daq.getStream('ao2'));
