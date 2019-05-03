@@ -12,12 +12,19 @@ if n == 2
     end
     
 elseif n == 3
-    upFrames = zeros(size(frames,1), size(frames,2), size(frames,3)*multiple);
+    upFrames = zeros(size(frames,1)*multiple, size(frames,2), size(frames,3));
     
-    for frameIndex = 1 : size(frames,3)*multiple
+    for frameIndex = 1 : size(frames,1)*multiple
         fIndex = ceil(frameIndex / multiple);
-        upFrames(:,:,frameIndex) = frames(:,:,fIndex);
+        upFrames(frameIndex,:,:) = frames(fIndex,:,:);
     end
+    
+%     upFrames = zeros(size(frames,1), size(frames,2), size(frames,3)*multiple);
+%     
+%     for frameIndex = 1 : size(frames,3)*multiple
+%         fIndex = ceil(frameIndex / multiple);
+%         upFrames(:,:,frameIndex) = frames(:,:,fIndex);
+%     end
 else
     error('Number of dimensions must be either 2 or 3!');
 end

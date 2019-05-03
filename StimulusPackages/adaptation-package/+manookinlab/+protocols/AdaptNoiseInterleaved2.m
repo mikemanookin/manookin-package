@@ -3,20 +3,19 @@ classdef AdaptNoiseInterleaved2 < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 10000                % Stim duration (ms)
+        stimTime = 8000                % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
-        randsPerRep = 6                 % Number of random seeds per repeat
+        randsPerRep = 10                 % Number of random seeds per repeat
         highContrast = 1.0              % High contrast (0-1)
         lowContrast = 1/3               % Low contrast (0-1)
         radius = 100                    % Inner radius in pixels.
         apertureRadius = 150            % Aperture/blank radius in pixels.
-        backgroundIntensity = 0.5       % Background light intensity (0-1)
-        centerOffset = [0,0]            % Center offset in pixels (x,y) 
+        backgroundIntensity = 0.5       % Background light intensity (0-1) 
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
         stimulusClass = 'full-field'    % Stimulus class
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
-        numberOfAverages = uint16(50)   % Number of epochs
+        numberOfAverages = uint16(100)   % Number of epochs
     end
     
     properties (Hidden)
@@ -68,7 +67,7 @@ classdef AdaptNoiseInterleaved2 < manookinlab.protocols.ManookinLabStageProtocol
                 spot = stage.builtin.stimuli.Ellipse();
                 spot.radiusX = obj.radius;
                 spot.radiusY = obj.radius; 
-                spot.position = obj.canvasSize/2 + obj.centerOffset;
+                spot.position = obj.canvasSize/2;
             else
                 spot = stage.builtin.stimuli.Rectangle();
                 spot.size = obj.canvasSize;
@@ -85,7 +84,7 @@ classdef AdaptNoiseInterleaved2 < manookinlab.protocols.ManookinLabStageProtocol
                 mask = stage.builtin.stimuli.Ellipse();
                 mask.radiusX = obj.apertureRadius;
                 mask.radiusY = obj.apertureRadius;
-                mask.position = obj.canvasSize/2 + obj.centerOffset;
+                mask.position = obj.canvasSize/2;
                 mask.color = obj.backgroundIntensity; 
                 p.addStimulus(mask);
             end

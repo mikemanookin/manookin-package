@@ -17,7 +17,8 @@ switch onlineAnalysis
 %             try
 %                 S.sp = SpikeDetector(response);
 %             catch
-                S = spikeDetectorOnline(response);  
+                S = spikeDetectorOnline(response); 
+%                 S.sp(S.spikeAmps > 30) = [];
 %             end
 %             S.sp = getSpikeParameters(response,S.sp,sampleRate);
             spikesBinary = zeros(size(response));
