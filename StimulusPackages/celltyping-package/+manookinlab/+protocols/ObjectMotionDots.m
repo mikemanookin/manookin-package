@@ -1,4 +1,4 @@
-classdef ObjectMotionTexture < manookinlab.protocols.ManookinLabStageProtocol
+classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Texture leading duration (ms)
