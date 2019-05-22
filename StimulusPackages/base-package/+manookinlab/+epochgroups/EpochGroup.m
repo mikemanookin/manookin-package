@@ -14,6 +14,10 @@ classdef (Abstract) EpochGroup < symphonyui.core.persistent.descriptions.EpochGr
                 'type', PropertyType('char', 'row', {'', 'EXTRACELLULAR','EXCITATION','INHIBITION', 'CURRENT_CLAMP', 'VOLTAGE_CLAMP', 'DYNAMIC_CLAMP', 'OPTICAL'}));
             obj.addProperty('seriesResistanceCompensation', int32(0), ...
                 'type', PropertyType('int32', 'scalar', [0 100]));
+            
+            % Quality property
+            obj.addProperty('quality', '', ...
+                'type', PropertyType('char', 'row', {'', 'EXCELLENT', 'HIGH', 'MEDIUM','LOW'}));
         end
         
     end

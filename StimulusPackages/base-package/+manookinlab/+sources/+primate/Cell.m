@@ -16,6 +16,11 @@ classdef Cell < manookinlab.sources.Cell
                     {'S cone', 'M cone', 'L cone', 'rod'}})), ...
                 'description', 'The confirmed type of the recorded cell');
             
+            % Quality property
+            obj.addProperty('quality', '', ...
+                'type', PropertyType('char', 'row', {'', 'EXCELLENT', 'HIGH', 'MEDIUM','LOW'}), ... 
+                'description', 'Quality');
+            
             obj.addAllowableParentType('manookinlab.sources.primate.Preparation');
         end
         
