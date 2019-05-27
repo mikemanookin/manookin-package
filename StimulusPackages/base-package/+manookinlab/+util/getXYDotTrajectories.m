@@ -37,3 +37,6 @@ for k = 2 : stimFrames
     positions(positions(:,2) > screenSize(2),2) = screenSize(2);
     xyMatrix(k,:,:) = positions;
 end
+
+min(xyMatrix(:))
+max(xyMatrix(:))

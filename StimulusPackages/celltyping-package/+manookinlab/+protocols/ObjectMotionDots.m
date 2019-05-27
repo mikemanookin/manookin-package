@@ -9,6 +9,7 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
         radius = 10                     % Dot radius (microns)
         dotDensity = 200                % Number of dots per square mm.
         contrast = 1.0                  % Texture contrast (0-1)
+        splitContrasts = true           % Half of dots will be opposite polarity.
         driftSpeed = 1000               % Texture drift speed (um/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Type of online analysis
@@ -66,7 +67,16 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3); %create presentation of specified duration
             p.setBackgroundColor(obj.backgroundIntensity); % Set background intensity
             
-            dotIntensity = obj.contrast;
+            
+            if obj.splitContrasts
+                dotIntensity = [obj.contrast -obj.contrast];
+            else
+                dotIntensity = obj.contrast;
+            end
+            
+            if obj.backgroundIntensity > 0
+                dotIntensity = dotIntensity * obj.backgroundIntensity + obj.backgroundIntensity;
+            end
             
             % Generate the dots.
             for k = 1 : obj.numDots
@@ -74,7 +84,7 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
                 spot.radiusX = obj.radiusPix;
                 spot.radiusY = obj.radiusPix;
                 spot.position = obj.canvasSize/2;
-                spot.color = dotIntensity;
+                spot.color = dotIntensity(mod(k-1,length(dotIntensity))+1);
                 
                 % Add the stimulus to the presentation.
                 p.addStimulus(spot);
@@ -119,7 +129,6 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the position matrix.
             obj.positionMatrix = manookinlab.util.getXYDotTrajectories(stimFrames,obj.motionPerFrame,obj.spaceConstantPix,obj.numDots,obj.canvasSize,obj.seed);
-            
         end
         
         function stimTime = get.stimTime(obj)
