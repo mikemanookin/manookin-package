@@ -5,9 +5,9 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Texture trailing duration (ms)
         waitTime = 2000                 % Time texture is presented before moving (ms)
         moveTime = 2000                 % Move duration (ms)
-        spaceConstants = 100:500        % Correlation constants (um)
+        spaceConstants = 100:100:500    % Correlation constants (um)
         radius = 10                     % Dot radius (microns)
-        dotDensity = 100                % Number of dots per square mm.
+        dotDensity = 200                % Number of dots per square mm.
         contrast = 1.0                  % Texture contrast (0-1)
         driftSpeed = 1000               % Texture drift speed (um/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
@@ -94,10 +94,10 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
             % Control the texture position.
             function p = objectPosition(obj, time, whichDot)
                 if time > 0 && time <= obj.moveTime*1e-3
-                    whichFrame = floor(time * 60) + 1;
+                    whichFrame = floor(time * obj.frameRate) + 1;
                     p = squeeze(obj.positionMatrix(whichFrame,whichDot,:));
                 else
-                    p = obj.canvasSize / 2;
+                    p = squeeze(obj.positionMatrix(1,whichDot,:));
                 end
             end
         end
@@ -110,15 +110,15 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
             spaceConstant = obj.spaceConstants(mod(obj.numEpochsCompleted,length(obj.spaceConstants))+1);
             epoch.addParameter('spaceConstant',spaceConstant);
             
-            obj.stimulusClass = obj.stimulusClasses{mod(obj.numEpochsCompleted,length(obj.stimulusClasses))+1};
-            epoch.addParameter('stimulusClass', obj.stimulusClass);
-            
             % Deal with the seed.
             obj.seed = RandStream.shuffleSeed;
             epoch.addParameter('seed', obj.seed);
             
+            % Calculate the stimulus frames.
+            stimFrames = ceil(obj.moveTime * 1e-3 * obj.frameRate) + 30;
+            
             % Get the position matrix.
-            obj.positionMatrix = getXYDotTrajectories(stimFrames,obj.motionPerFrame,obj.spaceConstantPix,obj.numDots,obj.canvasSize,obj.seed);
+            obj.positionMatrix = manookinlab.util.getXYDotTrajectories(stimFrames,obj.motionPerFrame,obj.spaceConstantPix,obj.numDots,obj.canvasSize,obj.seed);
             
         end
         

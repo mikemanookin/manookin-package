@@ -4,7 +4,7 @@ function xyMatrix = getXYDotTrajectories(stimFrames,motionPerFrame,spaceConstant
 xyMatrix = zeros(stimFrames, numDots, 2);
 
 % Seed the random number generator.
-noiseStream = RandStream('mt1937ar','Seed',seed);
+noiseStream = RandStream('mt19937ar','Seed',seed);
 
 % Generate random initial positions for the dots.
 positions = ceil(noiseStream.rand(numDots,2) .* (ones(numDots,1)*screenSize));
@@ -19,10 +19,10 @@ for k = 2 : stimFrames
     % Apply space constant to get the covariance matrix.
     C = exp(-d / spaceConstant);
     % Check whether the matrix is positive definite.
-    [tmp, tf] = chol(C);
-    if ~tf
-        C = tmp;
-    end
+%     [tmp, tf] = chol(C);
+%     if ~tf
+%         C = tmp;
+%     end
     
     % Get the x/y shift.
     xShift = motionPerFrame * noiseStream.randn(1,numDots) * C;
@@ -30,5 +30,10 @@ for k = 2 : stimFrames
     
     % Add the shifts to the current positions and iterate.
     positions = round(positions + [xShift(:) yShift(:)]);
+    
+    % Make sure they don't go off of the screen.
+    positions(positions < 1) = 1;
+    positions(positions(:,1) > screenSize(1),1) = screenSize(1);
+    positions(positions(:,2) > screenSize(2),2) = screenSize(2);
     xyMatrix(k,:,:) = positions;
 end
