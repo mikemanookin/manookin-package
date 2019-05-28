@@ -128,7 +128,7 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
             stimFrames = ceil(obj.moveTime * 1e-3 * obj.frameRate) + 30;
             
             % Get the position matrix.
-            obj.positionMatrix = manookinlab.util.getXYDotTrajectories(stimFrames,obj.motionPerFrame,obj.spaceConstantPix,obj.numDots,obj.canvasSize,obj.seed);
+            obj.positionMatrix = manookinlab.util.getXYDotTrajectories(stimFrames,obj.motionPerFrame,obj.spaceConstantPix,obj.numDots,obj.canvasSize,obj.seed,obj.radius*2);
         end
         
         function stimTime = get.stimTime(obj)

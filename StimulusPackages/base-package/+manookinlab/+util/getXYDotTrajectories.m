@@ -1,4 +1,4 @@
-function xyMatrix = getXYDotTrajectories(stimFrames,motionPerFrame,spaceConstant,numDots,screenSize,seed)
+function xyMatrix = getXYDotTrajectories(stimFrames,motionPerFrame,spaceConstant,numDots,screenSize,seed,minRadius)
 
 % Pre-allocate the x/y position matrix.
 xyMatrix = zeros(stimFrames, numDots, 2);
@@ -11,6 +11,9 @@ positions = ceil(noiseStream.rand(numDots,2) .* (ones(numDots,1)*screenSize));
 
 % Set the xyMatrix initial values.
 xyMatrix(1,:,:) = positions;
+
+% Get the diagonal indices.
+idx = logical(eye(numDots));
 
 for k = 2 : stimFrames
     % Get the pairwise distance between points.
@@ -35,8 +38,18 @@ for k = 2 : stimFrames
     positions(positions < 1) = 1;
     positions(positions(:,1) > screenSize(1),1) = screenSize(1);
     positions(positions(:,2) > screenSize(2),2) = screenSize(2);
+    
+    % Shift any dots that are overlapping.
+    d = squareform(pdist(positions));
+    % Give the diagonal elements a large value so they don't violate.
+    d(idx) = 1e3;
+    [rows,~] = find(d < minRadius);
+    
+    % Shift the points that are too close.
+    if ~isempty(rows)
+        positions(unique(rows),:) = positions(unique(rows),:) + minRadius*noiseStream.randn(length(unique(rows)),2);
+    end
+    
     xyMatrix(k,:,:) = positions;
 end
 
-min(xyMatrix(:))
-max(xyMatrix(:))
