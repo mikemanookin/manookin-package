@@ -11,7 +11,7 @@ classdef TinySpot < manookinlab.protocols.ManookinLabStageProtocol
         ipis = [50 50]                  % Inter-pulse intervals (ms)
         radius = 25                     % Inner radius in pixels.
         apertureRadius = 105            % Blank aperture radius (pix)
-        backgroundIntensity = 0         % Background light intensity (0-1)
+        backgroundIntensity = 0.1         % Background light intensity (0-1)
         modulationClass = 'full-field'  % Adapting flash class
         flash2Class = 'spot'            % Test flash class
         chromaticClass = 'achromatic'   % Chromatic class
@@ -159,7 +159,12 @@ classdef TinySpot < manookinlab.protocols.ManookinLabStageProtocol
                     spot.setMask(m);
                 end
             end 
-            spot.color = obj.flash2Contrast*obj.rgbValues.*obj.rgbMeans + obj.rgbMeans;
+            if strcmp(obj.chromaticClass,'achromatic') && strcmp(obj.backgroundChromaticClass,'achromatic')
+                spot.color = obj.flash2Contrast + obj.rgbMeans;
+            else
+                spot.color = obj.flash2Contrast*obj.rgbValues.*obj.rgbMeans + obj.rgbMeans;
+            end
+            
             % Add the stimulus to the presentation.
             p.addStimulus(spot);
             
