@@ -48,11 +48,6 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                 'sweepColor',[30 144 255]/255,...
                 'groupBy',{'frameRate'});
 
-            % Get the frame rate. Need to check if it's a LCR rig.
-            if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
-                obj.chromaticClass = 'achromatic';
-            end
-
             % Calculate the corrected intensity.
             obj.correctedIntensity = obj.intensity * 255;
             obj.correctedMean = obj.backgroundIntensity * 255;
