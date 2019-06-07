@@ -165,7 +165,7 @@ classdef GratingAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Surround drift.
             function p = surroundDrift(obj, time)
-                if time > 0 && time < obj.onsets(3)
+                if time > 0 && time < obj.onsets(2)
                     p = 2*pi * obj.stepSize / obj.barWidth;
                 else
                     p = 0;
@@ -176,7 +176,7 @@ classdef GratingAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Surround trajectory
             function p = surroundTrajectory(obj, time)
-                if time > 0 && time < obj.onsets(3)
+                if time > 0 && time < obj.onsets(2)
                     p = obj.noiseStream2.randn*2*pi * obj.stepSize / obj.barWidth;
                 else
                     p = 0;
