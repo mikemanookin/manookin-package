@@ -3,17 +3,18 @@ classdef GratingAndNoise < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 8000                % Stim duration (ms)
+        stimTime = 10000                % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
         randsPerRep = 10                 % Number of random seeds per repeat
-        noiseContrast = 1.0              % High contrast (0-1)
+        noiseContrast = 1/3             % Noise contrast (0-1)
         gratingContrast = 0.5           % Grating contrast (0-1)
         radius = 200                    % Inner radius in pixels.
         apertureRadius = 250            % Aperture/blank radius in pixels.
-        barWidth = 75                   % Bar width (pixels)
+        barWidth = 50                   % Bar width (pixels)
         backgroundSpeed = 750           % Grating jitter/frame (pix/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1) 
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
+        spatialClass = 'square'         % Grating spatial class
         backgroundClass = 'drifting'    % Stimulus class
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
@@ -25,6 +26,7 @@ classdef GratingAndNoise < manookinlab.protocols.ManookinLabStageProtocol
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian','uniform'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         backgroundClassType = symphonyui.core.PropertyType('char', 'row', {'jittering','drifting'})
+        spatialClassType = symphonyui.core.PropertyType('char', 'row', {'square','sine'})
         seed
         noiseHi
         noiseLo
@@ -71,7 +73,7 @@ classdef GratingAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity);
             
             % Create the background.
-            bGrating = stage.builtin.stimuli.Grating('square'); 
+            bGrating = stage.builtin.stimuli.Grating(obj.spatialClass); 
             bGrating.orientation = 0;
             bGrating.size = max(obj.canvasSize) * ones(1,2);
             bGrating.position = obj.canvasSize/2;
@@ -85,6 +87,10 @@ classdef GratingAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             grate2Visible = stage.builtin.controllers.PropertyController(bGrating, 'visible', ...
                 @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
             p.addController(grate2Visible);
+            
+            grateContrast = stage.builtin.controllers.PropertyController(bGrating, 'contrast', ...
+                @(state)surroundContrast(obj, state.time - obj.preTime * 1e-3));
+            p.addController(grateContrast);
 
             if strcmpi(obj.backgroundClass,'drifting')
                 bgController = stage.builtin.controllers.PropertyController(bGrating, 'phase',...
@@ -165,7 +171,7 @@ classdef GratingAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Surround drift.
             function p = surroundDrift(obj, time)
-                if time > 0 && time < obj.onsets(2)
+                if time >= obj.onsets(2) && time <= obj.stimTime
                     p = 2*pi * obj.stepSize / obj.barWidth;
                 else
                     p = 0;
@@ -176,13 +182,22 @@ classdef GratingAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Surround trajectory
             function p = surroundTrajectory(obj, time)
-                if time > 0 && time < obj.onsets(2)
+                if time >= obj.onsets(2) && time <= obj.stimTime
                     p = obj.noiseStream2.randn*2*pi * obj.stepSize / obj.barWidth;
                 else
                     p = 0;
                 end
                 obj.surroundPhase = obj.surroundPhase + p;
                 p = obj.surroundPhase*180/pi;
+            end
+            
+            % Surround contrast
+            function c = surroundContrast(obj, time)
+                if time >= obj.onsets(2) && time <= obj.stimTime
+                    c = obj.gratingContrast;
+                else
+                    c = obj.gratingContrast * 0.3 * obj.noiseStream2.randn;
+                end
             end
         end
   
