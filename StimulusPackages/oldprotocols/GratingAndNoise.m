@@ -196,7 +196,7 @@ classdef GratingAndNoise < manookinlab.protocols.ManookinLabStageProtocol
                 if time >= obj.onsets(2) && time <= obj.stimTime
                     c = obj.gratingContrast;
                 else
-                    c = obj.gratingContrast * 0.3 * obj.noiseStream2.randn;
+                    c = obj.gratingContrast; %obj.gratingContrast * 0.3 * obj.noiseStream2.randn;
                 end
             end
         end
