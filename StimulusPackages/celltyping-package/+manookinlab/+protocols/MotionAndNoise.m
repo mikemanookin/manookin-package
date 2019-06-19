@@ -85,8 +85,8 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate the number of frames.
             numFrames = 2*obj.halfFrames + 15;
             % Calculate the number of positions.
-            numPositions = floor(min(obj.canvasSize) / obj.barWidth);
-            positionValues = linspace(-min(obj.canvasSize)/2+obj.barWidth/2,min(obj.canvasSize)/2-obj.barWidth/2,numPositions);
+            numPositions = floor(min(obj.canvasSize) / obj.barWidthPix);
+            positionValues = linspace(-min(obj.canvasSize)/2+obj.barWidthPix/2,min(obj.canvasSize)/2-obj.barWidthPix/2,numPositions);
             positionValues = positionValues(:);
             
             % Get the random sequence.
@@ -115,7 +115,7 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Create the stimulus.
             bars = stage.builtin.stimuli.Rectangle();
             bars.position = obj.canvasSize/2 - obj.thisCenterOffset;
-            bars.size = [obj.barWidth max(obj.canvasSize)];
+            bars.size = [obj.barWidthPix max(obj.canvasSize)];
             bars.orientation = obj.barOrientation;
             % Convert from contrast to intensity.
             if obj.backgroundIntensity > 0
@@ -141,15 +141,15 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             if obj.apertureRadius > obj.radius
                 mask = stage.builtin.stimuli.Ellipse();
                 mask.color = obj.backgroundIntensity;
-                mask.radiusX = obj.apertureRadius;
-                mask.radiusY = obj.apertureRadius;
+                mask.radiusX = obj.apertureRadiusPix;
+                mask.radiusY = obj.apertureRadiusPix;
                 mask.position = obj.canvasSize / 2;
                 p.addStimulus(mask);
             end
             
             spot = stage.builtin.stimuli.Ellipse();
-            spot.radiusX = obj.radius;
-            spot.radiusY = obj.radius; 
+            spot.radiusX = obj.radiusPix;
+            spot.radiusY = obj.radiusPix; 
             spot.position = obj.canvasSize/2;
             spot.color = obj.backgroundIntensity;
             

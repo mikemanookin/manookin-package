@@ -25,8 +25,6 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
         noiseStream
         numXChecks
         numYChecks
-        correctedIntensity
-        correctedMean
         seed
         frameValues
         backgroundFrame
@@ -51,10 +49,6 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
 
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-
-            % Calculate the corrected intensity.
-            obj.correctedIntensity = obj.intensity * 255;
-            obj.correctedMean = obj.backgroundIntensity * 255;
 
             % Calculate the number of X/Y checks.
             obj.numXChecks = ceil(obj.canvasSize(1)/obj.stixelSize);
@@ -99,8 +93,12 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
 
             obj.backgroundFrame = uint8(obj.backgroundIntensity*ones(obj.numYChecks, obj.numXChecks));
             
-            obj.frameValues = getPinkNoiseFrames(obj.numXChecks, obj.numYChecks, numFrames, ...
+            obj.frameValues = manookinlab.util.getPinkNoiseFrames(obj.numXChecks, obj.numYChecks, numFrames, ...
                 obj.rmsContrast, obj.spatialPower, obj.temporalPower, obj.seed);
+            
+            % Convert to uint8 values for the display.
+            obj.frameValues = obj.backgroundIntensity * obj.frameValues + obj.backgroundIntensity;
+            obj.frameValues = uint8(obj.frameValues * 255);
         end
 
         function p = createPresentation(obj)
@@ -136,8 +134,7 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
 
             function s = setAchromaticStixels(obj, frame, stimFrames)
                 if frame > 0 && frame <= stimFrames
-                    index = ceil(frame/obj.frameDwell);
-                    s = squeeze(obj.frameValues(index,:,:));
+                    s = squeeze(obj.frameValues(frame,:,:));
                 else
                     s = obj.backgroundFrame;
                 end
