@@ -7,9 +7,9 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Stim trailing duration (ms)
         randsPerRep = 10                 % Number of random seeds per repeat
         noiseContrast = 1/3             % Noise contrast (0-1)
-        radius = 200                    % Inner radius in pixels.
-        apertureRadius = 250            % Aperture/blank radius in pixels.
-        barWidth = 50                   % Bar width (pixels)
+        radius = 200                    % Inner radius in microns.
+        apertureRadius = 250            % Aperture/blank radius in microns.
+        barWidth = 50                   % Bar width (microns)
         barContrast = 1.0               % Bar contrast (-1 : 1)
         barOrientation = 0              % Bar orientation (degrees)
         backgroundIntensity = 0.5       % Background light intensity (0-1) 
@@ -35,6 +35,9 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
         thisCenterOffset
         positions
         halfFrames
+        radiusPix
+        apertureRadiusPix
+        barWidthPix
     end
     
     methods
@@ -49,6 +52,10 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            
+            obj.radiusPix = obj.rig.getDevice('Stage').um2pix(obj.radius);
+            obj.apertureRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.apertureRadius);
+            obj.barWidthPix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
             
             % Calculate the period durations.
             halfTime = floor(obj.stimTime/2);

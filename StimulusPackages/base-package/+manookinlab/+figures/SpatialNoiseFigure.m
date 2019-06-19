@@ -132,8 +132,15 @@ classdef SpatialNoiseFigure < symphonyui.core.FigureHandler
                 seed = epoch.parameters('seed');
                 
                 % Get the frame/contrast sequence.
-                frameValues = getSpatialNoiseFrames(obj.numXChecks, obj.numYChecks, ...
-                    obj.numFrames, obj.noiseClass, obj.chromaticClass, seed);
+                if strcmpi(obj.noiseClass, 'pink')
+                    spatialPower = epoch.parameters('spatialPower');
+                    temporalPower = epoch.parameters('temporalPower');
+                    frameValues = getPinkNoiseFrames(obj.numXChecks, obj.numYChecks, obj.numFrames, ...
+                        0.3, spatialPower, temporalPower, seed);
+                else
+                    frameValues = getSpatialNoiseFrames(obj.numXChecks, obj.numYChecks, ...
+                        obj.numFrames, obj.noiseClass, obj.chromaticClass, seed);
+                end
                 
                 % Zero out the first second while cell is adapting to
                 % stimulus.

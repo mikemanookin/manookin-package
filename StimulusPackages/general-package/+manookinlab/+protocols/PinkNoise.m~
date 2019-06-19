@@ -10,8 +10,7 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
         maskRadius = 0                  % Mask radius in pixels.
         apertureRadius = 0              % Aperture radius in pixels
         useRandomSeed = true            % Random seed (bool)
-        spatialCorrelations = 'f^-1'    % Power of spatial correlations
-        temporalCorrelations = 'f^-1'   % Power of temporal correlations
+        spatialPo
         onlineAnalysis = 'extracellular'
         numberOfAverages = uint16(100)    % Number of epochs
     end
@@ -19,9 +18,8 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','L-iso','M-iso','S-iso'})
-        spatialCorrelationsType = symphonyui.core.PropertyType('char', 'row', {'f^-1', 'f^-0.5', 'f^-2'})
-        temporalCorrelationsType = symphonyui.core.PropertyType('char', 'row', {'f^-1', 'f^-0.5', 'f^-0.25'})
         noiseStream
         numXChecks
         numYChecks
@@ -32,8 +30,6 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
         backgroundFrame
         strf
         spatialRF
-        spatialPower
-        temporalPower
     end
 
     properties (Hidden, Transient)
@@ -52,6 +48,11 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
 
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
 
+            % Get the frame rate. Need to check if it's a LCR rig.
+            if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+                obj.chromaticClass = 'achromatic';
+            end
+
             % Calculate the corrected intensity.
             obj.correctedIntensity = obj.intensity * 255;
             obj.correctedMean = obj.backgroundIntensity * 255;
@@ -59,25 +60,7 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate the number of X/Y checks.
             obj.numXChecks = ceil(obj.canvasSize(1)/obj.stixelSize);
             obj.numYChecks = ceil(obj.canvasSize(2)/obj.stixelSize);
-            numFrames = floor(obj.stimTime * 1e-3 * obj.frameRate);
-            
-            switch obj.spatialCorrelations
-                case 'f^-1'
-                    obj.spatialPower = 1;
-                case 'f^-0.5'
-                    obj.spatialPower = 0.5;
-                case 'f^-2'
-                    obj.spatialPower = 2;
-            end
-            
-            switch obj.spatialCorrelations
-                case 'f^-1'
-                    obj.temporalPower = 1;
-                case 'f^-0.5'
-                    obj.temporalPower = 0.5;
-                case 'f^-0.25'
-                    obj.temporalPower = 0.25;
-            end
+            numFrames = floor(obj.stimTime/1000 * obj.frameRate);
 
             obj.showFigure('manookinlab.figures.SpatialNoiseFigure', ...
                 obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis, 'stixelSize', obj.stixelSize,...
@@ -91,6 +74,8 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
                 obj.seed = 1;
                 obj.getFrameValues();
             end
+
+            obj.setColorWeights();
         end
 
         function getFrameValues(obj)
@@ -100,7 +85,7 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.backgroundFrame = uint8(obj.backgroundIntensity*ones(obj.numYChecks, obj.numXChecks));
             
             obj.frameValues = getPinkNoiseFrames(obj.numXChecks, obj.numYChecks, numFrames, ...
-                obj.rmsContrast, obj.spatialPower, obj.temporalPower, obj.seed);
+                obj.rmsContrast, spatialPower, temporalPower, obj.seed);
         end
 
         function p = createPresentation(obj)
@@ -176,8 +161,6 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('numXChecks', obj.numXChecks);
             epoch.addParameter('numYChecks', obj.numYChecks);
-            epoch.addParameter('spatialPower',obj.spatialPower);
-            epoch.addParameter('temporalPower',obj.temporalPower);
         end
 
         function tf = shouldContinuePreparingEpochs(obj)
