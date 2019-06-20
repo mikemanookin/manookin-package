@@ -85,25 +85,22 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             obj.positions = zeros(numFrames, obj.numBars);
             
-            offsetPerBar = floor(numPositions / obj.numBars);
-            
-            if strcmpi(obj.backgroundClass,'random')
-                % Get the random sequence.
-                numCycles = ceil(numFrames / numPositions);
-                randSeq = zeros(numCycles*numPositions,1);
-                for k = 1 : numCycles
-                    idx = (k-1)*numPositions + (1 : numPositions);
-                    randSeq(idx) = obj.noiseStream2.randperm(numPositions);
-                end
-                barSeq = randSeq(1 : numFrames);
-            else
-                % Motion sequence
-                barSeq= mod(0:numFrames-1,numPositions)' + 1;
-            end
-
             for k = 1 : obj.numBars
-                seq = mod(barSeq+(k-1)*offsetPerBar-1,numPositions)+1;
-                obj.positions = positionValues(seq,k);
+                if strcmpi(obj.backgroundClass,'random')
+                    % Get the random sequence.
+                    numCycles = ceil(numFrames / numPositions);
+                    randSeq = zeros(numCycles*numPositions,1);
+                    for k = 1 : numCycles
+                        idx = (k-1)*numPositions + (1 : numPositions);
+                        randSeq(idx) = obj.noiseStream2.randperm(numPositions);
+                    end
+                    barSeq = randSeq(1 : numFrames);
+                else
+                    % Motion sequence
+                    barSeq= mod(0:numFrames-1,numPositions)' + 1;
+                end
+
+                obj.positions = positionValues(barSeq,k);
             end
         end
         
@@ -112,32 +109,29 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity);
             
             % Create the stimulus.
-            for k = 1 : obj.numBars
-                barSign = 2*mod(k,2)-1;
-                bars = stage.builtin.stimuli.Rectangle();
-                bars.position = obj.canvasSize/2 - obj.thisCenterOffset;
-                bars.size = [obj.barWidthPix max(obj.canvasSize)];
-                bars.orientation = obj.barOrientation;
-                % Convert from contrast to intensity.
-                if obj.backgroundIntensity > 0
-                    bars.color = obj.backgroundIntensity*barSign*obj.barContrast+obj.backgroundIntensity;
-                else
-                    bars.color = obj.barContrast;
-                end
-
-                % Add the stimulus to the presentation.
-                p.addStimulus(bars);
-
-                % Make the bars visible only during the stimulus time.
-                gridVisible = stage.builtin.controllers.PropertyController(bars, 'visible', ...
-                    @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
-                p.addController(gridVisible);
-
-                % Bar position controller
-                barPosition = stage.builtin.controllers.PropertyController(bars, 'position', ...
-                    @(state)surroundTrajectory(obj, state.time - obj.preTime*1e-3, k));
-                p.addController(barPosition);
+            bars = stage.builtin.stimuli.Rectangle();
+            bars.position = obj.canvasSize/2 - obj.thisCenterOffset;
+            bars.size = [obj.barWidthPix max(obj.canvasSize)];
+            bars.orientation = obj.barOrientation;
+            % Convert from contrast to intensity.
+            if obj.backgroundIntensity > 0
+                bars.color = obj.backgroundIntensity*obj.barContrast+obj.backgroundIntensity;
+            else
+                bars.color = obj.contrast;
             end
+
+            % Add the stimulus to the presentation.
+            p.addStimulus(bars);
+
+            % Make the bars visible only during the stimulus time.
+            gridVisible = stage.builtin.controllers.PropertyController(bars, 'visible', ...
+                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+            p.addController(gridVisible);
+            
+            % Bar position controller
+            barPosition = stage.builtin.controllers.PropertyController(bars, 'position', ...
+                @(state)surroundTrajectory(obj, state.time - obj.preTime*1e-3));
+            p.addController(barPosition);
             
             % Create the blank aperture.
             if obj.apertureRadius > obj.radius
