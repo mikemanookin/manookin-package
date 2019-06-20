@@ -3,17 +3,19 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
-        stimTime = 8000                 % Stim duration (ms)
+        stimTime = 10000                % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
         randsPerRep = 8                 % Number of random seeds per repeat
         noiseContrast = 1/3             % Noise contrast (0-1)
         radius = 200                    % Inner radius in microns.
         apertureRadius = 250            % Aperture/blank radius in microns.
         numBarPairs = 2                 % Number of bar pairs (positive/negative contrast)
+        barFrameDwell = 2               % Frame dwell for background bars
         barWidth = 50                   % Bar width (microns)
         barContrast = 1.0               % Bar contrast (-1 : 1)
-        barOrientation = 0              % Bar orientation (degrees)
+        barOrientation = 90              % Bar orientation (degrees)
         backgroundIntensity = 0.5       % Background light intensity (0-1) 
+        backgroundSequences = 'sequential-random-stationary' % Background sequence on alternating trials.
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
         chromaticClass = 'achromatic'   % Chromatic class
         onlineAnalysis = 'extracellular'% Online analysis type.
@@ -24,6 +26,7 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
         ampType
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian','uniform'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        backgroundSequencesType = symphonyui.core.PropertyType('char','row',{'sequential-random','sequential-random-stationary'})
         seed
         noiseHi
         noiseLo
@@ -36,7 +39,7 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
         radiusPix
         apertureRadiusPix
         barWidthPix
-        backgroundClasses = {'sequential','random'}
+        backgroundClasses
         backgroundClass
         numBars
     end
@@ -58,10 +61,17 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.apertureRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.apertureRadius);
             obj.barWidthPix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
             
-            obj.numBars = obj.numBarPairs;
+            obj.numBars = round(obj.numBarPairs * 2);
             % Calculate the orientation in radians.
             obj.orientationRads = obj.barOrientation/180*pi;
             
+            switch obj.backgroundSequences
+                case 'sequential-random-stationary'
+                    obj.backgroundClasses = {'sequential','random','stationary'};
+                case 'sequential-random'
+                    obj.backgroundClasses = {'sequential','random'};
+            end
+
             % Get the center offset from Stage.
             obj.thisCenterOffset = obj.rig.getDevice('Stage').getCenterOffset();
             
@@ -72,12 +82,23 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
                     'frameRate', obj.frameRate, 'numFrames', floor(obj.stimTime/1000 * obj.frameRate), 'frameDwell', 1, ...
                     'stdev', obj.noiseContrast*0.3, 'frequencyCutoff', 0, 'numberOfFilters', 0, ...
                     'correlation', 0, 'stimulusClass', 'Stage');
+                
+                
+                if length(obj.backgroundClasses) == 2
+                    colors = [0 0 0; 0.8 0 0];
+                else
+                    colors = [0 0 0; 0.8 0 0; 0 0.5 0];
+                end
+                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'sweepColor',colors,...
+                    'groupBy',{'backgroundClass'});
             end
         end
         
         function getBarPositions(obj)
             % Calculate the number of frames.
-            numFrames = obj.stimTime*1e-3*obj.frameRate + 15;
+            numFrames = obj.stimTime*1e-3*obj.frameRate + 16;
             % Calculate the number of positions.
             numPositions = floor(min(obj.canvasSize) / obj.barWidthPix);
             positionValues = linspace(-min(obj.canvasSize)/2+obj.barWidthPix/2,min(obj.canvasSize)/2-obj.barWidthPix/2,numPositions);
@@ -96,14 +117,26 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
                     randSeq(idx) = obj.noiseStream2.randperm(numPositions);
                 end
                 barSeq = randSeq(1 : numFrames);
+            elseif strcmpi(obj.backgroundClass,'stationary')
+                % Pick a single random spot to show the bar throughout.
+                tmp = obj.noiseStream2.randperm(numPositions);
+                barSeq = tmp(1)*ones(numFrames,1);
             else
                 % Motion sequence
-                barSeq= mod(0:numFrames-1,numPositions)' + 1;
+                barSeq = mod(0:numFrames-1,numPositions)' + 1;
             end
+            
+            if obj.barFrameDwell > 1
+                nUniquePts = ceil(numFrames / obj.barFrameDwell);
+                tmp = ones(obj.barFrameDwell,1) * barSeq(1:nUniquePts)';
+                tmp = tmp(:);
+                barSeq = tmp(1 : numFrames);
+            end
+            
 
             for k = 1 : obj.numBars
                 seq = mod(barSeq+(k-1)*offsetPerBar-1,numPositions)+1;
-                obj.positions = positionValues(seq,k);
+                obj.positions(:,k) = positionValues(seq);
             end
         end
         
@@ -205,7 +238,7 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             function p = surroundTrajectory(obj, time, whichBar)
                 if time > 0 && time <= obj.stimTime
                     frame = floor(obj.frameRate * time) + 1;
-                    p = [cos(obj.orientationRads) sin(obj.orientationRads)] .* ([obj.positions(frame, whichBar) 0]) + obj.canvasSize/2 - obj.thisCenterOffset;
+                    p = [cos(obj.orientationRads) sin(obj.orientationRads)] .* (obj.positions(frame, whichBar)*ones(1,2)) + obj.canvasSize/2 - obj.thisCenterOffset;
                 else
                     p = 5000*ones(1,2);
                 end

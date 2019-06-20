@@ -8,12 +8,12 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         randsPerRep = 8                 % Number of random seeds per repeat
         noiseContrast = 1/3             % Noise contrast (0-1)
         gratingContrast = 0.5           % Grating contrast (0-1)
-        radius = 250                    % Inner radius in microns.
-        apertureRadius = 300            % Aperture/blank radius in microns.
+        radius = 200                    % Inner radius in microns.
+        apertureRadius = 250            % Aperture/blank radius in microns.
         barWidth = 50                   % Bar width (microns)
         backgroundSpeed = 750           % Grating speed (microns/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        noiseSequence = 'drifting-jittering-stationary' % Noise sequence on alternating trials.
+        backgroundSequences = 'drifting-jittering-stationary' % Background sequence on alternating trials.
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
         spatialClass = 'square'          % Grating spatial class
         onlineAnalysis = 'extracellular'% Online analysis type.
@@ -25,7 +25,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian','uniform'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         spatialClassType = symphonyui.core.PropertyType('char', 'row', {'square','sine'})
-        noiseSequenceType = symphonyui.core.PropertyType('char','row',{'drifting-jittering-stationary','drifting-reversing-stationary','drifting-jittering','drifting-jittering-reversing-stationary','drifting-reversing'})
+        backgroundSequencesType = symphonyui.core.PropertyType('char','row',{'drifting-jittering-stationary','drifting-reversing-stationary','drifting-jittering','drifting-jittering-reversing-stationary','drifting-reversing'})
         backgroundClasses
         seed
         noiseHi
@@ -67,7 +67,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             
             % Determine the sequence of backgrounds.
             %{'drifting-jittering-stationary','drifting-reversing-stationary','drifting-jittering','drifting-jittering-reversing-stationary','drifting-reversing'}
-            switch obj.noiseSequence
+            switch obj.backgroundSequences
                 case 'drifting-jittering-stationary'
                     obj.backgroundClasses = {'drifting', 'jittering', 'stationary'};
                 case 'drifting-reversing-stationary'
@@ -87,6 +87,16 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
                     'frameRate', obj.frameRate, 'numFrames', floor(obj.stimTime/1000 * obj.frameRate), 'frameDwell', 1, ...
                     'stdev', obj.noiseContrast*0.3, 'frequencyCutoff', 0, 'numberOfFilters', 0, ...
                     'correlation', 0, 'stimulusClass', 'Stage');
+                
+                if length(obj.backgroundClasses) == 2
+                    colors = [0 0 0; 0.8 0 0];
+                else
+                    colors = [0 0 0; 0.8 0 0; 0 0.5 0];
+                end
+                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'sweepColor',colors,...
+                    'groupBy',{'backgroundClass'});
             end
         end
         
