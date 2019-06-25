@@ -7,7 +7,7 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Stim trailing duration (ms)
         randsPerRep = 7                 % Number of random seeds per repeat
         noiseContrast = 1/3             % Noise contrast (0-1)
-        radius = 100                    % Spot/annulus inner radius in microns.
+        radius = 200                    % Spot/annulus inner radius in microns.
         backgroundIntensity = 0.5       % Background light intensity (0-1) 
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
         stimulusClass = 'spot'          % Stimulus class
@@ -51,7 +51,7 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
                 obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
                     obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                     'sweepColor',zeros(1,3),...
-                    'groupBy',{'backgroundClass'});
+                    'groupBy',{'frameRate'});
             end
             
             obj.radiusPix = obj.rig.getDevice('Stage').um2pix(obj.radius);
