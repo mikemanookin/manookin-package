@@ -7,9 +7,9 @@ function r = annulusAreaSummation(params, radii)
 outerRadius = radii(end);
 
 % Get the outer radius response.
-o = abs(params(1).*(1 - exp(-(outerRadius.^2)./(2*params(2)^2))) - params(3).*(1 - exp(-(outerRadius.^2)./(2*params(4)^2))));
+o = (params(1).*(1 - exp(-(outerRadius.^2)./(2*params(2)^2))) - params(3).*(1 - exp(-(outerRadius.^2)./(2*params(4)^2))));
 
-r = abs(params(1).*(1 - exp(-(radii(1:end-1).^2)./(2*params(2)^2))) - params(3).*(1 - exp(-(radii(1:end-1).^2)./(2*params(4)^2))));
+r = (params(1).*(1 - exp(-(radii(1:end-1).^2)./(2*params(2)^2))) - params(3).*(1 - exp(-(radii(1:end-1).^2)./(2*params(4)^2))));
 
 % Subtract the outer radius response from the inner radius mask.
 r = abs(o - r);

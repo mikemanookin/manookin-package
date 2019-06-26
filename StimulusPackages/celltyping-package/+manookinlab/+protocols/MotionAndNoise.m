@@ -138,6 +138,7 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
                 seq = mod(barSeq+(k-1)*offsetPerBar-1,numPositions)+1;
                 obj.positions(:,k) = positionValues(seq);
             end
+            
         end
         
         function p = createPresentation(obj)
