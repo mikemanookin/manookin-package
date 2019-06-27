@@ -174,7 +174,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             p.addController(colorController);
             
             function c = getSpotAchromaticGaussian(obj, time)
-                if time <= obj.stimTime*1e-3
+                if time > 0 && time <= obj.stimTime*1e-3
                     c = obj.noiseContrast * 0.3 * obj.noiseHi.randn * obj.backgroundIntensity + obj.backgroundIntensity;
                 else
                     c = obj.backgroundIntensity;
@@ -182,7 +182,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             function c = getSpotAchromaticBinary(obj, time)
-                if time <= obj.stimTime*1e-3
+                if time > 0 && time <= obj.stimTime
                     c = obj.noiseContrast * (2*(obj.noiseHi.rand>0.5)-1) * obj.backgroundIntensity + obj.backgroundIntensity;
                 else
                     c = obj.backgroundIntensity;
@@ -190,7 +190,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             function c = getSpotAchromaticUniform(obj, time)
-                if time <= obj.stimTime*1e-3
+                if time > 0 && time <= obj.stimTime
                     c = obj.noiseContrast * (2*obj.noiseHi.rand-1) * obj.backgroundIntensity + obj.backgroundIntensity;
                 else
                     c = obj.backgroundIntensity;
@@ -199,7 +199,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             
             % Surround drift.
             function p = surroundDrift(obj, time)
-                if time <= obj.stimTime*1e-3
+                if time > 0 && time <= obj.stimTime
                     p = 2*pi * obj.stepSize / obj.barWidth;
                 else
                     p = 0;
@@ -210,7 +210,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             
             % Surround trajectory
             function p = surroundTrajectory(obj, time)
-                if time <= obj.stimTime*1e-3
+                if time > 0 && time <= obj.stimTime
                     p = obj.noiseStream2.randn*2*pi * obj.stepSize / obj.barWidthPix;
                 else
                     p = 0;
@@ -221,7 +221,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             
             % Surround contrast
             function c = surroundContrast(obj, time)
-                if time <= obj.stimTime*1e-3
+                if time > 0 && time <= obj.stimTime
                     c = obj.gratingContrast * sin(time*2*pi*obj.temporalFrequency);
                 else
                     c = obj.gratingContrast; 
