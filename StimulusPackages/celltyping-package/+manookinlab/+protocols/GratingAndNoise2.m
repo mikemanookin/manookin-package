@@ -7,15 +7,15 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Stim trailing duration (ms)
         randsPerRep = 8                 % Number of random seeds per repeat
         noiseContrast = 1/3             % Noise contrast (0-1)
-        gratingContrast = 0.5           % Grating contrast (0-1)
+        gratingContrast = 1.0           % Grating contrast (0-1)
         radius = 200                    % Inner radius in microns.
         apertureRadius = 250            % Aperture/blank radius in microns.
-        barWidth = 50                   % Bar width (microns)
-        backgroundSpeed = 750           % Grating speed (microns/sec)
+        barWidth = 40                   % Bar width (microns)
+        backgroundSpeed = 600           % Grating speed (microns/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        backgroundSequences = 'drifting-jittering-stationary' % Background sequence on alternating trials.
+        backgroundSequences = 'drifting-jittering-reversing-stationary' % Background sequence on alternating trials.
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
-        spatialClass = 'square'          % Grating spatial class
+        spatialClass = 'sine'           % Grating spatial class
         onlineAnalysis = 'extracellular'% Online analysis type.
         numberOfAverages = uint16(120)   % Number of epochs
     end
