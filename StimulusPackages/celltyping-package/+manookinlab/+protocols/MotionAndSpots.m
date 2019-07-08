@@ -79,12 +79,14 @@ classdef MotionAndSpots < manookinlab.protocols.ManookinLabStageProtocol
             obj.thisCenterOffset = obj.rig.getDevice('Stage').getCenterOffset();
             
             if ~strcmp(obj.onlineAnalysis, 'none')
-                obj.showFigure('manookinlab.figures.TemporalNoiseFigure', ...
-                    obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis, 'noiseClass', obj.noiseClass,...
-                    'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
-                    'frameRate', obj.frameRate, 'numFrames', floor(obj.stimTime/1000 * obj.frameRate), 'frameDwell', 1, ...
-                    'stdev', obj.noiseContrast*0.3, 'frequencyCutoff', 0, 'numberOfFilters', 0, ...
-                    'correlation', 0, 'stimulusClass', 'Stage');
+                obj.showFigure('manookinlab.figures.AdaptFlashFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'preTime',obj.preTime,...
+                    'flash1Duration',obj.motionTime,...
+                    'flash2Duration',obj.flashTime,...
+                    'flash1Contrasts',1:length(obj.backgroundClasses),...
+                    'flash2Contrasts',unique(obj.contrasts),...
+                    'ipis',obj.delayTimes);
                 
                 
                 if length(obj.backgroundClasses) == 2
@@ -101,7 +103,7 @@ classdef MotionAndSpots < manookinlab.protocols.ManookinLabStageProtocol
         
         function getBarPositions(obj)
             % Calculate the number of frames.
-            numFrames = obj.stimTime*1e-3*obj.frameRate + 16;
+            numFrames = ceil(obj.motionTime*1e-3*obj.frameRate) + 16;
             % Calculate the number of positions.
             numPositions = floor(min(obj.canvasSize) / obj.barWidthPix);
             positionValues = linspace(-min(obj.canvasSize)/2+obj.barWidthPix/2,min(obj.canvasSize)/2-obj.barWidthPix/2,numPositions);
@@ -140,7 +142,6 @@ classdef MotionAndSpots < manookinlab.protocols.ManookinLabStageProtocol
                 seq = mod(barSeq+(k-1)*offsetPerBar-1,numPositions)+1;
                 obj.positions(:,k) = positionValues(seq);
             end
-            
         end
         
         function p = createPresentation(obj)
@@ -198,14 +199,11 @@ classdef MotionAndSpots < manookinlab.protocols.ManookinLabStageProtocol
             spotVisible = stage.builtin.controllers.PropertyController(spot, 'visible', ...
                 @(state)state.time > (obj.preTime + obj.motionTime + obj.delayTime) * 1e-3 && state.time <= (obj.preTime + obj.motionTime + obj.flashTime + obj.delayTime) * 1e-3);
             p.addController(spotVisible);
-            
-            % Add the stimulus to the presentation.
-            p.addStimulus(spot);
 
             
             % Surround bar position.
             function p = surroundTrajectory(obj, time, whichBar)
-                if time > 0 && time <= obj.stimTime
+                if time > 0 && time <= obj.motionTime*1e-3
                     frame = floor(obj.frameRate * time) + 1;
                     p = [cos(obj.orientationRads) sin(obj.orientationRads)] .* (obj.positions(frame, whichBar)*ones(1,2)) + obj.canvasSize/2 - obj.thisCenterOffset;
                 else
@@ -221,13 +219,15 @@ classdef MotionAndSpots < manookinlab.protocols.ManookinLabStageProtocol
             obj.backgroundClass = obj.backgroundClasses{mod(obj.numEpochsCompleted,length(obj.backgroundClasses))+1};
             
             % Get the delay time.
-            obj.delayTime = obj.delayTimes(mod(obj.numEpochsCompleted, length(obj.delayTimes))+1);
+            obj.delayTime = obj.delayTimes(mod(floor(obj.numEpochsCompleted/length(obj.backgroundClasses)), length(obj.delayTimes))+1);
             epoch.addParameter('delayTime',obj.delayTime);
             
             % Get the spot contrast.
-            obj.contrast = obj.contrasts(mod(floor(obj.numEpochsCompleted/length(obj.backgroundTypes)), length(obj.contrasts))+1);
+            obj.contrast = obj.contrasts(mod(floor(obj.numEpochsCompleted/length(obj.backgroundClasses)), length(obj.contrasts))+1);
             epoch.addParameter('contrast', obj.contrast);
             
+            % Generate a random seed and seed the generator.
+            obj.seed = RandStream.shuffleSeed;
             obj.noiseStream2 = RandStream('mt19937ar', 'Seed', obj.seed);
             % Get the bar positions for this epoch.
             obj.getBarPositions();
@@ -235,6 +235,10 @@ classdef MotionAndSpots < manookinlab.protocols.ManookinLabStageProtocol
             % Save the seed.
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('backgroundClass',obj.backgroundClass);
+            
+            % Add parameters for automated analysis.
+            epoch.addParameter('flash1Contrast', find(strcmp(obj.backgroundClass,obj.backgroundClasses),1));
+            epoch.addParameter('flash2Contrast', obj.contrast);
         end
         
         function stimTime = get.stimTime(obj)
