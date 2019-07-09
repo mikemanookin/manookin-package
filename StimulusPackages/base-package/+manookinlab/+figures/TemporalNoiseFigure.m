@@ -13,6 +13,8 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
         correlation
         noiseClass
         stimulusClass
+        groupBy
+        groupByValues
     end
     
     properties (Access = private)
@@ -24,7 +26,11 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
         xaxis
         yaxis
         epochCount
-        nonlinearityBins = 200
+        nonlinearityBins = 100
+        S
+        P
+        R
+        gbVals
     end
     
     methods
@@ -43,6 +49,8 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
             ip.addParameter('numberOfFilters', 0, @(x)isfloat(x));
             ip.addParameter('correlation', 0.0, @(x)isfloat(x));
             ip.addParameter('stimulusClass','Stage',@(x)ischar(x));
+            ip.addParameter('groupBy','',@(x)ischar(x));
+            ip.addParameter('groupByValues',{},@(x)iscellstr(x));
             
             ip.parse(varargin{:});
             
@@ -59,6 +67,8 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
             obj.numberOfFilters = ip.Results.numberOfFilters;
             obj.correlation = ip.Results.correlation;
             obj.stimulusClass = ip.Results.stimulusClass;
+            obj.groupBy = ip.Results.groupBy;
+            obj.groupByValues = ip.Results.groupByValues;
             
             % Check the stimulus class.
             if strcmpi(obj.stimulusClass, 'Stage') || strcmpi(obj.stimulusClass, 'spatial')
@@ -89,9 +99,20 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 'XTickMode', 'auto'); 
             
             obj.linearFilter = [];
-            obj.xaxis = [];
-            obj.yaxis = [];
+            
             obj.epochCount = 0;
+            obj.P = [];
+            obj.R = [];
+            obj.S = [];
+            obj.gbVals = {};
+            
+            if isempty(obj.groupBy)
+                obj.xaxis = zeros(1,obj.nonlinearityBins);
+                obj.yaxis = zeros(1,obj.nonlinearityBins);
+            else
+                obj.xaxis = zeros(length(obj.groupByValues),obj.nonlinearityBins);
+                obj.yaxis = zeros(length(obj.groupByValues),obj.nonlinearityBins);
+            end
             
             obj.setTitle([obj.device.name ': temporal filter']);
         end
@@ -105,8 +126,12 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
             cla(obj.nlAxesHandle);
             obj.linearFilter = [];
             % Set the x/y axes
-            obj.xaxis = [];
-            obj.yaxis = [];
+            obj.xaxis = 0*obj.xaxis;
+            obj.yaxis = 0*obj.yaxis;
+            obj.P = [];
+            obj.R = [];
+            obj.S = [];
+            obj.gbVals = {};
         end
         
         function handleEpoch(obj, epoch)
@@ -136,9 +161,9 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 
                 if strcmp(obj.recordingType,'extracellular') || strcmp(obj.recordingType, 'spikes_CClamp')
                     if sampleRate > binRate
-                        y = manookinlab.util.BinSpikeRate(y(prePts+1:end), binRate, sampleRate);
+                        y = manookinlab.util.BinSpikeRate(y(prePts+1:end)/sampleRate, binRate, sampleRate);
                     else
-                        y = y(prePts+1:end)*sampleRate;
+                        y = y(prePts+1:end);
                     end
                 else
                     % High-pass filter to get rid of drift.
@@ -183,27 +208,61 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 y(1 : floor(binRate/2)) = 0;
                 frameValues(1 : floor(binRate/2)) = 0;
                 
-                % Reverse correlation.
-                lf = real(ifft( fft([y(:)' zeros(1,100)]) .* conj(fft([frameValues(:)' zeros(1,100)])) ));
+                obj.R(obj.epochCount,:) = y(:)';
+                obj.S(obj.epochCount,:) = frameValues(:)';
                 
-                if isempty(obj.linearFilter)
-                    obj.linearFilter = lf;
+                % Reverse correlation.
+                lf  = real(ifft(mean((fft([obj.R,zeros(size(obj.R,1),100)],[],2) .* conj(fft([obj.S,zeros(size(obj.S,1),100)],[],2))),1)));
+%                 lf = real(ifft( fft([y(:)' zeros(1,100)]) .* conj(fft([frameValues(:)' zeros(1,100)])) ));
+                lf = lf(1 : length(y));
+                lf = lf/norm(lf);
+                
+                obj.linearFilter = lf;
+                
+%                 if isempty(obj.linearFilter)
+%                     obj.linearFilter = lf;
+%                 else
+%                     obj.linearFilter = (obj.linearFilter*(obj.epochCount-1) + lf)/obj.epochCount;
+%                 end
+                
+                % Get the groupBy value for this Epoch.
+                if ~isempty(obj.groupBy)
+                    gbValue = epoch.parameters(obj.groupBy);
+                    [tf,gbIndex] = ismember(gbValue,obj.groupByValues);
+                    if ~tf
+                        gbIndex = 1;
+                    end
+                    obj.gbVals = [obj.gbVals, gbValue];
                 else
-                    obj.linearFilter = (obj.linearFilter*(obj.epochCount-1) + lf)/obj.epochCount;
+                    gbIndex = 1;
                 end
                 
+                
                 % Re-bin the response for the nonlinearity.
-                resp = binData(y, 60, binRate);
-                obj.yaxis = [obj.yaxis, resp(:)'];
+                resp = y; %binData(y, 60, binRate);
+                
+%                 obj.yaxis = [obj.yaxis, resp(:)'];
                 
                 % Convolve stimulus with filter to get generator signal.
                 pred = ifft(fft([frameValues(:)' zeros(1,100)]) .* fft(obj.linearFilter(:)'));
                 
-                pred = manookinlab.util.binData(pred, 60, binRate); pred=pred(:)';
-                obj.xaxis = [obj.xaxis, pred(1 : length(resp))];
+%                 pred = manookinlab.util.binData(pred, 60, binRate); 
+                pred=pred(:)';
+%                 obj.xaxis = [obj.xaxis, pred(1 : length(resp))];
+                
+                obj.P(obj.epochCount,:) = pred(1:length(y));
+                
                 
                 % Get the binned nonlinearity.
-                [xBin, yBin] = obj.getNL(obj.xaxis, obj.yaxis);
+                if ~isempty(obj.groupBy)
+                    index = strcmp(obj.gbVals,gbValue);
+                    [xBin, yBin] = obj.getNL(obj.P(index,floor(binRate/2)+1:end), obj.R(index,floor(binRate/2)+1:end));
+                else
+                    [xBin, yBin] = obj.getNL(obj.P(:,floor(binRate/2)+1:end), obj.R(:,floor(binRate/2)+1:end));
+                end
+                
+                obj.xaxis(gbIndex,:) = xBin;
+                obj.yaxis(gbIndex,:) = yBin;
                 
                 % Plot the data.
                 cla(obj.axesHandle);
@@ -220,9 +279,20 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 title(obj.axesHandle, ['Max/min output: ', num2str(max(abs(obj.yaxis(:))))]);
                 
                 cla(obj.nlAxesHandle);
-                obj.nlHandle = line(xBin, yBin, ...
-                    'Parent', obj.nlAxesHandle, 'Color', 'k', 'Marker', '.');
+                
+                if isempty(obj.groupBy)
+                    axColors = [0 0 0; 0.8 0 0; 0 0.5 0; 0 0 1];
+                    for k = 1 : size(obj.yaxis,1)
+                        line(obj.xaxis(k,:), obj.yaxis(k,:),...
+                            'Parent', obj.nlAxesHandle, 'Color', axColors(k,:), 'Marker', 'o', 'LineStyle', '-');
+                    end
+                    legend(obj.nlAxesHandle,obj.groupByValues,'Location','NorthWest');
+                else
+                    obj.nlHandle = line(xBin, yBin, ...
+                        'Parent', obj.nlAxesHandle, 'Color', 'k', 'Marker', '.');
+                end
                 axis(obj.nlAxesHandle, 'tight');
+                
             end
         end
         
@@ -247,6 +317,7 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
         function [xBin, yBin] = getNL(obj, P, R)
             % Sort the data; xaxis = prediction; yaxis = response;
             [a, b] = sort(P(:));
+            R = R(:);
             xSort = a;
             ySort = R(b);
 

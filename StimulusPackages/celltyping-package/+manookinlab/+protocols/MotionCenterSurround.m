@@ -1,4 +1,4 @@
-classdef MotionAndSpots < manookinlab.protocols.ManookinLabStageProtocol
+classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
     
     properties
         amp                             % Output amplifier
