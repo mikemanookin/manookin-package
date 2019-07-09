@@ -270,13 +270,13 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
             % Get the center type.
-            obj.sequenceName = obj.centerClasses{mod(obj.numEpochsCompleted,length(obj.centerClasses))+1};
+            obj.sequenceName = obj.centerClasses{mod(floor(obj.numEpochsCompleted/length(obj.backgroundClasses)),length(obj.centerClasses))+1};
             
             % Get the background type.
             obj.backgroundClass = obj.backgroundClasses{mod(obj.numEpochsCompleted,length(obj.backgroundClasses))+1};
             
             % Get the delay time.
-            obj.delayTime = obj.delayTimes(mod(floor(obj.numEpochsCompleted/length(obj.backgroundClasses)), length(obj.delayTimes))+1);
+            obj.delayTime = obj.delayTimes(mod(floor(obj.numEpochsCompleted/length(obj.backgroundClasses)/length(obj.centerClasses)), length(obj.delayTimes))+1);
             epoch.addParameter('delayTime',obj.delayTime);
             
             % Get the spot contrast.
