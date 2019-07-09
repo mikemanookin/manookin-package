@@ -5,7 +5,7 @@ classdef MotionAndSpots < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Stim leading duration (ms)
         motionTime = 1000               % Duration of background motion (ms)
         flashTime = 100                 % Spot flash time (ms)
-        tailTime = 250                  % Stim trailing duration (ms)
+        tailTime = 500                  % Stim trailing duration (ms)
         radius = 200                    % Inner radius in microns.
         apertureRadius = 250            % Aperture/blank radius in microns.
         delayTimes = [-100 -100]        % Delay time (ms)

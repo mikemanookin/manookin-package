@@ -214,7 +214,7 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 % Reverse correlation.
                 lf  = real(ifft(mean((fft([obj.R,zeros(size(obj.R,1),100)],[],2) .* conj(fft([obj.S,zeros(size(obj.S,1),100)],[],2))),1)));
 %                 lf = real(ifft( fft([y(:)' zeros(1,100)]) .* conj(fft([frameValues(:)' zeros(1,100)])) ));
-                lf = lf(1 : length(y));
+%                 lf = lf(1 : length(y));
                 lf = lf/norm(lf);
                 
                 obj.linearFilter = lf;
@@ -237,21 +237,18 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                     gbIndex = 1;
                 end
                 
-                
                 % Re-bin the response for the nonlinearity.
-                resp = y; %binData(y, 60, binRate);
+%                 resp = y; %binData(y, 60, binRate);
                 
 %                 obj.yaxis = [obj.yaxis, resp(:)'];
                 
                 % Convolve stimulus with filter to get generator signal.
                 pred = ifft(fft([frameValues(:)' zeros(1,100)]) .* fft(obj.linearFilter(:)'));
-                
 %                 pred = manookinlab.util.binData(pred, 60, binRate); 
                 pred=pred(:)';
 %                 obj.xaxis = [obj.xaxis, pred(1 : length(resp))];
                 
                 obj.P(obj.epochCount,:) = pred(1:length(y));
-                
                 
                 % Get the binned nonlinearity.
                 if ~isempty(obj.groupBy)
@@ -260,10 +257,9 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 else
                     [xBin, yBin] = obj.getNL(obj.P(:,floor(binRate/2)+1:end), obj.R(:,floor(binRate/2)+1:end));
                 end
-                
                 obj.xaxis(gbIndex,:) = xBin;
                 obj.yaxis(gbIndex,:) = yBin;
-                
+
                 % Plot the data.
                 cla(obj.axesHandle);
                 obj.lineHandle = line((1:plotLngth)/binRate, obj.linearFilter(1:plotLngth),...
@@ -280,16 +276,16 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 
                 cla(obj.nlAxesHandle);
                 
-                if isempty(obj.groupBy)
+                if ~isempty(obj.groupBy)
                     axColors = [0 0 0; 0.8 0 0; 0 0.5 0; 0 0 1];
                     for k = 1 : size(obj.yaxis,1)
                         line(obj.xaxis(k,:), obj.yaxis(k,:),...
-                            'Parent', obj.nlAxesHandle, 'Color', axColors(k,:), 'Marker', 'o', 'LineStyle', '-');
+                            'Parent', obj.nlAxesHandle, 'Color', axColors(k,:), 'LineStyle', '-');
                     end
                     legend(obj.nlAxesHandle,obj.groupByValues,'Location','NorthWest');
                 else
                     obj.nlHandle = line(xBin, yBin, ...
-                        'Parent', obj.nlAxesHandle, 'Color', 'k', 'Marker', '.');
+                        'Parent', obj.nlAxesHandle, 'Color', 'k');
                 end
                 axis(obj.nlAxesHandle, 'tight');
                 

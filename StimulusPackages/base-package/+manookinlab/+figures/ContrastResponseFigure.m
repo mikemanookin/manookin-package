@@ -90,7 +90,7 @@ classdef ContrastResponseFigure < symphonyui.core.FigureHandler
             sampleRate = response.sampleRate.quantityInBaseUnits;
             
             % Define an anonymous function to convert time to points.
-            timeToPts = @(t)(t*1e-3*sampleRate);
+            timeToPts = @(t)(round(t*1e-3*sampleRate));
             
             xval = epoch.parameters('contrast');
             xIndex = obj.contrasts == xval;
@@ -107,8 +107,9 @@ classdef ContrastResponseFigure < symphonyui.core.FigureHandler
             end
             
             % Get your sample regions.
-            prePts = timeToPts(obj.preTime);
+            prePts = round(timeToPts(obj.preTime));
             sample = [1 timeToPts(obj.stimTime)] + prePts;
+            sample = round(sample);
             
             if numel(quantities) > 0
                 % Parse the response by type.

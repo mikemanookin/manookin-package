@@ -4,17 +4,19 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
         motionTime = 1000               % Duration of background motion (ms)
-        flashTime = 100                 % Spot flash time (ms)
-        tailTime = 250                  % Stim trailing duration (ms)
-        radius = 200                    % Inner radius in microns.
+        tailTime = 500                  % Stim trailing duration (ms)
+        centerBarWidth = 32             % Center bar with in microns.
+        numberOfCenterBars = 8          % Number of center bars
+        centerFrameDwell = 1            % Frame dwell for center bars
+        centerBarOrientation = 90       % Center bar orientation (degrees)
         apertureRadius = 250            % Aperture/blank radius in microns.
         delayTimes = [-100 -100]        % Delay time (ms)
         contrasts = [0 -0.0625 0.0625 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Spot contrasts (-1:1)
         numBarPairs = 2                 % Number of background bar pairs (positive/negative contrast)
-        barFrameDwell = 1               % Frame dwell for background bars
-        barWidth = 50                   % Background bar width (microns)
-        barContrast = 1.0               % Background bar contrast (-1 : 1)
-        barOrientation = 90             % Background bar orientation (degrees)
+        surroundBarFrameDwell = 1               % Frame dwell for background bars
+        surroundBarWidth = 50                   % Background bar width (microns)
+        surroundBarContrast = 1.0               % Background bar contrast (-1 : 1)
+        surroundBarOrientation = 90             % Background bar orientation (degrees)
         backgroundIntensity = 0.5       % Background light intensity (0-1) 
         backgroundSequences = 'sequential-random-stationary' % Background sequence on alternating trials.
         onlineAnalysis = 'extracellular'% Online analysis type.
@@ -34,17 +36,25 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
         seed
         frameSeq
         noiseStream2
-        orientationRads
+        surroundBarOrientationRads
         thisCenterOffset
         positions
-        radiusPix
+        centerBarWidthPix
         apertureRadiusPix
-        barWidthPix
+        surroundBarWidthPix
+        centerClasses = {'sequential','random'}
+        sequenceName
         backgroundClasses
         backgroundClass
         numBars
         delayTime
         contrast
+        stimDur
+        actualStimFrames
+        centerBarOrientationRads
+        speed
+        centerPositions
+        startPosition
     end
     
     methods
@@ -60,13 +70,22 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             
-            obj.radiusPix = obj.rig.getDevice('Stage').um2pix(obj.radius);
+            obj.centerBarWidthPix = obj.rig.getDevice('Stage').um2pix(obj.centerBarWidth);
             obj.apertureRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.apertureRadius);
-            obj.barWidthPix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
+            obj.surroundBarWidthPix = obj.rig.getDevice('Stage').um2pix(obj.surroundBarWidth);
+            
+            % Get the number of actual stimulus frames.
+            obj.actualStimFrames = obj.centerFrameDwell * obj.numberOfCenterBars;
+            obj.stimDur = obj.actualStimFrames / obj.frameRate;
+            % Calculate the bar speed in pix/sec.
+            obj.speed = obj.centerBarWidthPix*obj.frameRate/obj.centerFrameDwell;
+            % Calculate the base bar position.
+            obj.startPosition = -(obj.numberOfCenterBars/2*obj.centerBarWidthPix) + obj.centerBarWidthPix/2;
             
             obj.numBars = round(obj.numBarPairs * 2);
             % Calculate the orientation in radians.
-            obj.orientationRads = obj.barOrientation/180*pi;
+            obj.surroundBarOrientationRads = obj.surroundBarOrientation/180*pi;
+            obj.centerBarOrientationRads = obj.centerBarOrientation/180*pi;
             
             switch obj.backgroundSequences
                 case 'sequential-random-stationary'
@@ -79,36 +98,36 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
             obj.thisCenterOffset = obj.rig.getDevice('Stage').getCenterOffset();
             
             if ~strcmp(obj.onlineAnalysis, 'none')
-                if length(unique(obj.delayTimes)) == 1
-                    obj.showFigure('manookinlab.figures.ContrastResponseFigure', ...
-                        obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                        'preTime',obj.preTime+obj.motionTime+obj.delayTimes(1),...
-                        'stimTime',obj.flashTime,...
-                        'contrasts',unique(obj.contrasts),...
-                        'groupBy','backgroundClass',...
-                        'groupByValues',obj.backgroundClasses,...
-                        'temporalClass','pulse');
-                else
-                    obj.showFigure('manookinlab.figures.AdaptFlashFigure', ...
-                        obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                        'preTime',obj.preTime,...
-                        'flash1Duration',obj.motionTime,...
-                        'flash2Duration',obj.flashTime,...
-                        'flash1Contrasts',1:length(obj.backgroundClasses),...
-                        'flash2Contrasts',unique(obj.contrasts),...
-                        'ipis',obj.delayTimes);
-                end
+%                 if length(unique(obj.delayTimes)) == 1
+%                     obj.showFigure('manookinlab.figures.ContrastResponseFigure', ...
+%                         obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+%                         'preTime',obj.preTime+obj.motionTime+obj.delayTimes(1),...
+%                         'stimTime',ceil(obj.stimDur*1e3),...
+%                         'contrasts',unique(obj.contrasts),...
+%                         'groupBy','backgroundClass',...
+%                         'groupByValues',obj.backgroundClasses,...
+%                         'temporalClass','pulse');
+%                 else
+%                     obj.showFigure('manookinlab.figures.AdaptFlashFigure', ...
+%                         obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+%                         'preTime',obj.preTime,...
+%                         'flash1Duration',obj.motionTime,...
+%                         'flash2Duration',obj.flashTime,...
+%                         'flash1Contrasts',1:length(obj.backgroundClasses),...
+%                         'flash2Contrasts',unique(obj.contrasts),...
+%                         'ipis',obj.delayTimes);
+%                 end
                 
                 
                 if length(obj.backgroundClasses) == 2
                     colors = [0 0 0; 0.8 0 0];
                 else
-                    colors = [0 0 0; 0.8 0 0; 0 0.5 0];
+                    colors = [0 0 0; 0.8 0 0; 0 0.5 0; 0 0 0; 0.8 0 0; 0 0.5 0];
                 end
                 obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
                     obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                     'sweepColor',colors,...
-                    'groupBy',{'backgroundClass'});
+                    'groupBy',{'centerClass','backgroundClass'});
             end
         end
         
@@ -116,8 +135,8 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate the number of frames.
             numFrames = ceil(obj.motionTime*1e-3*obj.frameRate) + 16;
             % Calculate the number of positions.
-            numPositions = floor(min(obj.canvasSize) / obj.barWidthPix);
-            positionValues = linspace(-min(obj.canvasSize)/2+obj.barWidthPix/2,min(obj.canvasSize)/2-obj.barWidthPix/2,numPositions);
+            numPositions = floor(min(obj.canvasSize) / obj.surroundBarWidthPix);
+            positionValues = linspace(-min(obj.canvasSize)/2+obj.surroundBarWidthPix/2,min(obj.canvasSize)/2-obj.surroundBarWidthPix/2,numPositions);
             positionValues = positionValues(:);
             
             obj.positions = zeros(numFrames, obj.numBars);
@@ -142,9 +161,9 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
                 barSeq = mod(0:numFrames-1,numPositions)' + 1;
             end
             
-            if obj.barFrameDwell > 1
-                nUniquePts = ceil(numFrames / obj.barFrameDwell);
-                tmp = ones(obj.barFrameDwell,1) * barSeq(1:nUniquePts)';
+            if obj.surroundBarFrameDwell > 1
+                nUniquePts = ceil(numFrames / obj.surroundBarFrameDwell);
+                tmp = ones(obj.surroundBarFrameDwell,1) * barSeq(1:nUniquePts)';
                 tmp = tmp(:);
                 barSeq = tmp(1 : numFrames);
             end
@@ -164,13 +183,13 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
                 barSign = 2*mod(k,2)-1;
                 bars = stage.builtin.stimuli.Rectangle();
                 bars.position = obj.canvasSize/2 - obj.thisCenterOffset;
-                bars.size = [obj.barWidthPix max(obj.canvasSize)];
-                bars.orientation = obj.barOrientation;
+                bars.size = [obj.surroundBarWidthPix max(obj.canvasSize)];
+                bars.orientation = obj.surroundBarOrientation;
                 % Convert from contrast to intensity.
                 if obj.backgroundIntensity > 0
-                    bars.color = obj.backgroundIntensity*barSign*obj.barContrast+obj.backgroundIntensity;
+                    bars.color = obj.backgroundIntensity*barSign*obj.surroundBarContrast+obj.backgroundIntensity;
                 else
-                    bars.color = obj.barContrast;
+                    bars.color = obj.surroundBarContrast;
                 end
 
                 % Add the stimulus to the presentation.
@@ -188,35 +207,59 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Create the blank aperture.
-            if obj.apertureRadius > obj.radius
-                mask = stage.builtin.stimuli.Ellipse();
-                mask.color = obj.backgroundIntensity;
-                mask.radiusX = obj.apertureRadiusPix;
-                mask.radiusY = obj.apertureRadiusPix;
-                mask.position = obj.canvasSize / 2;
-                p.addStimulus(mask);
-            end
+            mask = stage.builtin.stimuli.Ellipse();
+            mask.color = obj.backgroundIntensity;
+            mask.radiusX = obj.apertureRadiusPix;
+            mask.radiusY = obj.apertureRadiusPix;
+            mask.position = obj.canvasSize / 2;
+            p.addStimulus(mask);
             
-            spot = stage.builtin.stimuli.Ellipse();
-            spot.radiusX = obj.radiusPix;
-            spot.radiusY = obj.radiusPix; 
-            spot.position = obj.canvasSize/2;
-            spot.color = obj.contrast*obj.backgroundIntensity + obj.backgroundIntensity;
+            centerBar = stage.builtin.stimuli.Rectangle();
+            centerBar.position = obj.canvasSize/2;
+            centerBar.size = [obj.centerBarWidthPix obj.centerBarWidthPix*obj.numberOfCenterBars];
+            centerBar.orientation = obj.centerBarOrientation;
+            centerBar.color = obj.backgroundIntensity*obj.contrast+obj.backgroundIntensity;
             
             % Add the stimulus to the presentation.
-            p.addStimulus(spot);
-            
+            p.addStimulus(centerBar);
+
             % Control when the spot is visible.
-            spotVisible = stage.builtin.controllers.PropertyController(spot, 'visible', ...
-                @(state)state.time > (obj.preTime + obj.motionTime + obj.delayTime) * 1e-3 && state.time <= (obj.preTime + obj.motionTime + obj.flashTime + obj.delayTime) * 1e-3);
+            spotVisible = stage.builtin.controllers.PropertyController(centerBar, 'visible', ...
+                @(state)state.time > (obj.preTime + obj.motionTime + obj.delayTime) * 1e-3 && state.time <= (obj.preTime + obj.motionTime + ceil(obj.stimDur*1e3) + obj.delayTime) * 1e-3);
             p.addController(spotVisible);
+
+            % Bar position controller
+            if ~isempty(strfind(obj.sequenceName, 'random'))
+                barPosition = stage.builtin.controllers.PropertyController(centerBar, 'position', ...
+                    @(state)randomTable(obj, state.time - (obj.preTime + obj.motionTime + obj.delayTime)*1e-3));
+            else
+                barPosition = stage.builtin.controllers.PropertyController(centerBar, 'position', ...
+                    @(state)motionTable(obj, state.time - (obj.preTime + obj.motionTime + obj.delayTime)*1e-3));
+            end
+            p.addController(barPosition);
+            
+            function p = motionTable(obj, time)
+                % Calculate the increment with time.  
+                inc = time * obj.speed + obj.startPosition;
+                
+                p = [cos(obj.centerBarOrientationRads) sin(obj.centerBarOrientationRads)] .* (inc*ones(1,2)) + obj.canvasSize/2;
+            end
+            
+            function p = randomTable(obj, time)
+                if time >=0 && time <= obj.stimDur
+                    frame = floor(obj.frameRate * time) + 1;
+                    p = [cos(obj.centerBarOrientationRads) sin(obj.centerBarOrientationRads)] .* (obj.centerPositions(frame)*ones(1,2)) + obj.canvasSize/2;
+                else
+                    p = 5000*ones(1,2);
+                end
+            end
 
             
             % Surround bar position.
             function p = surroundTrajectory(obj, time, whichBar)
                 if time > 0 && time <= obj.motionTime*1e-3
                     frame = floor(obj.frameRate * time) + 1;
-                    p = [cos(obj.orientationRads) sin(obj.orientationRads)] .* (obj.positions(frame, whichBar)*ones(1,2)) + obj.canvasSize/2 - obj.thisCenterOffset;
+                    p = [cos(obj.surroundBarOrientationRads) sin(obj.surroundBarOrientationRads)] .* (obj.positions(frame, whichBar)*ones(1,2)) + obj.canvasSize/2 - obj.thisCenterOffset;
                 else
                     p = 5000*ones(1,2);
                 end
@@ -225,6 +268,9 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
   
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
+            
+            % Get the center type.
+            obj.sequenceName = obj.centerClasses{mod(obj.numEpochsCompleted,length(obj.centerClasses))+1};
             
             % Get the background type.
             obj.backgroundClass = obj.backgroundClasses{mod(obj.numEpochsCompleted,length(obj.backgroundClasses))+1};
@@ -239,17 +285,29 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
             
             % Generate a random seed and seed the generator.
             obj.seed = RandStream.shuffleSeed;
+            
+            % Get the center bar positions.
+            noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
+            barSeq = noiseStream.randperm(obj.numberOfCenterBars);
+            if obj.centerFrameDwell > 1
+                barSeq = ones(obj.centerFrameDwell,1)*barSeq;
+                barSeq = barSeq(:)';
+            end
+            obj.centerPositions = [obj.startPosition + (barSeq-1)*obj.centerBarWidthPix 5000*ones(1,10)];
+            
+            % Get the surround bar positions.
             obj.noiseStream2 = RandStream('mt19937ar', 'Seed', obj.seed);
             % Get the bar positions for this epoch.
             obj.getBarPositions();
             
             % Save the seed.
             epoch.addParameter('seed', obj.seed);
+            epoch.addParameter('centerClass',obj.sequenceName);
             epoch.addParameter('backgroundClass',obj.backgroundClass);
         end
         
         function stimTime = get.stimTime(obj)
-            stimTime = obj.motionTime + max([0, obj.delayTimes(:)']) + obj.flashTime;
+            stimTime = obj.motionTime + max([0, obj.delayTimes(:)']) + 250;
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
