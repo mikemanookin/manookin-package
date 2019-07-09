@@ -5,7 +5,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Stim leading duration (ms)
         stimTime = 10000                % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
-        randsPerRep = 8                 % Number of random seeds per repeat
+        randsPerRep = 7                 % Number of random seeds per repeat
         noiseContrast = 1/3             % Noise contrast (0-1)
         gratingContrast = 1.0           % Grating contrast (0-1)
         radius = 200                    % Inner radius in microns.
@@ -86,7 +86,8 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
                     'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
                     'frameRate', obj.frameRate, 'numFrames', floor(obj.stimTime/1000 * obj.frameRate), 'frameDwell', 1, ...
                     'stdev', obj.noiseContrast*0.3, 'frequencyCutoff', 0, 'numberOfFilters', 0, ...
-                    'correlation', 0, 'stimulusClass', 'Stage');
+                    'correlation', 0, 'stimulusClass', 'Stage', ...
+                    'groupBy','backgroundClass','groupByValues',obj.backgroundClasses);
                 
                 if length(obj.backgroundClasses) == 2
                     colors = [0 0 0; 0.8 0 0];
