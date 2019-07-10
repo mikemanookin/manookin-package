@@ -2,7 +2,7 @@ classdef GliderStimulus < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stimulus leading duration (ms)
-        stimTime = 1000                 % Stimulus duration (ms)
+        stimTime = 10000                % Stimulus duration (ms)
         tailTime = 250                  % Stimulus trailing duration (ms)
         waitTime = 500                  % Stimulus wait duration (ms)
         stixelSize = 16                 % Stixel edge size (pixels)
@@ -11,9 +11,9 @@ classdef GliderStimulus < manookinlab.protocols.ManookinLabStageProtocol
         dimensionality = '2-d'          % Stixel dimensionality
         innerRadius = 0                 % Inner mask radius in pixels.
         outerRadius = 1000              % Outer mask radius in pixels.
-        randomSeed = true               % Random or repeating seed
+        randomSeed = false              % Random or repeating seed
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        onlineAnalysis = 'none'         % Online analysis type.
+        onlineAnalysis = 'extracellular' % Online analysis type.
         centerOffset = [0,0]            % Center offset in pixels (x,y)
         numberOfAverages = uint16(70)   % Number of epochs
     end

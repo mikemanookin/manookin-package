@@ -5,7 +5,7 @@ classdef GliderSingleStim < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 10500                % Stimulus duration (ms)
         tailTime = 250                  % Stimulus trailing duration (ms)
         waitTime = 0                    % Stimulus wait duration (ms)
-        stixelSize = 40                 % Stixel edge size (pixels)
+        stixelSize = 25                 % Stixel edge size (pixels)
         contrast = 0.5                  % Contrast (0 - 1)
         orientation = 0                 % Texture orientation (degrees)
         stimulusClass = 'uncorrelated'  % Correlated noise type
