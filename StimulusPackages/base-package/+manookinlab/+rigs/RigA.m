@@ -14,11 +14,11 @@ classdef RigA < symphonyui.core.descriptions.RigDescription
 %             obj.addDevice(fMonitor);
             
             % Add the green and blue LEDs
-%             green = UnitConvertingDevice('Green LED', 'V').bindStream(daq.getStream('ao2'));
-%             obj.addDevice(green);
-%             
-%             blue = UnitConvertingDevice('Blue LED', 'V').bindStream(daq.getStream('ao3'));
-%             obj.addDevice(blue);
+            green = UnitConvertingDevice('Green LED', 'V').bindStream(daq.getStream('ao2'));
+            obj.addDevice(green);
+            
+            blue = UnitConvertingDevice('Blue LED', 'V').bindStream(daq.getStream('ao3'));
+            obj.addDevice(blue);
             
 %             red = UnitConvertingDevice('Red LED', 'V').bindStream(daq.getStream('ao1'));
 %             red.addConfigurationSetting('ndfs', {}, ...

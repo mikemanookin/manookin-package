@@ -80,7 +80,7 @@ classdef ChirpStimulus < manookinlab.protocols.ManookinLabStageProtocol
                 @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
             p.addController(spotVisible);
             
-            frequencyDelta = (obj.frequencyMax - obj.frequencyMin)/(obj.frequencyTime*1e-3);
+            frequencyDelta = (obj.frequencyMax - obj.frequencyMin)/(obj.frequencyTime*1e-3)/2;
             contrastDelta = (obj.contrastMax - obj.contrastMin)/(obj.contrastTime*1e-3);
             
 %             numFrames = ceil(obj.stimTime*1e-3*obj.frameRate);

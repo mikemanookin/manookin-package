@@ -16,8 +16,8 @@ classdef RigA_Amp1_Video < manookinlab.rigs.RigA
             obj.addDevice(amp1);
             
             % Add the red LED.
-%             red = UnitConvertingDevice('Red LED', 'V').bindStream(daq.getStream('ao1'));
-%             obj.addDevice(red);
+            red = UnitConvertingDevice('Red LED', 'V').bindStream(daq.getStream('ao1'));
+            obj.addDevice(red);
             
             % Get calibration resources.
             ramps = containers.Map();
