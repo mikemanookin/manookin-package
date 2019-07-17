@@ -1,29 +1,29 @@
-classdef GliderSingleStim < manookinlab.protocols.ManookinLabStageProtocol
+classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stimulus leading duration (ms)
-        stimTime = 10500                % Stimulus duration (ms)
+        stimTime = 10000                % Stimulus duration (ms)
         tailTime = 250                  % Stimulus trailing duration (ms)
         waitTime = 0                    % Stimulus wait duration (ms)
-        stixelSize = 25                 % Stixel edge size (pixels)
-        contrast = 0.5                  % Contrast (0 - 1)
+        stixelSize = 32                 % Stixel edge size (microns)
+        contrast = 1.0                  % Contrast (0 - 1)
+        contrastDistribution = 'gaussian' % Contrast distribution ('gaussian','binary','uniform')
         orientation = 0                 % Texture orientation (degrees)
-        stimulusClass = 'uncorrelated'  % Correlated noise type
         dimensionality = '1-d'          % Stixel dimensionality
         innerRadius = 0                 % Inner mask radius in pixels.
-        outerRadius = 120               % Outer mask radius in pixels.
-        randomSeed = true               % Random or repeating seed
+        outerRadius = 1000              % Outer mask radius in pixels.
+        randomSeed = false              % Random or repeating seed
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        onlineAnalysis = 'extracellular'% Online analysis type.
-        centerOffset = [0,0]            % Center offset in pixels (x,y)
-        numberOfAverages = uint16(120)  % Number of epochs
+        onlineAnalysis = 'extracellular' % Online analysis type.
+        numberOfAverages = uint16(70)   % Number of epochs
     end
     
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         dimensionalityType = symphonyui.core.PropertyType('char', 'row', {'1-d', '2-d'});
-        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'uncorrelated','gaussian', '2-point positive', '2-point negative', '3-point diverging positive', '3-point converging positive', '3-point diverging negative', '3-point converging negative'})
+        contrastDistributionType = symphonyui.core.PropertyType('char','row', {'gaussian','binary','uniform'})
+        stimulusNames = {'uncorrelated', '2-point positive', '2-point negative', '3-point diverging positive', '3-point converging positive', '3-point diverging negative', '3-point converging negative'}
         noiseStream
         seed
         frameSequence
@@ -31,8 +31,10 @@ classdef GliderSingleStim < manookinlab.protocols.ManookinLabStageProtocol
         numYChecks
         stixelDims
         numStimFrames
-        parity
+        sequence
         stimulusType
+        parity
+        stixelSizePix
     end
     
     methods
@@ -45,39 +47,41 @@ classdef GliderSingleStim < manookinlab.protocols.ManookinLabStageProtocol
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            % Calculate the number of frames.
-            obj.numStimFrames = ceil(obj.stimTime/1000*obj.frameRate) + 10;
+            obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
             
-            % Calculate the X/Y stixels.
-            obj.numYChecks = ceil(min(obj.outerRadius*2,obj.canvasSize(2))/obj.stixelSize);
-            if strcmpi(obj.dimensionality, '1-d')
-                obj.numXChecks = 1;
-                obj.stixelDims = [min(obj.outerRadius*2,obj.canvasSize(1)) obj.stixelSize];
+            if length(obj.stimulusNames) > 1
+                colors = pmkmp(length(obj.stimulusNames),'CubicYF');
             else
-                obj.numXChecks = ceil(min(obj.outerRadius*2,obj.canvasSize(1))/obj.stixelSize);
-                obj.stixelDims = obj.stixelSize*ones(1,2);
+                colors = [0 0 0];
             end
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            if ~obj.randomSeed
-                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                    'sweepColor',[0 0 0]);
-            elseif strcmp(obj.stimulusClass, 'uncorrelated') && ~strcmp(obj.onlineAnalysis, 'none')
-                obj.showFigure('manookinlab.figures.SpatialNoiseFigure', ...
-                    obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis, 'stixelSize', obj.stixelSize,...
-                    'numXChecks', obj.numXChecks, 'numYChecks', obj.numYChecks,...
-                    'noiseClass', 'binary', 'chromaticClass', 'achromatic',...
-                    'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
-                    'frameRate', obj.frameRate, 'numFrames', obj.numStimFrames);
-            elseif strcmp(obj.stimulusClass, 'gaussian') && ~strcmp(obj.onlineAnalysis, 'none')
-                obj.showFigure('manookinlab.figures.SpatialNoiseFigure', ...
-                    obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis, 'stixelSize', obj.stixelSize,...
-                    'numXChecks', obj.numXChecks, 'numYChecks', obj.numYChecks,...
-                    'noiseClass', 'gaussian', 'chromaticClass', 'achromatic',...
-                    'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
-                    'frameRate', obj.frameRate, 'numFrames', obj.numStimFrames);
+            obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                'sweepColor',colors,...
+                'groupBy',{'stimulusType'});
+            
+            % Calculate the number of frames.
+            obj.numStimFrames = ceil(obj.stimTime/1000*obj.frameRate) + 10;
+            
+            % Calculate the size of the stimulus.
+            sz = [min(obj.canvasSize(1), obj.outerRadius*2) min(obj.canvasSize(2), obj.outerRadius*2)];
+            
+            % Calculate the X/Y stixels.
+            obj.numYChecks = ceil(sz(2)/obj.stixelSize);
+            if strcmpi(obj.dimensionality, '1-d')
+                obj.numXChecks = 1;
+                obj.stixelDims = [sz(1) obj.stixelSizePix];
+            else
+                obj.numXChecks = ceil(sz(1)/obj.stixelSizePix);
+                obj.stixelDims = obj.stixelSizePix*ones(1,2);
             end
+            
+            % Get the correlation sequence.
+            obj.sequence = (1 : length(obj.stimulusNames))' * ones(1, obj.numberOfAverages);
+            obj.sequence = obj.sequence(:)';
+            % Just take the ones you need.
+            obj.sequence = obj.sequence( 1 : obj.numberOfAverages );
         end
         
         function p = createPresentation(obj)
@@ -89,9 +93,6 @@ classdef GliderSingleStim < manookinlab.protocols.ManookinLabStageProtocol
                 obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
                 obj.frameSequence = (obj.noiseStream.rand(obj.numYChecks, obj.numXChecks, ...
                     obj.numStimFrames) > 0.5);
-            elseif strcmp(obj.stimulusType, 'gaussian')
-                obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
-                obj.frameSequence = (0.3*obj.noiseStream.randn(obj.numYChecks, obj.numXChecks, obj.numStimFrames));
             else
                 % Get the glider matrix.
                 switch obj.stimulusType
@@ -115,13 +116,20 @@ classdef GliderSingleStim < manookinlab.protocols.ManookinLabStageProtocol
                     obj.numStimFrames, glider, par, obj.seed);
             end
             % Set the contrast.
-            if ~strcmp(obj.stimulusType, 'gaussian')
-                obj.frameSequence = obj.contrast * (2 * obj.frameSequence - 1);
-            end
+            obj.frameSequence = (2 * obj.frameSequence - 1);
             
+            switch obj.contrastDistribution
+                case 'gaussian'
+                    obj.frameSequence = obj.contrast * obj.frameSequence;
+                case 'binary'
+                    noiseStream2 = RandStream('mt19937ar', 'Seed', obj.seed);
+                    obj.frameSequence = obj.contrast * obj.frameSequence .* abs(0.3*noiseStream2.randn(size(obj.frameSequence)));
+                case 'uniform'
+                    noiseStream2 = RandStream('mt19937ar', 'Seed', obj.seed);
+                    obj.frameSequence = obj.contrast * obj.frameSequence .* abs(noiseStream2.rand(size(obj.frameSequence)));
+            end
             % Convert to contrast.
-            obj.frameSequence = obj.frameSequence*obj.backgroundIntensity + obj.backgroundIntensity;
-%             obj.frameSequence(obj.frameSequence <= 0) = obj.frameSequence(obj.frameSequence <= 0)*obj.backgroundIntensity + obj.backgroundIntensity;
+            obj.frameSequence(obj.frameSequence <= 0) = obj.frameSequence(obj.frameSequence <= 0)*obj.backgroundIntensity + obj.backgroundIntensity;
 
             % Convert to 8-bit integer.
             obj.frameSequence = uint8(obj.frameSequence * 255);
@@ -129,7 +137,7 @@ classdef GliderSingleStim < manookinlab.protocols.ManookinLabStageProtocol
             % Create your noise image.
             imageMatrix = uint8((zeros(obj.numYChecks, obj.numXChecks)) * 255);
             checkerboard = stage.builtin.stimuli.Image(imageMatrix);
-            checkerboard.position = obj.canvasSize / 2 + obj.centerOffset;
+            checkerboard.position = obj.canvasSize / 2;
             checkerboard.size = [obj.numXChecks obj.numYChecks] .* obj.stixelDims;
             checkerboard.orientation = obj.orientation;
             
@@ -143,24 +151,21 @@ classdef GliderSingleStim < manookinlab.protocols.ManookinLabStageProtocol
             
             %--------------------------------------------------------------
             % Size is 0 to 1
-%             sz = (obj.outerRadius*2)/min(obj.canvasSize);
-%             % Create the outer mask.
-%             if sz < 1
-%                 aperture = stage.builtin.stimuli.Rectangle();
-%                 aperture.position = obj.canvasSize/2;
-%                 aperture.color = obj.backgroundIntensity;
-%                 aperture.size = obj.canvasSize;
-%                 [x,y] = meshgrid(linspace(-obj.canvasSize(1)/2,obj.canvasSize(1)/2,obj.canvasSize(1)), ...
-%                     linspace(-obj.canvasSize(2)/2,obj.canvasSize(2)/2,obj.canvasSize(2)));
-%                 % Center the stimulus.
-%                 x = x - obj.centerOffset(1);
-%                 y = y + obj.centerOffset(2);
-%                 distanceMatrix = sqrt(x.^2 + y.^2);
-%                 circle = uint8((distanceMatrix >= obj.outerRadius) * 255);
-%                 mask = stage.core.Mask(circle);
-%                 aperture.setMask(mask);
-%                 p.addStimulus(aperture); %add aperture
-%             end
+            sz = (obj.outerRadius*2)/min(obj.canvasSize);
+            % Create the outer mask.
+            if sz < 1
+                aperture = stage.builtin.stimuli.Rectangle();
+                aperture.position = obj.canvasSize/2;
+                aperture.color = obj.backgroundIntensity;
+                aperture.size = obj.canvasSize;
+                [x,y] = meshgrid(linspace(-obj.canvasSize(1)/2,obj.canvasSize(1)/2,obj.canvasSize(1)), ...
+                    linspace(-obj.canvasSize(2)/2,obj.canvasSize(2)/2,obj.canvasSize(2)));
+                distanceMatrix = sqrt(x.^2 + y.^2);
+                circle = uint8((distanceMatrix >= obj.outerRadius) * 255);
+                mask = stage.core.Mask(circle);
+                aperture.setMask(mask);
+                p.addStimulus(aperture); %add aperture
+            end
             %--------------------------------------------------------------
 
             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
@@ -186,7 +191,7 @@ classdef GliderSingleStim < manookinlab.protocols.ManookinLabStageProtocol
                 bg.color = obj.backgroundIntensity;
                 bg.radiusX = obj.innerRadius;
                 bg.radiusY = obj.innerRadius;
-                bg.position = obj.canvasSize/2 + obj.centerOffset;
+                bg.position = obj.canvasSize/2;
                 p.addStimulus(bg);
             end
             
@@ -205,33 +210,27 @@ classdef GliderSingleStim < manookinlab.protocols.ManookinLabStageProtocol
             % Seed the random number generator.
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             
-            if isempty(strfind(obj.stimulusClass,'uncorrelated')) && isempty(strfind(obj.stimulusClass,'gaussian'))
+            % Get the stimulus type and parity.
+            tmp = obj.stimulusNames{obj.sequence( obj.numEpochsCompleted+1 )};
+            
+            if isempty(strfind(tmp,'uncorrelated'))
                 % Check parity.
-                if isempty(strfind(obj.stimulusClass,'positive'))
+                if isempty(strfind(tmp,'positive'))
                     obj.parity = 'negative';
-                    obj.stimulusType = strrep(obj.stimulusClass,' negative','');
+                    obj.stimulusType = strrep(tmp,' negative','');
                 else
                     obj.parity = 'positive';
-                    obj.stimulusType = strrep(obj.stimulusClass,' positive','');
+                    obj.stimulusType = strrep(tmp,' positive','');
                 end
             else
-                obj.stimulusType = obj.stimulusClass;
+                obj.stimulusType = tmp;
             end
             
             % Save the seed.
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('numXChecks', obj.numXChecks);
             epoch.addParameter('numYChecks', obj.numYChecks);
-        end
-        
-        % Same presentation each epoch in a run. Replay.
-        function controllerDidStartHardware(obj)
-            controllerDidStartHardware@edu.washington.riekelab.protocols.RiekeLabProtocol(obj);
-            if (obj.numEpochsCompleted >= 1) && (obj.numEpochsCompleted < obj.numberOfAverages) && ~obj.randomSeed
-                obj.rig.getDevice('Stage').replay
-            else
-                obj.rig.getDevice('Stage').play(obj.createPresentation());
-            end
+            epoch.addParameter('stimulusType', tmp);
         end
         
         function tf = shouldContinuePreparingEpochs(obj)

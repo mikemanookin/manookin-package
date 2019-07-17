@@ -1,20 +1,20 @@
-classdef GliderStimulus < manookinlab.protocols.ManookinLabStageProtocol
+classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stimulus leading duration (ms)
         stimTime = 10000                % Stimulus duration (ms)
         tailTime = 250                  % Stimulus trailing duration (ms)
-        waitTime = 500                  % Stimulus wait duration (ms)
-        stixelSize = 16                 % Stixel edge size (pixels)
-        contrast = 0.7                  % Contrast (0 - 1)
+        waitTime = 0                    % Stimulus wait duration (ms)
+        stixelSize = 32                 % Stixel edge size (microns)
+        contrast = 1.0                  % Contrast (0 - 1)
+        contrastDistribution = 'gaussian' % Contrast distribution ('gaussian','binary','uniform')
         orientation = 0                 % Texture orientation (degrees)
-        dimensionality = '2-d'          % Stixel dimensionality
+        dimensionality = '1-d'          % Stixel dimensionality
         innerRadius = 0                 % Inner mask radius in pixels.
         outerRadius = 1000              % Outer mask radius in pixels.
         randomSeed = false              % Random or repeating seed
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Online analysis type.
-        centerOffset = [0,0]            % Center offset in pixels (x,y)
         numberOfAverages = uint16(70)   % Number of epochs
     end
     
@@ -22,6 +22,7 @@ classdef GliderStimulus < manookinlab.protocols.ManookinLabStageProtocol
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         dimensionalityType = symphonyui.core.PropertyType('char', 'row', {'1-d', '2-d'});
+        contrastDistributionType = symphonyui.core.PropertyType('char','row', {'gaussian','binary','uniform'})
         stimulusNames = {'uncorrelated', '2-point positive', '2-point negative', '3-point diverging positive', '3-point converging positive', '3-point diverging negative', '3-point converging negative'}
         noiseStream
         seed
@@ -33,6 +34,7 @@ classdef GliderStimulus < manookinlab.protocols.ManookinLabStageProtocol
         sequence
         stimulusType
         parity
+        stixelSizePix
     end
     
     methods
@@ -44,6 +46,8 @@ classdef GliderStimulus < manookinlab.protocols.ManookinLabStageProtocol
         
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
+            
+            obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
             
             if length(obj.stimulusNames) > 1
                 colors = pmkmp(length(obj.stimulusNames),'CubicYF');
@@ -67,10 +71,10 @@ classdef GliderStimulus < manookinlab.protocols.ManookinLabStageProtocol
             obj.numYChecks = ceil(sz(2)/obj.stixelSize);
             if strcmpi(obj.dimensionality, '1-d')
                 obj.numXChecks = 1;
-                obj.stixelDims = [sz(1) obj.stixelSize];
+                obj.stixelDims = [sz(1) obj.stixelSizePix];
             else
-                obj.numXChecks = ceil(sz(1)/obj.stixelSize);
-                obj.stixelDims = obj.stixelSize*ones(1,2);
+                obj.numXChecks = ceil(sz(1)/obj.stixelSizePix);
+                obj.stixelDims = obj.stixelSizePix*ones(1,2);
             end
             
             % Get the correlation sequence.
@@ -113,6 +117,7 @@ classdef GliderStimulus < manookinlab.protocols.ManookinLabStageProtocol
             end
             % Set the contrast.
             obj.frameSequence = obj.contrast * (2 * obj.frameSequence - 1);
+            
             % Convert to contrast.
             obj.frameSequence(obj.frameSequence <= 0) = obj.frameSequence(obj.frameSequence <= 0)*obj.backgroundIntensity + obj.backgroundIntensity;
 
@@ -145,9 +150,6 @@ classdef GliderStimulus < manookinlab.protocols.ManookinLabStageProtocol
                 aperture.size = obj.canvasSize;
                 [x,y] = meshgrid(linspace(-obj.canvasSize(1)/2,obj.canvasSize(1)/2,obj.canvasSize(1)), ...
                     linspace(-obj.canvasSize(2)/2,obj.canvasSize(2)/2,obj.canvasSize(2)));
-                % Center the stimulus.
-                x = x - obj.centerOffset(1);
-                y = y + obj.centerOffset(2);
                 distanceMatrix = sqrt(x.^2 + y.^2);
                 circle = uint8((distanceMatrix >= obj.outerRadius) * 255);
                 mask = stage.core.Mask(circle);
@@ -165,7 +167,7 @@ classdef GliderStimulus < manookinlab.protocols.ManookinLabStageProtocol
             p.addController(imgController);
             
             function s = frameSeq(obj, time)
-                if time >= 0 && time <= obj.stimTime*1e-3;
+                if time >= 0 && time <= obj.stimTime*1e-3
                     frame = floor(obj.frameRate * time) + 1;
                     s = squeeze(obj.frameSequence(:, :, frame));
                 else
@@ -179,7 +181,7 @@ classdef GliderStimulus < manookinlab.protocols.ManookinLabStageProtocol
                 bg.color = obj.backgroundIntensity;
                 bg.radiusX = obj.innerRadius;
                 bg.radiusY = obj.innerRadius;
-                bg.position = obj.canvasSize/2 + obj.centerOffset;
+                bg.position = obj.canvasSize/2;
                 p.addStimulus(bg);
             end
             
