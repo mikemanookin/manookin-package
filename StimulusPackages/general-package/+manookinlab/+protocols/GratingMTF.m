@@ -5,19 +5,19 @@ classdef GratingMTF < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 2500                 % Grating duration (ms)
         tailTime = 250                  % Grating trailing duration (ms)
         waitTime = 0                    % Grating wait duration (ms)
-        contrast = 1.0                  % Grating contrast (0-1)
+        contrast = 0.5                  % Grating contrast (0-1)
         orientation = 0.0               % Grating orientation (deg)
-        barWidths = [900:-100:300 250:-50:100 75:-25:25 20:-5:5] % Bar widths (pixels)
+        barWidths = [500:-100:300 250:-50:100 75:-25:25 20:-5:5] % Bar widths (microns)
         temporalFrequency = 2.0         % Temporal frequency (Hz)
         spatialPhase = 0.0              % Spatial phase of grating (deg)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         centerOffset = [0,0]            % Center offset in pixels (x,y)
         apertureRadius = 0              % Aperture radius in pixels.
         apertureClass = 'spot'          % Spot or annulus?       
-        spatialClass = 'sinewave'       % Spatial type (sinewave or squarewave)
-        temporalClass = 'drifting'      % Temporal type (drifting or reversing)      
+        spatialClass = 'squarewave'       % Spatial type (sinewave or squarewave)
+        temporalClass = 'reversing'      % Temporal type (drifting or reversing)      
         onlineAnalysis = 'extracellular'         % Type of online analysis
-        numberOfAverages = uint16(18)   % Number of epochs
+        numberOfAverages = uint16(14)   % Number of epochs
     end
     
     properties (Hidden)
@@ -63,6 +63,7 @@ classdef GratingMTF < manookinlab.protocols.ManookinLabStageProtocol
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3); %create presentation of specified duration
             p.setBackgroundColor(obj.backgroundIntensity); % Set background intensity
             
+            barWidthPix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
             % Create the grating.
             switch obj.spatialClass
                 case 'sinewave'
@@ -77,7 +78,7 @@ classdef GratingMTF < manookinlab.protocols.ManookinLabStageProtocol
                 grate.size = max(obj.canvasSize) * ones(1,2);
             end
             grate.position = obj.canvasSize/2 + obj.centerOffset;
-            grate.spatialFreq = 1/(2*obj.barWidth); %convert from bar width to spatial freq
+            grate.spatialFreq = 1/(2*barWidthPix); %convert from bar width to spatial freq
             grate.contrast = obj.contrast;
             grate.color = 2*obj.backgroundIntensity;
             %calc to apply phase shift s.t. a contrast-reversing boundary

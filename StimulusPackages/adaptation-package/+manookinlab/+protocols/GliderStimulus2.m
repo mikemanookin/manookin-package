@@ -10,6 +10,7 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
         contrastDistribution = 'gaussian' % Contrast distribution ('gaussian','binary','uniform')
         orientation = 0                 % Texture orientation (degrees)
         dimensionality = '1-d'          % Stixel dimensionality
+        stimulusClass = '3-point'
         innerRadius = 0                 % Inner mask radius in pixels.
         outerRadius = 1000              % Outer mask radius in pixels.
         randomSeed = false              % Random or repeating seed
@@ -23,7 +24,8 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         dimensionalityType = symphonyui.core.PropertyType('char', 'row', {'1-d', '2-d'});
         contrastDistributionType = symphonyui.core.PropertyType('char','row', {'gaussian','binary','uniform'})
-        stimulusNames = {'uncorrelated', '2-point positive', '2-point negative', '3-point diverging positive', '3-point converging positive', '3-point diverging negative', '3-point converging negative'}
+        stimulusClassesType = symphonyui.core.PropertyType('char', 'row', {'all', '3-point', '3-point positive', '3-point negative'});
+        stimulusNames
         noiseStream
         seed
         frameSequence
@@ -48,6 +50,17 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
             obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
+
+            switch obj.stimulusClass
+                case 'all'
+                    obj.stimulusNames = {'uncorrelated', '2-point positive', '2-point negative', '3-point diverging positive', '3-point converging positive', '3-point diverging negative', '3-point converging negative'};
+                case '3-point'
+                    obj.stimulusNames = {'uncorrelated', '3-point diverging positive', '3-point converging positive', '3-point diverging negative', '3-point converging negative'};
+                case '3-point positive'
+                    obj.stimulusNames = {'uncorrelated', '3-point diverging positive', '3-point converging positive'};
+                case '3-point negative'
+                    obj.stimulusNames = {'uncorrelated', '3-point diverging negative', '3-point converging negative'};
+            end
             
             if length(obj.stimulusNames) > 1
                 colors = pmkmp(length(obj.stimulusNames),'CubicYF');
@@ -119,9 +132,9 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             obj.frameSequence = (2 * obj.frameSequence - 1);
             
             switch obj.contrastDistribution
-                case 'gaussian'
-                    obj.frameSequence = obj.contrast * obj.frameSequence;
                 case 'binary'
+                    obj.frameSequence = obj.contrast * obj.frameSequence;
+                case 'gaussian'
                     noiseStream2 = RandStream('mt19937ar', 'Seed', obj.seed);
                     obj.frameSequence = obj.contrast * obj.frameSequence .* abs(0.3*noiseStream2.randn(size(obj.frameSequence)));
                 case 'uniform'

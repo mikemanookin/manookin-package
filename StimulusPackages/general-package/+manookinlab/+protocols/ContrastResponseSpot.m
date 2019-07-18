@@ -5,7 +5,7 @@ classdef ContrastResponseSpot < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 500                   % Spot leading duration (ms)
         stimTime = 2500                 % Spot duration (ms)
         tailTime = 500                  % Spot trailing duration (ms)
-        contrasts = [0 0 3*ones(1,3) 7*ones(1,3) 13*ones(1,3) 26 26 38 38 51 51 64 102 128]/128 % Contrast (0-1)
+        contrasts = [0.05 0.05 0.05 0.05] % Contrast (0-1)
         temporalFrequency = 4.0         % Modulation frequency (Hz)
         radius = 200                    % Inner radius in pixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
@@ -50,6 +50,11 @@ classdef ContrastResponseSpot < manookinlab.protocols.ManookinLabStageProtocol
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            
+            obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                'sweepColor',[30 144 255]/255,...
+                'groupBy',{'contrast'});
             
             if ~strcmp(obj.onlineAnalysis, 'none')
                 obj.analysisFigure = obj.showFigure('symphonyui.builtin.figures.CustomFigure', @obj.CRFanalysis);
