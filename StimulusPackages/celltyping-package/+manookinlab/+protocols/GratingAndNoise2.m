@@ -13,7 +13,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         barWidth = 40                   % Bar width (microns)
         backgroundSpeed = 600           % Grating speed (microns/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        backgroundSequences = 'drifting-jittering-reversing-stationary' % Background sequence on alternating trials.
+        backgroundSequences = 'drifting-jittering-stationary' % Background sequence on alternating trials.
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
         spatialClass = 'sine'           % Grating spatial class
         onlineAnalysis = 'extracellular'% Online analysis type.
@@ -41,6 +41,8 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         apertureRadiusPix
         barWidthPix
         backgroundSpeedPix
+        bgGratings
+        gratingIndices
     end
     
     methods
@@ -64,6 +66,9 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             obj.stepSize = obj.backgroundSpeedPix / obj.frameRate;
             % Get the temporal frequency
             obj.temporalFrequency = obj.stepSize / (2 * obj.barWidthPix) * obj.frameRate;
+            
+            % Pre-generate the gratings.
+            obj.getGratings();
             
             % Determine the sequence of backgrounds.
             %{'drifting-jittering-stationary','drifting-reversing-stationary','drifting-jittering','drifting-jittering-reversing-stationary','drifting-reversing'}
@@ -106,7 +111,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity);
             
             % Create the background.
-            bGrating = stage.builtin.stimuli.Grating(obj.spatialClass); 
+            bGrating = stage.builtin.stimuli.Grating(obj.spatialClass, 16); 
             bGrating.orientation = 0;
             bGrating.size = max(obj.canvasSize) * ones(1,2);
             bGrating.position = obj.canvasSize/2;
@@ -256,6 +261,28 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             
             % Set the surround phase.
             obj.surroundPhase = 0;
+            
+            obj.gratingIndices = [];
+        end
+        
+        % Pre-generate the gratings.
+        function getGratings(obj)
+            downsamp = 4;
+            sz = ceil(sqrt(obj.canvasSize(1)^2 + obj.canvasSize(2)^2));
+            x = linspace(-sz/2, sz/2, sz/downsamp);
+            
+            numGratings = floor(obj.frameRate/obj.temporalFrequency);
+            
+            obj.bgGratings = zeros(length(x),numGratings);
+            
+            shiftPerFrame = obj.temporalFrequency/obj.frameRate*2*pi;
+            for k = 1 : numGratings
+                obj.bgGratings(:,k) = sin((x*2*pi / obj.barWidthPix/2) + (k-1)*shiftPerFrame);
+            end
+        
+            % Convert to pixel values.
+            obj.bgGratings = obj.backgroundIntensity * (obj.gratingContrast*obj.bgGratings) + obj.backgroundIntensity;
+            obj.bgGratings = uint8(255 * obj.bgGratings);
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
