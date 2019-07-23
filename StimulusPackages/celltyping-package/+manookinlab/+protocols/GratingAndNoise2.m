@@ -5,19 +5,19 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Stim leading duration (ms)
         stimTime = 10000                % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
-        randsPerRep = 7                 % Number of random seeds per repeat
+        randsPerRep = 6                 % Number of random seeds per repeat
         noiseContrast = 1/3             % Noise contrast (0-1)
         gratingContrast = 1.0           % Grating contrast (0-1)
         radius = 200                    % Inner radius in microns.
         apertureRadius = 250            % Aperture/blank radius in microns.
-        barWidth = 40                   % Bar width (microns)
-        backgroundSpeed = 600           % Grating speed (microns/sec)
+        barWidth = 60                   % Bar width (microns)
+        backgroundSpeed = 750           % Grating speed (microns/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         backgroundSequences = 'drifting-jittering-stationary' % Background sequence on alternating trials.
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
-        spatialClass = 'sine'           % Grating spatial class
+        spatialClass = 'square'           % Grating spatial class
         onlineAnalysis = 'extracellular'% Online analysis type.
-        numberOfAverages = uint16(120)   % Number of epochs
+        numberOfAverages = uint16(48)   % Number of epochs
     end
     
     properties (Hidden)
@@ -41,9 +41,6 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         apertureRadiusPix
         barWidthPix
         backgroundSpeedPix
-        bgGratings
-        gratingPositions
-        thisCenterOffset
     end
     
     methods
@@ -63,9 +60,6 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             obj.apertureRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.apertureRadius);
             obj.barWidthPix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
             obj.backgroundSpeedPix = obj.rig.getDevice('Stage').um2pix(obj.backgroundSpeed);
-            
-            % Get the center offset from Stage.
-            obj.thisCenterOffset = obj.rig.getDevice('Stage').getCenterOffset();
             
             obj.stepSize = obj.backgroundSpeedPix / obj.frameRate;
             % Get the temporal frequency
@@ -112,14 +106,14 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity);
             
             % Create the background.
-            bGrating = stage.builtin.stimuli.Grating(obj.spatialClass, 32); 
+            bGrating = stage.builtin.stimuli.Grating(obj.spatialClass, 16); 
             bGrating.orientation = 0;
-            bGrating.size = obj.canvasSize + [ceil(4*obj.barWidthPix) 0];
-            bGrating.position = obj.canvasSize/2 - obj.thisCenterOffset;
+            bGrating.size = max(obj.canvasSize) * ones(1,2);
+            bGrating.position = obj.canvasSize/2;
             bGrating.spatialFreq = 1/(2*obj.barWidthPix); %convert from bar width to spatial freq
             bGrating.contrast = obj.gratingContrast;
             bGrating.color = 2*obj.backgroundIntensity;
-            bGrating.phase = 0; 
+            bGrating.phase = obj.surroundPhase; 
             p.addStimulus(bGrating);
 
             % Make the grating visible only during the stimulus time.
@@ -133,10 +127,10 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
                 p.addController(grateContrast);
             elseif ~strcmpi(obj.backgroundClass,'stationary')
                 if strcmpi(obj.backgroundClass,'drifting')
-                    bgController = stage.builtin.controllers.PropertyController(bGrating, 'position',...
+                    bgController = stage.builtin.controllers.PropertyController(bGrating, 'phase',...
                         @(state)surroundDrift(obj, state.time - obj.preTime * 1e-3));
                 else
-                    bgController = stage.builtin.controllers.PropertyController(bGrating, 'position',...
+                    bgController = stage.builtin.controllers.PropertyController(bGrating, 'phase',...
                         @(state)surroundTrajectory(obj, state.time - obj.preTime * 1e-3));
                 end
                 p.addController(bgController);
@@ -207,21 +201,23 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             % Surround drift.
             function p = surroundDrift(obj, time)
                 if time > 0 && time <= obj.stimTime
-                    fr = floor(time*obj.frameRate)+1;
-                    p = obj.gratingPositions(fr,:);
+                    p = 2*pi * obj.stepSize / (2*obj.barWidthPix);
                 else
-                    p = obj.gratingPositions(1,:);
+                    p = 0;
                 end
+                obj.surroundPhase = obj.surroundPhase + p;
+                p = obj.surroundPhase*180/pi;
             end
             
             % Surround trajectory
             function p = surroundTrajectory(obj, time)
                 if time > 0 && time <= obj.stimTime
-                    fr = floor(time*obj.frameRate)+1;
-                    p = obj.gratingPositions(fr,:);
+                    p = obj.noiseStream2.randn*2*pi * obj.stepSize / (2*obj.barWidthPix);
                 else
-                    p = obj.gratingPositions(1,:);
+                    p = 0;
                 end
+                obj.surroundPhase = obj.surroundPhase + p;
+                p = obj.surroundPhase*180/pi;
             end
             
             % Surround contrast
@@ -260,48 +256,6 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             
             % Set the surround phase.
             obj.surroundPhase = 0;
-            
-            numFrames = ceil(obj.stimTime * 1e-3 * obj.frameRate) + 15;
-            
-            %{'drifting', 'jittering', 'reversing', 'stationary'};
-            numPositions = floor(obj.frameRate/obj.temporalFrequency);
-            switch obj.backgroundClass
-                case 'drifting'
-                    obj.gratingPositions = 0 : numFrames-1;
-                    obj.gratingPositions = mod(obj.gratingPositions, numPositions);
-                case 'jittering'
-                    obj.gratingPositions = 2*(obj.noiseStream2.rand(1,numFrames)>0.5) - 1;
-                    obj.gratingPositions = mod(cumsum(obj.gratingPositions), numPositions);
-                case 'reversing'
-                    obj.gratingPositions = zeros(1,numFrames);
-                case 'stationary'
-                    obj.gratingPositions = zeros(1,numFrames);
-            end
-            obj.gratingPositions = [obj.gratingPositions*obj.stepSize 0] + obj.canvasSize/2 - obj.thisCenterOffset;
-        end
-        
-        % Pre-generate the gratings.
-        function getGratings(obj)
-            downsamp = 4;
-            sz = ceil(sqrt(obj.canvasSize(1)^2 + obj.canvasSize(2)^2));
-            x = linspace(-sz/2, sz/2, sz/downsamp);
-            
-            numGratings = floor(obj.frameRate/obj.temporalFrequency);
-            
-            obj.bgGratings = zeros(length(x),numGratings);
-            
-            shiftPerFrame = obj.temporalFrequency/obj.frameRate*2*pi;
-            for k = 1 : numGratings
-                obj.bgGratings(:,k) = sin((x*2*pi / obj.barWidthPix/2) + (k-1)*shiftPerFrame);
-            end
-            
-            if strcmp(obj.spatialClass, 'square')
-                obj.bgGratings = sign(obj.bgGratings);
-            end
-        
-            % Convert to pixel values.
-            obj.bgGratings = obj.backgroundIntensity * (obj.gratingContrast*obj.bgGratings) + obj.backgroundIntensity;
-            obj.bgGratings = uint8(255 * obj.bgGratings);
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
