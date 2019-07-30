@@ -10,12 +10,12 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         gratingContrast = 1.0           % Grating contrast (0-1)
         radius = 200                    % Inner radius in microns.
         apertureRadius = 250            % Aperture/blank radius in microns.
-        barWidth = 40                   % Bar width (microns)
-        backgroundSpeed = 600           % Grating speed (microns/sec)
+        barWidth = 60                   % Bar width (microns)
+        backgroundSpeed = 1200          % Grating speed (microns/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         backgroundSequences = 'drifting-jittering-stationary' % Background sequence on alternating trials.
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
-        spatialClass = 'sine'           % Grating spatial class
+        spatialClass = 'square'           % Grating spatial class
         onlineAnalysis = 'extracellular'% Online analysis type.
         numberOfAverages = uint16(120)   % Number of epochs
     end
@@ -71,6 +71,8 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             % Get the temporal frequency
             obj.temporalFrequency = obj.stepSize / (2 * obj.barWidthPix) * obj.frameRate;
             
+            obj.getGratings();
+            
             % Determine the sequence of backgrounds.
             %{'drifting-jittering-stationary','drifting-reversing-stationary','drifting-jittering','drifting-jittering-reversing-stationary','drifting-reversing'}
             switch obj.backgroundSequences
@@ -111,16 +113,27 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
             
-            % Create the background.
-            bGrating = stage.builtin.stimuli.Grating(obj.spatialClass, 32); 
-            bGrating.orientation = 0;
-            bGrating.size = obj.canvasSize + [ceil(4*obj.barWidthPix) 0];
+            % Create the background grating.
+            bGrating = stage.builtin.stimuli.Image(obj.bgGratings);
             bGrating.position = obj.canvasSize/2 - obj.thisCenterOffset;
-            bGrating.spatialFreq = 1/(2*obj.barWidthPix); %convert from bar width to spatial freq
-            bGrating.contrast = obj.gratingContrast;
-            bGrating.color = 2*obj.backgroundIntensity;
-            bGrating.phase = 0; 
+            bGrating.size = obj.canvasSize + [ceil(4*obj.barWidthPix) 0];
+            bGrating.orientation = 0;
+            
+            % Set the minifying and magnifying functions.
+            bGrating.setMinFunction(GL.NEAREST);
+            bGrating.setMagFunction(GL.NEAREST);
+            
+            % Add the grating.
             p.addStimulus(bGrating);
+%             bGrating = stage.builtin.stimuli.Grating(obj.spatialClass, 32); 
+%             bGrating.orientation = 0;
+%             bGrating.size = obj.canvasSize + [ceil(4*obj.barWidthPix) 0];
+%             bGrating.position = obj.canvasSize/2 - obj.thisCenterOffset;
+%             bGrating.spatialFreq = 1/(2*obj.barWidthPix); %convert from bar width to spatial freq
+%             bGrating.contrast = obj.gratingContrast;
+%             bGrating.color = 2*obj.backgroundIntensity;
+%             bGrating.phase = 0; 
+%             p.addStimulus(bGrating);
 
             % Make the grating visible only during the stimulus time.
             grate2Visible = stage.builtin.controllers.PropertyController(bGrating, 'visible', ...
@@ -287,14 +300,17 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             sz = ceil(sqrt(obj.canvasSize(1)^2 + obj.canvasSize(2)^2));
             x = linspace(-sz/2, sz/2, sz/downsamp);
             
-            numGratings = floor(obj.frameRate/obj.temporalFrequency);
+            x = x / (obj.barWidthPix*2) * 2 * pi;
+            obj.bgGratings = sin(x);
             
-            obj.bgGratings = zeros(length(x),numGratings);
-            
-            shiftPerFrame = obj.temporalFrequency/obj.frameRate*2*pi;
-            for k = 1 : numGratings
-                obj.bgGratings(:,k) = sin((x*2*pi / obj.barWidthPix/2) + (k-1)*shiftPerFrame);
-            end
+%             numGratings = 1; %floor(obj.frameRate/obj.temporalFrequency);
+%             
+%             obj.bgGratings = zeros(length(x),numGratings);
+%             
+%             shiftPerFrame = obj.temporalFrequency/obj.frameRate*2*pi;
+%             for k = 1 : numGratings
+%                 obj.bgGratings(:,k) = sin((x*2*pi / obj.barWidthPix/2) + (k-1)*shiftPerFrame);
+%             end
             
             if strcmp(obj.spatialClass, 'square')
                 obj.bgGratings = sign(obj.bgGratings);
