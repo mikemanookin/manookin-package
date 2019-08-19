@@ -38,6 +38,8 @@ classdef GliderAdaptation < manookinlab.protocols.ManookinLabStageProtocol
         parity
         stixelSizePix
         stimulusCombinations
+        stimulus1
+        stimulus2
     end
     
     methods
@@ -91,65 +93,22 @@ classdef GliderAdaptation < manookinlab.protocols.ManookinLabStageProtocol
                 obj.stixelDims = obj.stixelSizePix*ones(1,2);
             end
             
+            % Get all of the possible combinations.
+            obj.stimulusCombinations = combnk(1 : length(obj.stimulusNames), 2);
+            
             % Get the correlation sequence.
-            obj.sequence = (1 : length(obj.stimulusNames))' * ones(1, obj.numberOfAverages);
+            obj.sequence = (1 : size(obj.stimulusCombinations,1))' * ones(1, obj.numberOfAverages);
             obj.sequence = obj.sequence(:)';
             % Just take the ones you need.
             obj.sequence = obj.sequence( 1 : obj.numberOfAverages );
             
-            % Get all of the possible combinations.
-            obj.stimulusCombinations = combnk(1 : length(obj.stimulusNames), 2);
+            
         end
         
         function p = createPresentation(obj)
 
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
-            
-            if strcmp(obj.stimulusType, 'uncorrelated')
-                obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
-                obj.frameSequence = (obj.noiseStream.rand(obj.numYChecks, obj.numXChecks, ...
-                    obj.numStimFrames) > 0.5);
-            else
-                % Get the glider matrix.
-                switch obj.stimulusType
-                    case '2-point'
-                        glider = [0 1 1; 1 1 0];
-                    case '3-point diverging'
-                        glider = [0 1 1; 1 1 1; 1 1 0];
-                    case '3-point converging'
-                        glider = [0 0 0; 1 0 0; 1 0 1];
-                end
-
-                % Get the parity.
-                switch obj.parity
-                    case 'positive'
-                        par = 0;
-                    otherwise
-                        par = 1;
-                end
-            
-                obj.frameSequence = makeGlider(obj.numYChecks, obj.numXChecks, ...
-                    obj.numStimFrames, glider, par, obj.seed);
-            end
-            % Set the contrast.
-            obj.frameSequence = (2 * obj.frameSequence - 1);
-            
-            switch obj.contrastDistribution
-                case 'binary'
-                    obj.frameSequence = obj.contrast * obj.frameSequence;
-                case 'gaussian'
-                    noiseStream2 = RandStream('mt19937ar', 'Seed', obj.seed);
-                    obj.frameSequence = obj.contrast * obj.frameSequence .* abs(0.3*noiseStream2.randn(size(obj.frameSequence)));
-                case 'uniform'
-                    noiseStream2 = RandStream('mt19937ar', 'Seed', obj.seed);
-                    obj.frameSequence = obj.contrast * obj.frameSequence .* abs(noiseStream2.rand(size(obj.frameSequence)));
-            end
-            % Convert to contrast.
-            obj.frameSequence(obj.frameSequence <= 0) = obj.frameSequence(obj.frameSequence <= 0)*obj.backgroundIntensity + obj.backgroundIntensity;
-
-            % Convert to 8-bit integer.
-            obj.frameSequence = uint8(obj.frameSequence * 255);
             
             % Create your noise image.
             imageMatrix = uint8((zeros(obj.numYChecks, obj.numXChecks)) * 255);
@@ -228,26 +187,89 @@ classdef GliderAdaptation < manookinlab.protocols.ManookinLabStageProtocol
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             
             % Get the stimulus type and parity.
-            tmp = obj.stimulusNames{obj.sequence( obj.numEpochsCompleted+1 )};
-            
-            if contains(tmp,'uncorrelated')
-                % Check parity.
-                if contains(tmp,'positive')
-                    obj.parity = 'negative';
-                    obj.stimulusType = strrep(tmp,' negative','');
-                else
-                    obj.parity = 'positive';
-                    obj.stimulusType = strrep(tmp,' positive','');
-                end
-            else
-                obj.stimulusType = tmp;
-            end
+            tmp = obj.stimulusCombinations(obj.sequence( obj.numEpochsCompleted+1 ),:);
+            obj.stimulus1 = obj.stimulusNames{tmp(1)};
+            obj.stimulus2 = obj.stimulusNames{tmp(2)};
             
             % Save the seed.
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('numXChecks', obj.numXChecks);
             epoch.addParameter('numYChecks', obj.numYChecks);
-            epoch.addParameter('stimulusType', tmp);
+            epoch.addParameter('stimulusType', [obj.stimulus1,' ',obj.stimulus2]);
+            epoch.addParameter('halfFrames',ceil(obj.stimTime/1000*obj.frameRate/2));
+            
+            % Get the frame sequence.
+            obj.getFrameSequence();
+        end
+        
+        function getFrameSequence(obj)
+            
+            % Calculate the half-frames.
+            halfFrames = ceil(obj.stimTime/1000*obj.frameRate/2);
+            % Get the first half.
+            seq = obj.getSequenceFromType(obj.stimulus1);
+            % Get the second half
+            obj.frameSequence = obj.getSequenceFromType(obj.stimulus2);
+            obj.frameSequence(1:halfFrames) = seq(1:halfFrames);
+            
+            switch obj.contrastDistribution
+                case 'binary'
+                    obj.frameSequence = obj.contrast * obj.frameSequence;
+                case 'gaussian'
+                    noiseStream2 = RandStream('mt19937ar', 'Seed', obj.seed);
+                    obj.frameSequence = obj.contrast * obj.frameSequence .* abs(0.3*noiseStream2.randn(size(obj.frameSequence)));
+                case 'uniform'
+                    noiseStream2 = RandStream('mt19937ar', 'Seed', obj.seed);
+                    obj.frameSequence = obj.contrast * obj.frameSequence .* abs(noiseStream2.rand(size(obj.frameSequence)));
+            end
+            % Convert to contrast.
+            obj.frameSequence(obj.frameSequence <= 0) = obj.frameSequence(obj.frameSequence <= 0)*obj.backgroundIntensity + obj.backgroundIntensity;
+
+            % Convert to 8-bit integer.
+            obj.frameSequence = uint8(obj.frameSequence * 255);
+        end
+        
+        function seq = getSequenceFromType(obj, seqType)
+            
+            if ~contains(seqType,'uncorrelated')
+                % Check parity.
+                if contains(seqType,'positive')
+                    obj.parity = 'positive';
+                    seqType = strrep(seqType,' positive','');
+                else
+                    obj.parity = 'negative';
+                    seqType = strrep(seqType,' negative','');
+                end
+            end
+            
+            if strcmp(seqType, 'uncorrelated')
+                obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
+                seq = (obj.noiseStream.rand(obj.numYChecks, obj.numXChecks, ...
+                    obj.numStimFrames) > 0.5);
+            else
+                % Get the glider matrix.
+                switch seqType
+                    case '2-point'
+                        glider = [0 1 1; 1 1 0];
+                    case '3-point diverging'
+                        glider = [0 1 1; 1 1 1; 1 1 0];
+                    case '3-point converging'
+                        glider = [0 0 0; 1 0 0; 1 0 1];
+                end
+
+                % Get the parity.
+                switch obj.parity
+                    case 'positive'
+                        par = 0;
+                    otherwise
+                        par = 1;
+                end
+            
+                seq = makeGlider(obj.numYChecks, obj.numXChecks, ...
+                    obj.numStimFrames, glider, par, obj.seed);
+            end
+            % Set the contrast.
+            seq = (2 * seq - 1);
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
