@@ -13,7 +13,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         barWidth = 60                   % Bar width (microns)
         backgroundSpeed = 1200          % Grating speed (microns/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        backgroundSequences = 'drifting-jittering-stationary' % Background sequence on alternating trials.
+        backgroundSequences = 'drifting-jittering-stationary-nosurround' % Background sequence on alternating trials.
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
         spatialClass = 'square'           % Grating spatial class
         onlineAnalysis = 'extracellular'% Online analysis type.
@@ -25,7 +25,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian','uniform'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         spatialClassType = symphonyui.core.PropertyType('char', 'row', {'square','sine'})
-        backgroundSequencesType = symphonyui.core.PropertyType('char','row',{'drifting-jittering-stationary','drifting-reversing-stationary','drifting-jittering','drifting-jittering-reversing-stationary','drifting-reversing'})
+        backgroundSequencesType = symphonyui.core.PropertyType('char','row',{'drifting-jittering-stationary-nosurround','drifting-reversing-stationary-nosurround','drifting-jittering','drifting-jittering-reversing-stationary-nosurround','drifting-reversing-nosurround'})
         backgroundClasses
         seed
         noiseHi
@@ -76,16 +76,16 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             % Determine the sequence of backgrounds.
             %{'drifting-jittering-stationary','drifting-reversing-stationary','drifting-jittering','drifting-jittering-reversing-stationary','drifting-reversing'}
             switch obj.backgroundSequences
-                case 'drifting-jittering-stationary'
-                    obj.backgroundClasses = {'drifting', 'jittering', 'stationary'};
-                case 'drifting-reversing-stationary'
-                    obj.backgroundClasses = {'drifting', 'reversing', 'stationary'};
-                case 'drifting-jittering'
-                    obj.backgroundClasses = {'drifting', 'jittering'};
-                case 'drifting-jittering-reversing-stationary'
-                    obj.backgroundClasses = {'drifting', 'jittering', 'reversing', 'stationary'};
-                case 'drifting-reversing'
-                    obj.backgroundClasses = {'drifting', 'reversing'};
+                case 'drifting-jittering-stationary-nosurround'
+                    obj.backgroundClasses = {'drifting', 'jittering', 'stationary', 'nosurround'};
+                case 'drifting-reversing-stationary-nosurround'
+                    obj.backgroundClasses = {'drifting', 'reversing', 'stationary', 'nosurround'};
+                case 'drifting-jittering-nosurround'
+                    obj.backgroundClasses = {'drifting', 'jittering', 'nosurround'};
+                case 'drifting-jittering-reversing-stationary-nosurround'
+                    obj.backgroundClasses = {'drifting', 'jittering', 'reversing', 'stationary', 'nosurround'};
+                case 'drifting-reversing-nosurround'
+                    obj.backgroundClasses = {'drifting', 'reversing', 'nosurround'};
             end
             
             if ~strcmp(obj.onlineAnalysis, 'none')
@@ -114,17 +114,19 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity);
             
             % Create the background grating.
-            bGrating = stage.builtin.stimuli.Image(obj.bgGratings);
-            bGrating.position = obj.canvasSize/2 - obj.thisCenterOffset;
-            bGrating.size = obj.canvasSize + [ceil(4*obj.barWidthPix) 0];
-            bGrating.orientation = 0;
-            
-            % Set the minifying and magnifying functions.
-            bGrating.setMinFunction(GL.NEAREST);
-            bGrating.setMagFunction(GL.NEAREST);
-            
-            % Add the grating.
-            p.addStimulus(bGrating);
+            if ~strcmpi(obj.backgroundClass,'nosurround')
+                bGrating = stage.builtin.stimuli.Image(obj.bgGratings);
+                bGrating.position = obj.canvasSize/2 - obj.thisCenterOffset;
+                bGrating.size = obj.canvasSize + [ceil(4*obj.barWidthPix) 0];
+                bGrating.orientation = 0;
+
+                % Set the minifying and magnifying functions.
+                bGrating.setMinFunction(GL.NEAREST);
+                bGrating.setMagFunction(GL.NEAREST);
+
+                % Add the grating.
+                p.addStimulus(bGrating);
+            end
 %             bGrating = stage.builtin.stimuli.Grating(obj.spatialClass, 32); 
 %             bGrating.orientation = 0;
 %             bGrating.size = obj.canvasSize + [ceil(4*obj.barWidthPix) 0];
@@ -144,7 +146,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
                 grateContrast = stage.builtin.controllers.PropertyController(bGrating, 'contrast', ...
                     @(state)surroundContrast(obj, state.time - obj.preTime * 1e-3));
                 p.addController(grateContrast);
-            elseif ~strcmpi(obj.backgroundClass,'stationary')
+            elseif ~strcmpi(obj.backgroundClass,'stationary') && ~strcmpi(obj.backgroundClass,'nosurround')
                 if strcmpi(obj.backgroundClass,'drifting')
                     bgController = stage.builtin.controllers.PropertyController(bGrating, 'position',...
                         @(state)surroundDrift(obj, state.time - obj.preTime * 1e-3));
@@ -287,7 +289,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
                     obj.gratingPositions = mod(cumsum(obj.gratingPositions), numPositions);
                 case 'reversing'
                     obj.gratingPositions = zeros(1,numFrames);
-                case 'stationary'
+                case {'stationary','nosurround'}
                     obj.gratingPositions = zeros(1,numFrames);
             end
             obj.gratingPositions = obj.gratingPositions(:);

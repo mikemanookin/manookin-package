@@ -1,4 +1,4 @@
-classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
+classdef GliderAdaptation < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stimulus leading duration (ms)
@@ -226,9 +226,9 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             % Get the stimulus type and parity.
             tmp = obj.stimulusNames{obj.sequence( obj.numEpochsCompleted+1 )};
             
-            if contains(tmp,'uncorrelated')
+            if isempty(strfind(tmp,'uncorrelated'))
                 % Check parity.
-                if contains(tmp,'positive')
+                if isempty(strfind(tmp,'positive'))
                     obj.parity = 'negative';
                     obj.stimulusType = strrep(tmp,' negative','');
                 else

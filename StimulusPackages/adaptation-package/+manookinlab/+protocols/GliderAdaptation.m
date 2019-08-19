@@ -1,4 +1,4 @@
-classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
+classdef GliderAdaptation < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stimulus leading duration (ms)
@@ -6,14 +6,14 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Stimulus trailing duration (ms)
         waitTime = 0                    % Stimulus wait duration (ms)
         stixelSize = 32                 % Stixel edge size (microns)
-        contrast = 1.0                  % Contrast (0 - 1)
+        contrast = 0.5                  % Contrast (0 - 1)
         contrastDistribution = 'binary' % Contrast distribution ('gaussian','binary','uniform')
         orientation = 0                 % Texture orientation (degrees)
         dimensionality = '1-d'          % Stixel dimensionality
         stimulusClass = '3-point'
         innerRadius = 0                 % Inner mask radius in pixels.
         outerRadius = 1000              % Outer mask radius in pixels.
-        randomSeed = false              % Random or repeating seed
+        randomSeed = true               % Random or repeating seed
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Online analysis type.
         numberOfAverages = uint16(70)   % Number of epochs
@@ -37,6 +37,7 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
         stimulusType
         parity
         stixelSizePix
+        stimulusCombinations
     end
     
     methods
@@ -95,6 +96,9 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             obj.sequence = obj.sequence(:)';
             % Just take the ones you need.
             obj.sequence = obj.sequence( 1 : obj.numberOfAverages );
+            
+            % Get all of the possible combinations.
+            obj.stimulusCombinations = combnk(1 : length(obj.stimulusNames), 2);
         end
         
         function p = createPresentation(obj)
