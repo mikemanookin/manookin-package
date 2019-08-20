@@ -5,20 +5,21 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Stim leading duration (ms)
         motionTime = 1000               % Duration of background motion (ms)
         tailTime = 500                  % Stim trailing duration (ms)
-        centerBarWidth = 32             % Center bar with in microns.
-        numberOfCenterBars = 8          % Number of center bars
+        centerBarWidth = 40             % Center bar width in microns.
+        numberOfCenterBars = 6          % Number of center bars
         centerFrameDwell = 1            % Frame dwell for center bars
         centerBarOrientation = 90       % Center bar orientation (degrees)
         apertureRadius = 250            % Aperture/blank radius in microns.
         delayTimes = [-100 -100]        % Delay time (ms)
-        contrasts = [0 -0.0625 0.0625 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Spot contrasts (-1:1)
+        contrasts = [1 1]               % Center bar contrasts (-1:1)
         numBarPairs = 2                 % Number of background bar pairs (positive/negative contrast)
-        surroundBarFrameDwell = 1               % Frame dwell for background bars
-        surroundBarWidth = 50                   % Background bar width (microns)
-        surroundBarContrast = 1.0               % Background bar contrast (-1 : 1)
-        surroundBarOrientation = 90             % Background bar orientation (degrees)
+        surroundBarFrameDwell = 1       % Frame dwell for background bars
+        surroundBarWidth = 60           % Background bar width (microns)
+        surroundBarContrast = 1.0       % Background bar contrast (-1 : 1)
+        surroundBarOrientation = 90     % Background bar orientation (degrees)
         backgroundIntensity = 0.5       % Background light intensity (0-1) 
-        backgroundSequences = 'sequential-random-stationary' % Background sequence on alternating trials.
+        centerSequences = 'sequential-random-sequential180' % Center sequence on alternating trials.
+        backgroundSequences = 'sequential-random' % Background sequence on alternating trials.
         onlineAnalysis = 'extracellular'% Online analysis type.
         numberOfAverages = uint16(120)   % Number of epochs
     end
@@ -30,6 +31,7 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        centerSequencesType = symphonyui.core.PropertyType('char','row',{'sequential-sequential180','sequential-random','sequential-random-sequential180'})
         backgroundSequencesType = symphonyui.core.PropertyType('char','row',{'sequential-random','sequential-random-stationary'})
         contrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         delayTimesType = symphonyui.core.PropertyType('denserealdouble','matrix')
@@ -42,7 +44,7 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
         centerBarWidthPix
         apertureRadiusPix
         surroundBarWidthPix
-        centerClasses = {'sequential','random'}
+        centerClasses
         sequenceName
         backgroundClasses
         backgroundClass
@@ -86,6 +88,15 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate the orientation in radians.
             obj.surroundBarOrientationRads = obj.surroundBarOrientation/180*pi;
             obj.centerBarOrientationRads = obj.centerBarOrientation/180*pi;
+            
+            switch obj.centerSequences
+                case 'sequential-sequential180'
+                    obj.centerClasses = {'sequential','sequential180'};
+                case 'sequential-random'
+                    obj.centerClasses = {'sequential','random'};
+                case 'sequential-random-sequential180'
+                    obj.centerClasses = {'sequential','random','sequential180'};
+            end
             
             switch obj.backgroundSequences
                 case 'sequential-random-stationary'
@@ -232,6 +243,9 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
             if ~isempty(strfind(obj.sequenceName, 'random'))
                 barPosition = stage.builtin.controllers.PropertyController(centerBar, 'position', ...
                     @(state)randomTable(obj, state.time - (obj.preTime + obj.motionTime + obj.delayTime)*1e-3));
+            elseif contains(obj.sequenceName, 'sequential180')
+                barPosition = stage.builtin.controllers.PropertyController(centerBar, 'position', ...
+                    @(state)motion180Table(obj, state.time - (obj.preTime + obj.motionTime + obj.delayTime)*1e-3));
             else
                 barPosition = stage.builtin.controllers.PropertyController(centerBar, 'position', ...
                     @(state)motionTable(obj, state.time - (obj.preTime + obj.motionTime + obj.delayTime)*1e-3));
@@ -241,6 +255,13 @@ classdef MotionCenterSurround < manookinlab.protocols.ManookinLabStageProtocol
             function p = motionTable(obj, time)
                 % Calculate the increment with time.  
                 inc = time * obj.speed + obj.startPosition;
+                
+                p = [cos(obj.centerBarOrientationRads) sin(obj.centerBarOrientationRads)] .* (inc*ones(1,2)) + obj.canvasSize/2;
+            end
+            
+            function p = motion180Table(obj, time)
+                % Calculate the increment with time.  
+                inc = -obj.startPosition - time * obj.speed;
                 
                 p = [cos(obj.centerBarOrientationRads) sin(obj.centerBarOrientationRads)] .* (inc*ones(1,2)) + obj.canvasSize/2;
             end
