@@ -237,18 +237,19 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                     gbIndex = 1;
                 end
                 
-                % Re-bin the response for the nonlinearity.
-%                 resp = y; %binData(y, 60, binRate);
-                
-%                 obj.yaxis = [obj.yaxis, resp(:)'];
-                
-                % Convolve stimulus with filter to get generator signal.
-                pred = ifft(fft([frameValues(:)' zeros(1,100)]) .* fft(obj.linearFilter(:)'));
-%                 pred = manookinlab.util.binData(pred, 60, binRate); 
-                pred=pred(:)';
-%                 obj.xaxis = [obj.xaxis, pred(1 : length(resp))];
-                
-                obj.P(obj.epochCount,:) = pred(1:length(y));
+                % Compute the linear prediction.
+                if obj.epochCount < 25 && obj.epochCount > 1
+                    for k = 1 : size(obj.S,1)
+                        pred = ifft(fft([obj.S(k,:) zeros(1,100)]) .* fft(obj.linearFilter(:)'));
+                        pred=pred(:)';
+                        obj.P(k,:) = pred(1:length(y));
+                    end
+                else
+                    % Convolve stimulus with filter to get generator signal.
+                    pred = ifft(fft([frameValues(:)' zeros(1,100)]) .* fft(obj.linearFilter(:)'));
+                    pred=pred(:)';
+                    obj.P(obj.epochCount,:) = pred(1:length(y));
+                end                
                 
                 % Get the binned nonlinearity.
                 if ~isempty(obj.groupBy)
@@ -277,7 +278,7 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 cla(obj.nlAxesHandle);
                 
                 if ~isempty(obj.groupBy)
-                    axColors = [0 0 0; 0.8 0 0; 0 0.5 0; 0 0 1];
+                    axColors = [0 0 0; 0.8 0 0; 0 0.5 0; 0 0 1; 1 0 0];
                     for k = 1 : size(obj.yaxis,1)
                         line(obj.xaxis(k,:), obj.yaxis(k,:),...
                             'Parent', obj.nlAxesHandle, 'Color', axColors(k,:), 'LineStyle', '-');
@@ -288,7 +289,6 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                         'Parent', obj.nlAxesHandle, 'Color', 'k');
                 end
                 axis(obj.nlAxesHandle, 'tight');
-                
             end
         end
         

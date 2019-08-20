@@ -25,7 +25,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian','uniform'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         spatialClassType = symphonyui.core.PropertyType('char', 'row', {'square','sine'})
-        backgroundSequencesType = symphonyui.core.PropertyType('char','row',{'drifting-jittering-stationary-nosurround','drifting-reversing-stationary-nosurround','drifting-jittering','drifting-jittering-reversing-stationary-nosurround','drifting-reversing-nosurround'})
+        backgroundSequencesType = symphonyui.core.PropertyType('char','row',{'drifting-jittering-stationary-nosurround','drifting-reversing-stationary-nosurround','drifting-jittering-reversing-stationary-nosurround','drifting-reversing-nosurround'})
         backgroundClasses
         seed
         noiseHi
@@ -100,7 +100,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
                 if length(obj.backgroundClasses) == 2
                     colors = [0 0 0; 0.8 0 0];
                 else
-                    colors = [0 0 0; 0.8 0 0; 0 0.5 0];
+                    colors = [0 0 0; 0.8 0 0; 0 0.5 0; 0 0 1];
                 end
                 obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
                     obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
@@ -114,7 +114,22 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity);
             
             % Create the background grating.
-            if ~strcmpi(obj.backgroundClass,'nosurround')
+            if strcmpi(obj.backgroundClass, 'reversing')
+                bGrating = stage.builtin.stimuli.Grating(obj.spatialClass, 32); 
+                bGrating.orientation = 0;
+                bGrating.size = obj.canvasSize + [ceil(4*obj.barWidthPix) 0];
+                bGrating.position = obj.canvasSize/2 - obj.thisCenterOffset;
+                bGrating.spatialFreq = 1/(2*obj.barWidthPix); %convert from bar width to spatial freq
+                bGrating.contrast = obj.gratingContrast;
+                bGrating.color = 2*obj.backgroundIntensity;
+                bGrating.phase = 0; 
+                p.addStimulus(bGrating);
+                
+                % Make the grating visible only during the stimulus time.
+                grate2Visible = stage.builtin.controllers.PropertyController(bGrating, 'visible', ...
+                    @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                p.addController(grate2Visible);
+            elseif ~strcmpi(obj.backgroundClass,'nosurround')
                 bGrating = stage.builtin.stimuli.Image(obj.bgGratings);
                 bGrating.position = obj.canvasSize/2 - obj.thisCenterOffset;
                 bGrating.size = obj.canvasSize + [ceil(4*obj.barWidthPix) 0];
@@ -126,21 +141,15 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
 
                 % Add the grating.
                 p.addStimulus(bGrating);
+                
+                % Make the grating visible only during the stimulus time.
+                grate2Visible = stage.builtin.controllers.PropertyController(bGrating, 'visible', ...
+                    @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                p.addController(grate2Visible);
             end
-%             bGrating = stage.builtin.stimuli.Grating(obj.spatialClass, 32); 
-%             bGrating.orientation = 0;
-%             bGrating.size = obj.canvasSize + [ceil(4*obj.barWidthPix) 0];
-%             bGrating.position = obj.canvasSize/2 - obj.thisCenterOffset;
-%             bGrating.spatialFreq = 1/(2*obj.barWidthPix); %convert from bar width to spatial freq
-%             bGrating.contrast = obj.gratingContrast;
-%             bGrating.color = 2*obj.backgroundIntensity;
-%             bGrating.phase = 0; 
-%             p.addStimulus(bGrating);
+            
 
-            % Make the grating visible only during the stimulus time.
-            grate2Visible = stage.builtin.controllers.PropertyController(bGrating, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
-            p.addController(grate2Visible);
+            
             
             if strcmpi(obj.backgroundClass,'reversing')
                 grateContrast = stage.builtin.controllers.PropertyController(bGrating, 'contrast', ...
