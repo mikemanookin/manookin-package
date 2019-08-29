@@ -7,7 +7,7 @@ classdef TernaryNoiseInterleaved < manookinlab.protocols.ManookinLabStageProtoco
         waitTime = 0                    % Stimulus wait duration (ms)
         orientation = 0                 % Texture orientation (degrees)
         stixelSize = 50                 % Stixel edge size (pixels)
-        contrast = 0.7                  % Contrast (0 - 1)
+        contrast = 0.5                  % Contrast (0 - 1)
         dimensionality = '2-d'          % Stixel dimensionality
         dx = 1                          % The dx shift per frame.
         dt1 = 1
@@ -18,7 +18,6 @@ classdef TernaryNoiseInterleaved < manookinlab.protocols.ManookinLabStageProtoco
         randomSeed = true               % Random or repeating seed
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular'         % Online analysis type.
-        centerOffset = [0,0]            % Center offset in pixels (x,y)
         numberOfAverages = uint16(70)   % Number of epochs
     end
     
@@ -115,9 +114,6 @@ classdef TernaryNoiseInterleaved < manookinlab.protocols.ManookinLabStageProtoco
                 aperture.size = obj.canvasSize;
                 [x,y] = meshgrid(linspace(-obj.canvasSize(1)/2,obj.canvasSize(1)/2,obj.canvasSize(1)), ...
                     linspace(-obj.canvasSize(2)/2,obj.canvasSize(2)/2,obj.canvasSize(2)));
-                % Center the stimulus.
-                x = x - obj.centerOffset(1);
-                y = y + obj.centerOffset(2);
                 distanceMatrix = sqrt(x.^2 + y.^2);
                 circle = uint8((distanceMatrix >= obj.outerRadius) * 255);
                 mask = stage.core.Mask(circle);
@@ -149,7 +145,7 @@ classdef TernaryNoiseInterleaved < manookinlab.protocols.ManookinLabStageProtoco
                 bg.color = obj.backgroundIntensity;
                 bg.radiusX = obj.innerRadius;
                 bg.radiusY = obj.innerRadius;
-                bg.position = obj.canvasSize/2 + obj.centerOffset;
+                bg.position = obj.canvasSize/2;
                 p.addStimulus(bg);
             end
         end
@@ -171,16 +167,6 @@ classdef TernaryNoiseInterleaved < manookinlab.protocols.ManookinLabStageProtoco
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('numXChecks', obj.numXChecks);
             epoch.addParameter('numYChecks', obj.numYChecks);
-        end
-        
-        % Same presentation each epoch in a run. Replay.
-        function controllerDidStartHardware(obj)
-            controllerDidStartHardware@edu.washington.riekelab.protocols.RiekeLabProtocol(obj);
-            if (obj.numEpochsCompleted >= 1) && (obj.numEpochsCompleted < obj.numberOfAverages) && ~obj.randomSeed && length(obj.corr) == 1
-                obj.rig.getDevice('Stage').replay
-            else
-                obj.rig.getDevice('Stage').play(obj.createPresentation());
-            end
         end
         
         function tf = shouldContinuePreparingEpochs(obj)

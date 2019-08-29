@@ -61,3 +61,5 @@ for it = glider_root(3)+1 : tsize-glider_max(3)
         end
     end
 end
+
+
