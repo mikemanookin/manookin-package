@@ -107,7 +107,7 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             function c = getSpotAchromaticGaussian(obj, time)
                 if time > 0 && time <= obj.stimTime*1e-3
-                    c = obj.noiseContrast * 0.3 * obj.noiseStream.randn * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = (obj.noiseContrast * 0.3 * obj.noiseStream.randn) * obj.backgroundIntensity + obj.backgroundIntensity;
                 else
                     c = obj.backgroundIntensity;
                 end
@@ -115,7 +115,7 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             function c = getSpotAchromaticBinary(obj, time)
                 if time > 0 && time <= obj.stimTime*1e-3
-                    c = obj.noiseContrast * (2*(obj.noiseStream.rand>0.5)-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                    c = (obj.noiseContrast * (2*(obj.noiseStream.rand>0.5)-1)) * obj.backgroundIntensity + obj.backgroundIntensity;
                 else
                     c = obj.backgroundIntensity;
                 end

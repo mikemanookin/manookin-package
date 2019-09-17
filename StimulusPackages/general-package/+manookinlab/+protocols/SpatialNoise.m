@@ -1,7 +1,4 @@
 classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
-
-% SSP 6Nov2016 - added aperture to properties, createPresentation lines 312-320
-
     properties
         amp                             % Output amplifier
         preTime = 500                   % Noise leading duration (ms)
