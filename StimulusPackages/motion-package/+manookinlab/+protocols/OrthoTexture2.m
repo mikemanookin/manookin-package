@@ -1,4 +1,4 @@
-classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
+classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Texture leading duration (ms)
@@ -6,12 +6,12 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
         waitTime = 2000                 % Time texture is presented before moving (ms)
         moveTime = 1000                 % Move duration (ms)
         contrast = 1.0                  % Texture contrast (0-1)
-        textureStdevs = [15,30,45,60]   % Texture standard deviation (microns)
-        moveSpeed = 600                 % Texture approach speed (um/sec)
-        backgroundIntensity = 0.5       % Background light intensity (0-1)    
+        spatialFrequencies = [3,1.5,0.75,0.375] % Spatial frequencies in cyc/degree
+        textureStdev = 15               % Texture standard deviation (microns)
+        moveSpeed = 2.0                 % Texture approach speed (degrees/sec)
+        backgroundIntensity = 0.5       % Background light intensity (0-1)   
         onlineAnalysis = 'extracellular' % Type of online analysis
-        useRandomSeed = true            % Random or repeated seed?
-        numberOfAverages = uint16(400)  % Number of epochs
+        numberOfAverages = uint16(100)  % Number of epochs
     end
     
     properties (Dependent) 
@@ -21,16 +21,17 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
-        textureStdevsType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
+        spatialFrequenciesType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
         stimulusClasses = {'approaching','receding'}
         stimulusClass
         seed
-        backgroundTexture
-        centerTexture
         textureStdevPix
         driftSpeedPix
         maxTextureSize
-        textureStdev
+        textureFrames
+        spatialFrequency
+        textureSize
+        textureFreqPix
     end
     
     methods
@@ -56,11 +57,8 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
             obj.textureStdevPix = obj.rig.getDevice('Stage').um2pix(obj.textureStdev);
             obj.driftSpeedPix = obj.rig.getDevice('Stage').um2pix(obj.moveSpeed);
             
-            if ~obj.useRandomSeed
-                % Generate the texture.
-                obj.backgroundTexture = generateTexture(round(max(obj.canvasSize)/5), obj.textureStdevPix/5, obj.contrast, 1);
-                obj.backgroundTexture = uint8(obj.backgroundTexture*255);
-            end
+            downsample = 5;
+            obj.textureSize = round(max(obj.canvasSize)/downsample)*ones(1,2);
         end
         
         
@@ -86,36 +84,21 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
             backgroundVisible = stage.builtin.controllers.PropertyController(bground, 'visible', ...
                 @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
             p.addController(backgroundVisible);
-
-            if strcmpi(obj.stimulusClass, 'approaching')
-                bgController = stage.builtin.controllers.PropertyController(bground, 'size',...
-                    @(state)approachTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
-            else
-                % Compute the maximum texture size.
-                obj.maxTextureSize = exp(log(max(obj.canvasSize)/200) + obj.driftSpeedPix/200*obj.moveTime*1e-3)*200;
-                bgController = stage.builtin.controllers.PropertyController(bground, 'size',...
-                    @(state)recedeTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
-            end
+            
+            bgController = stage.builtin.controllers.PropertyController(bground, 'imageMatrix',...
+                @(state)approachTrajectory(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3));
             p.addController(bgController);
 
             %--------------------------------------------------------------
-            % Control the texture position.
+            % Control the texture values.
             function p = approachTrajectory(obj, time)
                 if time > 0 && time <= obj.moveTime*1e-3
-%                     p = (obj.driftSpeedPix*time + max(obj.canvasSize))*ones(1,2);
-                    p = exp(log(max(obj.canvasSize)/200) + obj.driftSpeedPix/200*time)*200*ones(1,2);
+                    frame = min(floor(time*obj.frameRate)+1,size(obj.textureFrames,3));
+                    p = squeeze(obj.textureFrames(:,:,frame));
+                elseif time <= 0
+                    p = squeeze(obj.textureFrames(:,:,1));
                 else
-                    p = max(obj.canvasSize)*ones(1,2);
-                end
-            end
-            
-            function p = recedeTrajectory(obj, time)
-                if time > 0 && time <= obj.moveTime*1e-3
-%                     p = (obj.driftSpeedPix*obj.moveTime*1e-3 + max(obj.canvasSize))*ones(1,2) - obj.driftSpeedPix*time*ones(1,2);
-                    p = exp(log(obj.maxTextureSize/200) - obj.driftSpeedPix/200*time)*200*ones(1,2);
-                else
-%                     p = (obj.driftSpeedPix*obj.moveTime*1e-3 + max(obj.canvasSize))*ones(1,2);
-                    p = obj.maxTextureSize*ones(1,2);
+                    p = squeeze(obj.textureFrames(:,:,end));
                 end
             end
             
@@ -127,8 +110,10 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
             obj.stimulusClass = obj.stimulusClasses{mod(obj.numEpochsCompleted,length(obj.stimulusClasses))+1};
             epoch.addParameter('stimulusClass', obj.stimulusClass);
             
-            obj.textureStdev = obj.textureStdevs(mod(floor(obj.numEpochsCompleted/length(obj.stimulusClasses)),length(obj.textureStdevs))+1);
-            epoch.addParameter('textureStdev', obj.textureStdev);
+            % Get the spatial frequency.
+            obj.spatialFrequency = obj.spatialFrequencies(mod(floor(obj.numEpochsCompleted/length(obj.stimulusClasses)),length(obj.spatialFrequencies))+1);
+            epoch.addParameter('spatialFrequency', obj.spatialFrequency);
+            epoch.addParameter('textureStdev',1./(obj.spatialFrequency/200*2)/2);
             
             % Deal with the seed.
             if obj.useRandomSeed
@@ -138,12 +123,59 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
             end
             epoch.addParameter('seed', obj.seed);
             
-            if obj.useRandomSeed
-                % Generate the texture.
-                obj.backgroundTexture = generateTexture(round(max(obj.canvasSize)/5), obj.textureStdevPix/5, obj.contrast, obj.seed);
-                obj.backgroundTexture = uint8(obj.backgroundTexture*255);
+            obj.textureFreqPix = obj.spatialFrequency / obj.rig.getDevice('Stage').um2pix(200);
+            
+            obj.generateTextures();
+        end
+        
+        function generateTextures(obj)
+            nx = obj.textureSize(1);
+            ny = obj.textureSize(2);
+            f0 = obj.spatialFrequency;
+            downsample = 5;
+            
+            [x,y] = meshgrid(-(nx):(nx-2));
+            % in microns
+            x = x * downsample / 2;
+            y = y * downsample / 2;
+
+            % Size of single cycle in degrees.
+            maxF = obj.rig.getDevice('Stage').um2pix(200) / (downsample/2);
+            maxF = sqrt(2*(maxF^2));
+            % Get the spatial frequencies.
+            r = sqrt((x/max(x(:))*maxF).^2 + (y/max(y(:))*maxF).^2);
+            
+            moveFrames = ceil(obj.moveTime / obj.moveSpeed * obj.frameRate);
+            img = noiseStream.rand(obj.textureSize);
+            fftI = fft2(2*img-1,2*nx-1,2*ny-1);
+            fftI = fftshift(fftI);
+
+            M = zeros(nx, ny, moveFrames);
+            fv = zeros(1,moveFrames);
+            for k = 1 : moveFrames
+                t = (k-1)/obj.frameRate;
+                f = exp(log(f0) - obj.moveSpeed*t);
+                % Make sure you don't get NaN's. 
+                if f < 0.05
+                    f = 0.05;
+                end
+                fv(k) = f;
+                tmp = obj.cosineFilter(fftI, r, f, nx, ny);
+                tmp = 0.3 * tmp / std(tmp(:)); %tmp / max(abs(tmp(:)));
+                M(:,:,k) = tmp;
+            end
+            
+            M = (obj.contrast * M) * obj.backgroundIntensity + obj.backgroundIntensity;
+            M = uint8(255 * M);
+            
+            if strcmpi(obj.stimulusClass, 'approaching')
+                obj.textureFrames = M;
+            else
+                obj.textureFrames = M(:,:,end:-1:1);
             end
         end
+        
+        
         
         function stimTime = get.stimTime(obj)
             stimTime = obj.waitTime + obj.moveTime;
@@ -155,6 +187,32 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
         
         function tf = shouldContinueRun(obj)
             tf = obj.numEpochsCompleted < obj.numberOfAverages;
+        end
+    end
+    
+    methods (Static)
+        function F = cosineFilter(fftI,sf,f,nx,ny)
+            %F = cosineFilter(fftI,sf,f,nx,ny)
+            %
+            % INPUTS
+            %   fftI
+            %   sf: spatial frequencies
+            %   f: peak frequency of the bandpass filter
+            %   nx
+            %   ny
+
+            bpfun = @(w)(0.5 + 0.5 * cos(w));
+
+            foo = log2(sf/(2*f));
+            foo(foo > pi) = pi;
+            foo(foo < -pi) = -pi;
+
+            myFilter = bpfun((foo));
+            myFilter(nx+1,ny+1) = 0; % Zero out the F0/DC offset.
+            F = fftI.*myFilter;
+            F = ifftshift(F);
+            F = ifft2(F,2*nx-1,2*ny-1);
+            F = real(F(1:nx,1:ny));
         end
     end
 end 
