@@ -213,4 +213,4 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             F = real(F(1:nx,1:ny));
         end
     end
-end 
+end
