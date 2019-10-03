@@ -53,10 +53,6 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
                     'groupBy',{'stimulusClass'});
             end
             
-<<<<<<< HEAD
-            
-=======
->>>>>>> 03a6ff4abc2332b3c651f022c687bbf9ec003e71
             obj.driftSpeedPix = obj.rig.getDevice('Stage').um2pix(obj.moveSpeed);
             
             if ~obj.useRandomSeed
