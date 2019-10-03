@@ -53,7 +53,6 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
                     'groupBy',{'stimulusClass'});
             end
             
-            obj.textureStdevPix = obj.rig.getDevice('Stage').um2pix(obj.textureStdev);
             obj.driftSpeedPix = obj.rig.getDevice('Stage').um2pix(obj.moveSpeed);
             
             if ~obj.useRandomSeed
@@ -129,6 +128,7 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
             
             obj.textureStdev = obj.textureStdevs(mod(floor(obj.numEpochsCompleted/length(obj.stimulusClasses)),length(obj.textureStdevs))+1);
             epoch.addParameter('textureStdev', obj.textureStdev);
+            obj.textureStdevPix = obj.rig.getDevice('Stage').um2pix(obj.textureStdev);
             
             % Deal with the seed.
             if obj.useRandomSeed
