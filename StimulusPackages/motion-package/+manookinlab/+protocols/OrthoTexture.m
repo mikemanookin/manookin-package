@@ -6,14 +6,12 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
         waitTime = 2000                 % Time texture is presented before moving (ms)
         moveTime = 1000                 % Move duration (ms)
         contrast = 1.0                  % Texture contrast (0-1)
-        textureStdev = 15               % Texture standard deviation (microns)
-        moveSpeed = 400                 % Texture approach speed (um/sec)
-        backgroundIntensity = 0.5       % Background light intensity (0-1)
-        radius = 200                    % Center radius (microns)
-        apertureRadius = 250            % Aperature radius between inner and outer textures (microns).     
+        textureStdevs = [15,30,45,60]   % Texture standard deviation (microns)
+        moveSpeed = 600                 % Texture approach speed (um/sec)
+        backgroundIntensity = 0.5       % Background light intensity (0-1)    
         onlineAnalysis = 'extracellular' % Type of online analysis
         useRandomSeed = true            % Random or repeated seed?
-        numberOfAverages = uint16(100)  % Number of epochs
+        numberOfAverages = uint16(400)  % Number of epochs
     end
     
     properties (Dependent) 
@@ -23,6 +21,7 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        textureStdevsType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
         stimulusClasses = {'approaching','receding'}
         stimulusClass
         seed
@@ -30,9 +29,8 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
         centerTexture
         textureStdevPix
         driftSpeedPix
-        radiusPix
-        apertureRadiusPix
         maxTextureSize
+        textureStdev
     end
     
     methods
@@ -55,10 +53,8 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
                     'groupBy',{'stimulusClass'});
             end
             
-            obj.textureStdevPix = obj.rig.getDevice('Stage').um2pix(obj.textureStdev);
+            
             obj.driftSpeedPix = obj.rig.getDevice('Stage').um2pix(obj.moveSpeed);
-            obj.radiusPix = obj.rig.getDevice('Stage').um2pix(obj.radius);
-            obj.apertureRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.apertureRadius);
             
             if ~obj.useRandomSeed
                 % Generate the texture.
@@ -130,6 +126,11 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
             
             obj.stimulusClass = obj.stimulusClasses{mod(obj.numEpochsCompleted,length(obj.stimulusClasses))+1};
             epoch.addParameter('stimulusClass', obj.stimulusClass);
+            
+            obj.textureStdev = obj.textureStdevs(mod(floor(obj.numEpochsCompleted/length(obj.stimulusClasses)),length(obj.textureStdevs))+1);
+            epoch.addParameter('textureStdev', obj.textureStdev);
+            
+            obj.textureStdevPix = obj.rig.getDevice('Stage').um2pix(obj.textureStdev);
             
             % Deal with the seed.
             if obj.useRandomSeed
