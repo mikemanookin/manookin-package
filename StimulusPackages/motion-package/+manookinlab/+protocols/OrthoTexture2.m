@@ -4,14 +4,13 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Texture leading duration (ms)
         tailTime = 250                  % Texture trailing duration (ms)
         waitTime = 2000                 % Time texture is presented before moving (ms)
-        moveTime = 1000                 % Move duration (ms)
+        moveTime = 500                 % Move duration (ms)
         contrast = 1.0                  % Texture contrast (0-1)
-        spatialFrequencies = [3,1.5,0.75,0.375] % Spatial frequencies in cyc/degree
-        textureStdev = 15               % Texture standard deviation (microns)
+        spatialFrequencies = (3+1/3)./(1:4) % Highest spatial frequencies in cyc/degree
         moveSpeed = 2.0                 % Texture approach speed (degrees/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)   
         onlineAnalysis = 'extracellular' % Type of online analysis
-        numberOfAverages = uint16(100)  % Number of epochs
+        numberOfAverages = uint16(400)  % Number of epochs
     end
     
     properties (Dependent) 
@@ -25,7 +24,6 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
         stimulusClasses = {'approaching','receding'}
         stimulusClass
         seed
-        textureStdevPix
         driftSpeedPix
         maxTextureSize
         textureFrames
@@ -55,10 +53,9 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
                     'groupBy',{'stimulusClass'});
             end
             
-            obj.textureStdevPix = obj.rig.getDevice('Stage').um2pix(obj.textureStdev);
             obj.driftSpeedPix = obj.rig.getDevice('Stage').um2pix(obj.moveSpeed);
             
-            downsample = 5;
+            downsample = 10;
             obj.textureSize = round(max(obj.canvasSize)/downsample)*ones(1,2);
         end
         
@@ -130,7 +127,7 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             nx = obj.textureSize(1);
             ny = obj.textureSize(2);
             f0 = obj.spatialFrequency;
-            downsample = 5;
+            downsample = 10;
             
             [x,y] = meshgrid(-(nx):(nx-2));
             % in microns
@@ -143,7 +140,7 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             % Get the spatial frequencies.
             r = sqrt((x/max(x(:))*maxF).^2 + (y/max(y(:))*maxF).^2);
             
-            moveFrames = ceil(obj.moveTime / obj.moveSpeed * obj.frameRate);
+            moveFrames = ceil(obj.moveTime * 1e-3 * obj.frameRate);
             img = obj.noiseStream.rand(obj.textureSize);
             fftI = fft2(2*img-1,2*nx-1,2*ny-1);
             fftI = fftshift(fftI);
