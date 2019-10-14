@@ -9,6 +9,7 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
         noiseContrast = 1/3             % Noise contrast (0-1)
         radius = 200                    % Inner radius in microns.
         apertureRadius = 250            % Aperture/blank radius in microns.
+        frameDwell = 1                  % Number of frames to present each unique spot contrast
         numBarPairs = 2                 % Number of bar pairs (positive/negative contrast)
         barFrameDwell = 2               % Frame dwell for background bars
         barWidth = 50                   % Bar width (microns)
@@ -212,25 +213,39 @@ classdef MotionAndNoise < manookinlab.protocols.ManookinLabStageProtocol
             end
             p.addController(colorController);
             
+            persisent cont
+            cont = obj.backgroundIntensity;
             function c = getSpotAchromaticGaussian(obj, time)
+                frame = floor(obj.frameRate * time);
                 if time > 0 && time <= obj.stimTime
-                    c = obj.noiseContrast * 0.3 * obj.noiseHi.randn * obj.backgroundIntensity + obj.backgroundIntensity;
+                    if mod(frame,obj.frameDwell) == 0
+                        cont = obj.noiseContrast * 0.3 * obj.noiseHi.randn * obj.backgroundIntensity + obj.backgroundIntensity;
+                    end
+                    c = cont;
                 else
                     c = obj.backgroundIntensity;
                 end
             end
             
             function c = getSpotAchromaticBinary(obj, time)
+                frame = floor(obj.frameRate * time);
                 if time > 0 && time <= obj.stimTime
-                    c = obj.noiseContrast * (2*(obj.noiseHi.rand>0.5)-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                    if mod(frame,obj.frameDwell) == 0
+                        cont = obj.noiseContrast * (2*(obj.noiseHi.rand>0.5)-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                    end
+                    c = cont;
                 else
                     c = obj.backgroundIntensity;
                 end
             end
             
             function c = getSpotAchromaticUniform(obj, time)
-                if time > 0 && time <= obj.stimTime*1e-3
-                    c = obj.noiseContrast * (2*obj.noiseHi.rand-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                frame = floor(obj.frameRate * time);
+                if time > 0 && time <= obj.stimTime
+                    if mod(frame,obj.frameDwell) == 0
+                        cont = obj.noiseContrast * (2*obj.noiseHi.rand-1) * obj.backgroundIntensity + obj.backgroundIntensity;
+                    end
+                    c = cont;
                 else
                     c = obj.backgroundIntensity;
                 end
