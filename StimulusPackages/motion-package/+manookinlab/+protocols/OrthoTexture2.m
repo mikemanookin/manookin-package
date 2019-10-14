@@ -156,7 +156,8 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
                 end
                 fv(k) = f;
                 tmp = obj.cosineFilter(fftI, r, f, nx, ny);
-                tmp = obj.contrast * tmp / std(tmp(:)); %tmp / max(abs(tmp(:)));
+                tmp = tmp / std(tmp(:)); %tmp / max(abs(tmp(:)));
+                tmp = makeUniformDist(tmp, 1);
                 M(:,:,k) = tmp;
             end
             
