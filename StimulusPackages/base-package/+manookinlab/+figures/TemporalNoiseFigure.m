@@ -184,6 +184,7 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 
                 % Get the frame/current sequence.
                 if strcmpi(obj.stimulusClass, 'Stage')
+                    
                     frameValues = manookinlab.util.getGaussianNoiseFrames(obj.numFrames, obj.frameDwell, obj.stdev, seed);
                     
                     if binRate > obj.frameRate

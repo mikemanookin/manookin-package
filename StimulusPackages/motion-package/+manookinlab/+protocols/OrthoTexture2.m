@@ -135,13 +135,13 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             y = y * downsample / 2;
 
             % Size of single cycle in degrees.
-            maxF = obj.rig.getDevice('Stage').um2pix(200) / (downsample/2);
-            maxF = sqrt(2*(maxF^2));
+%             maxF = obj.rig.getDevice('Stage').um2pix(200) / (downsample/2);
+            maxF = obj.rig.getDevice('Stage').um2pix(200) / 2;
             % Get the spatial frequencies.
             r = sqrt((x/max(x(:))*maxF).^2 + (y/max(y(:))*maxF).^2);
             
             moveFrames = ceil(obj.moveTime * 1e-3 * obj.frameRate);
-            img = obj.noiseStream.rand(obj.textureSize);
+            img = double(obj.noiseStream.rand(obj.textureSize) > 0.5);
             fftI = fft2(2*img-1,2*nx-1,2*ny-1);
             fftI = fftshift(fftI);
 
@@ -156,7 +156,7 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
                 end
                 fv(k) = f;
                 tmp = obj.cosineFilter(fftI, r, f, nx, ny);
-                tmp = 0.3 * tmp / std(tmp(:)); %tmp / max(abs(tmp(:)));
+                tmp = obj.contrast * tmp / std(tmp(:)); %tmp / max(abs(tmp(:)));
                 M(:,:,k) = tmp;
             end
             
