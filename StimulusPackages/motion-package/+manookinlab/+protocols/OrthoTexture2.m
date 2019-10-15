@@ -4,10 +4,10 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Texture leading duration (ms)
         tailTime = 250                  % Texture trailing duration (ms)
         waitTime = 2000                 % Time texture is presented before moving (ms)
-        moveTime = 500                 % Move duration (ms)
+        moveTime = 1000                 % Move duration (ms)
         contrast = 1.0                  % Texture contrast (0-1)
         spatialFrequencies = (3+1/3)./(1:4) % Highest spatial frequencies in cyc/degree
-        moveSpeed = 2.0                 % Texture approach speed (degrees/sec)
+        moveSpeed = 3.0                 % Texture approach speed (degrees/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)   
         onlineAnalysis = 'extracellular' % Type of online analysis
         numberOfAverages = uint16(400)  % Number of epochs
@@ -111,7 +111,7 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             % Get the spatial frequency.
             obj.spatialFrequency = obj.spatialFrequencies(mod(floor(obj.numEpochsCompleted/length(obj.stimulusClasses)),length(obj.spatialFrequencies))+1);
             epoch.addParameter('spatialFrequency', obj.spatialFrequency);
-            epoch.addParameter('textureStdev',1./(obj.spatialFrequency/200*2)/2);
+            epoch.addParameter('textureStdev',round(1./(obj.spatialFrequency/200*2)/2));
             
             obj.seed = RandStream.shuffleSeed;
             epoch.addParameter('seed', obj.seed);
@@ -158,7 +158,7 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
                 tmp = obj.cosineFilter(fftI, r, f, nx, ny);
                 tmp = tmp / std(tmp(:)); %tmp / max(abs(tmp(:)));
                 tmp = manookinlab.util.makeUniformDist(tmp, 1);
-                M(:,:,k) = tmp;
+                M(:,:,k) = 2*tmp-1;
             end
             
             M = (obj.contrast * M) * obj.backgroundIntensity + obj.backgroundIntensity;
