@@ -141,13 +141,15 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             r = sqrt((x/max(x(:))*maxF).^2 + (y/max(y(:))*maxF).^2);
             
             moveFrames = ceil(obj.moveTime * 1e-3 * obj.frameRate);
-            img = double(obj.noiseStream.rand(obj.textureSize) > 0.5);
-            fftI = fft2(2*img-1,2*nx-1,2*ny-1);
-            fftI = fftshift(fftI);
+            
 
             M = zeros(nx, ny, moveFrames);
             fv = zeros(1,moveFrames);
             for k = 1 : moveFrames
+                img = double(obj.noiseStream.rand(obj.textureSize) > 0.5);
+                fftI = fft2(2*img-1,2*nx-1,2*ny-1);
+                fftI = fftshift(fftI);
+                
                 t = (k-1)/obj.frameRate;
                 f = exp(log(f0) - obj.moveSpeed*t);
                 % Make sure you don't get NaN's. 
@@ -171,7 +173,53 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             end
         end
         
-        
+%         function generateTextures(obj)
+%             nx = obj.textureSize(1);
+%             ny = obj.textureSize(2);
+%             f0 = obj.spatialFrequency;
+%             downsample = 10;
+%             
+%             [x,y] = meshgrid(-(nx):(nx-2));
+%             % in microns
+%             x = x * downsample / 2;
+%             y = y * downsample / 2;
+% 
+%             % Size of single cycle in degrees.
+% %             maxF = obj.rig.getDevice('Stage').um2pix(200) / (downsample/2);
+%             maxF = obj.rig.getDevice('Stage').um2pix(200) / 2;
+%             % Get the spatial frequencies.
+%             r = sqrt((x/max(x(:))*maxF).^2 + (y/max(y(:))*maxF).^2);
+%             
+%             moveFrames = ceil(obj.moveTime * 1e-3 * obj.frameRate);
+%             img = double(obj.noiseStream.rand(obj.textureSize) > 0.5);
+%             fftI = fft2(2*img-1,2*nx-1,2*ny-1);
+%             fftI = fftshift(fftI);
+% 
+%             M = zeros(nx, ny, moveFrames);
+%             fv = zeros(1,moveFrames);
+%             for k = 1 : moveFrames
+%                 t = (k-1)/obj.frameRate;
+%                 f = exp(log(f0) - obj.moveSpeed*t);
+%                 % Make sure you don't get NaN's. 
+%                 if f < 0.05
+%                     f = 0.05;
+%                 end
+%                 fv(k) = f;
+%                 tmp = obj.cosineFilter(fftI, r, f, nx, ny);
+%                 tmp = tmp / std(tmp(:)); %tmp / max(abs(tmp(:)));
+%                 tmp = manookinlab.util.makeUniformDist(tmp, 1);
+%                 M(:,:,k) = 2*tmp-1;
+%             end
+%             
+%             M = (obj.contrast * M) * obj.backgroundIntensity + obj.backgroundIntensity;
+%             M = uint8(255 * M);
+%             
+%             if strcmpi(obj.stimulusClass, 'approaching')
+%                 obj.textureFrames = M;
+%             else
+%                 obj.textureFrames = M(:,:,end:-1:1);
+%             end
+%         end
         
         function stimTime = get.stimTime(obj)
             stimTime = obj.waitTime + obj.moveTime;
