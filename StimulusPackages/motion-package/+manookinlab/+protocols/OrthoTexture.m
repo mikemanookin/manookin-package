@@ -5,7 +5,7 @@ classdef OrthoTexture < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Texture trailing duration (ms)
         waitTime = 2000                 % Time texture is presented before moving (ms)
         moveTime = 1000                 % Move duration (ms)
-        contrast = 1.0                  % Texture contrast (0-1)
+        contrast = 0.5                  % Texture contrast (0-1)
         textureStdevs = [15,30,45,60]   % Texture standard deviation (microns)
         moveSpeed = 600                 % Texture approach speed (um/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)    
