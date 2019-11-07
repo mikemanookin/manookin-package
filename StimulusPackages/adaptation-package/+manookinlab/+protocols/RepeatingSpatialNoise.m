@@ -7,7 +7,7 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 500                  % Noise trailing duration (ms)
         stixelSize = 25                 % Edge length of stixel (pix)
         frameDwell = 1                  % Number of frames to display any image
-        intensity = 1.0                 % Max light intensity (0-1)
+        contrast = 0.5                 % Contrast (0-1)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         maskRadius = 0                  % Mask radius in pixels.
         apertureRadius = 0              % Aperture radius in pixels
@@ -49,7 +49,7 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                 'groupBy',{'frameRate'});
 
             % Calculate the corrected intensity.
-            obj.correctedIntensity = obj.intensity * 255;
+            obj.correctedIntensity = obj.contrast * 255;
             obj.correctedMean = obj.backgroundIntensity * 255;
 
             % Calculate the number of X/Y checks.
@@ -80,11 +80,12 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
 
             % Deal with the noise type.
             if strcmpi(obj.noiseClass, 'binary')
-                M = obj.noiseStream.rand(numFrames, obj.numYChecks,obj.numXChecks) > 0.5;
+                M = 2*(obj.noiseStream.rand(numFrames, obj.numYChecks,obj.numXChecks) > 0.5) - 1;
+                M = obj.contrast * M * obj.backgroundIntensity + obj.backgroundIntensity;
                 obj.backgroundFrame = uint8(obj.backgroundIntensity*ones(obj.numYChecks,obj.numXChecks));
-                obj.frameValues = uint8(obj.intensity*255*M);
+                obj.frameValues = uint8(255*M);
             else
-                M = uint8((0.3*obj.intensity*obj.noiseStream.rand(numFrames, obj.numYChecks, obj.numXChecks) * 0.5 + 0.5)*255);
+                M = uint8((0.3*obj.contrast*obj.noiseStream.rand(numFrames, obj.numYChecks, obj.numXChecks) * obj.backgroundIntensity + obj.backgroundIntensity)*255);
                 obj.backgroundFrame = uint8(obj.backgroundIntensity*ones(obj.numYChecks,obj.numXChecks));
                 obj.frameValues = M;
             end
@@ -97,9 +98,9 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
 
             % Create your noise image.
             if strcmpi(obj.noiseClass, 'binary')
-                imageMatrix = uint8((rand(obj.numYChecks, obj.numXChecks)>0.5) * obj.correctedIntensity);
+                imageMatrix = uint8(((2*(rand(obj.numYChecks, obj.numXChecks)>0.5)-1) * obj.contrast * obj.backgroundIntensity + obj.backgroundIntensity)*255);
             else
-                imageMatrix = uint8((0.3*randn(obj.numYChecks, obj.numXChecks) * obj.backgroundIntensity + obj.backgroundIntensity)*255);
+                imageMatrix = uint8((0.3*obj.contrast*randn(obj.numYChecks, obj.numXChecks) * obj.backgroundIntensity + obj.backgroundIntensity)*255);
             end
             checkerboard = stage.builtin.stimuli.Image(imageMatrix);
             checkerboard.position = obj.canvasSize / 2;
