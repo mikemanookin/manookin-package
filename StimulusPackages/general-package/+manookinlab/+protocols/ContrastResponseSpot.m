@@ -32,6 +32,7 @@ classdef ContrastResponseSpot < manookinlab.protocols.ManookinLabStageProtocol
         xaxis
         F1Amp
         repsPerX
+        avgCycle
     end
     
     properties (Hidden, Transient)
@@ -110,6 +111,14 @@ classdef ContrastResponseSpot < manookinlab.protocols.ManookinLabStageProtocol
             end
             cycleData = cycleData / k;
             
+            if length(unique(obj.contrasts)) == 1
+                if isempty(obj.avgCycle)
+                    obj.avgCycle = cycleData;
+                elseif length(obj.avgCycle) == length(cycleData)
+                    obj.avgCycle = (obj.avgCycle + cycleData*obj.numEpochsCompleted)/(obj.numEpochsCompleted+1);
+                end
+            end
+            
             ft = fft(cycleData);
             
             index = find(obj.xaxis == obj.contrast, 1);
@@ -126,7 +135,11 @@ classdef ContrastResponseSpot < manookinlab.protocols.ManookinLabStageProtocol
             cla(axesHandle);
             
             h1 = axesHandle;
-            plot(obj.xaxis, obj.F1Amp, 'ko-', 'Parent', h1);
+            if length(unique(obj.contrasts)) == 1
+                plot(obj.avgCycle, 'k', 'LineWidth', 2, 'Parent', h1);
+            else
+                plot(obj.xaxis, obj.F1Amp, 'ko-', 'Parent', h1);
+            end
             set(h1, 'TickDir', 'out');
             ylabel(h1, 'F1 amp');
             title(['Epoch ', num2str(obj.numEpochsCompleted), ' of ', num2str(obj.numberOfAverages)], 'Parent', h1);
@@ -266,6 +279,7 @@ classdef ContrastResponseSpot < manookinlab.protocols.ManookinLabStageProtocol
             obj.xaxis = unique( obj.sequence );
             obj.F1Amp = zeros( size( obj.xaxis ) );
             obj.repsPerX = zeros( size( obj.xaxis ) );
+            obj.avgCycle = [];
         end
   
         function prepareEpoch(obj, epoch)
