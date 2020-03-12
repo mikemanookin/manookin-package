@@ -209,9 +209,9 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             tmp = obj.stimulusNames{obj.sequence( obj.numEpochsCompleted+1 )};
             
             
-            if isempty(strfind((tmp,'uncorrelated'))
+            if isempty(strfind(tmp,'uncorrelated'))
                 % Check parity.
-                if ~isempty(strfind((tmp,'negative'))
+                if ~isempty(strfind(tmp,'negative'))
                     obj.parity = 'negative';
                     obj.stimulusType = strrep(tmp,' negative','');
                 else
