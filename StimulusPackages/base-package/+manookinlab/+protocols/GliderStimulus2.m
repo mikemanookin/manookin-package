@@ -209,9 +209,9 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             tmp = obj.stimulusNames{obj.sequence( obj.numEpochsCompleted+1 )};
             
             
-            if ~contains(tmp,'uncorrelated')
+            if isempty(strfind((tmp,'uncorrelated'))
                 % Check parity.
-                if contains(tmp,'negative')
+                if ~isempty(strfind((tmp,'negative'))
                     obj.parity = 'negative';
                     obj.stimulusType = strrep(tmp,' negative','');
                 else
@@ -289,7 +289,7 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             c = zeros(size(S));
 
             % Diverging correlations
-            if contains(stimulusType,'diverging')
+            if ~isempty(strfind(stimulusType,'diverging'))
                 if ismatrix(c)
                     for k = 2 : size(S,1)
                         c(k,2:end) = S(k,1:end-1) .* ((S(k,2:end) + S(k-1,2:end))/2);
