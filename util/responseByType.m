@@ -1,4 +1,4 @@
-function [response, leak] = responseByType(response, onlineAnalysis, preTime, sampleRate, varargin)
+function [response, leak, spikeTimes, spikeAmps] = responseByType(response, onlineAnalysis, preTime, sampleRate, varargin)
 
 ip = inputParser();
 ip.addParameter('threshold',-20.0, @(x)isfloat(x));
@@ -9,6 +9,8 @@ spikeAnalysis = ip.Results.spikeAnalysis;
 threshold = ip.Results.threshold;
 
 leak = 0;
+spikeTimes = [];
+spikeAmps = [];
 
 switch onlineAnalysis
     case 'extracellular'
@@ -24,7 +26,10 @@ switch onlineAnalysis
             spikesBinary = zeros(size(response));
             if ~isempty(S.sp)
                 spikesBinary(S.sp) = 1;
+                spikeTimes = S.sp;
+                spikeAmps = S.spikeAmps;
             end
+            
         else
             spikesBinary = ThresholdDetection(response, threshold);
         end
