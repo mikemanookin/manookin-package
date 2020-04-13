@@ -16,7 +16,7 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
         randsPerRep = 8                 % Number of random seeds per repeat
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Online analysis type.
-        numberOfAverages = uint16(200)  % Number of epochs
+        numberOfAverages = uint16(210)  % Number of epochs
     end
     
     properties (Hidden)
@@ -24,7 +24,7 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         dimensionalityType = symphonyui.core.PropertyType('char', 'row', {'1-d', '2-d'});
         contrastDistributionType = symphonyui.core.PropertyType('char','row', {'gaussian','binary','uniform'})
-        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'all', '2+3', '3-point', '3-point positive', '3-point negative', '2+3 positive', '2+3 negative', 'uncorrelated'});
+        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'all', '2+3', '3-point', '3-point positive', '3-point negative', '2+3 positive', '2+3 negative', 'diverging positive', 'diverging negative', 'uncorrelated'});
         stimulusNames
         noiseStream
         seed
@@ -70,6 +70,10 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
                     obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging positive', '3-point converging positive'};
                 case '2+3 negative'
                     obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging negative', '3-point converging negative'};
+                case 'diverging positive'
+                    obj.stimulusNames = {'uncorrelated', '3-point diverging positive'};
+                case 'diverging negative'
+                    obj.stimulusNames = {'uncorrelated', '3-point diverging negative'};
                 otherwise
                     obj.stimulusNames = {'uncorrelated'};
             end
