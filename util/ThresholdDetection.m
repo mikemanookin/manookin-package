@@ -1,4 +1,4 @@
-function [spikes, spikeTimes] = ThresholdDetection(fdata, threshold)
+function [spikes, spikeTimes, spikeAmps] = ThresholdDetection(fdata, threshold)
 % THRESHOLDDETECTION.m Calculates the spike matrix based on a simple spike
 % thresholding.
 %
@@ -11,6 +11,9 @@ function [spikes, spikeTimes] = ThresholdDetection(fdata, threshold)
 %
 % spikes = ThresholdDetection(fdata, threshold)
 %
+
+% Wavelet filter.
+fdata = wavefilter(fdata, 6);
 
 % Initialize the spikes array.
 spikes = zeros(size(fdata));
@@ -30,9 +33,11 @@ end
 if threshold > 0
     [spikeAmps,spikeTimes] = getPeaks(fdata,1);
     spikeTimes(spikeAmps < threshold) = [];
+    spikeAmps(spikeAmps < threshold) = [];
 else
     [spikeAmps,spikeTimes] = getPeaks(fdata,-1);
     spikeTimes(spikeAmps > threshold) = [];
+    spikeAmps(spikeAmps > threshold) = [];
 end
 
 % % Shift the data for comparison with unshifted data.

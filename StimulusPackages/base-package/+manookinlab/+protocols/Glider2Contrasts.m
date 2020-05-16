@@ -1,4 +1,4 @@
-classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
+classdef Glider2Contrasts < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stimulus leading duration (ms)
@@ -6,14 +6,14 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Stimulus trailing duration (ms)
         waitTime = 0                    % Stimulus wait duration (ms)
         stixelSize = 50                 % Stixel edge size (microns)
-        contrast = 0.5                  % Contrast (0 - 1)
+        contrasts = [0.25, 0.5, 1]      % Contrast (0 - 1)
         contrastDistribution = 'binary' % Contrast distribution ('gaussian','binary','uniform')
         orientation = 0                 % Texture orientation (degrees)
         dimensionality = '1-d'          % Stixel dimensionality
-        stimulusClass = 'all'
+        stimulusClass = 'on'
         innerRadius = 0                 % Inner mask radius in microns.
         outerRadius = 1000              % Outer mask radius in microns.
-        randsPerRep = 8                 % Number of random seeds per repeat
+        randsPerRep = 20                 % Number of random seeds per repeat
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Online analysis type.
         numberOfAverages = uint16(210)  % Number of epochs
@@ -24,7 +24,7 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         dimensionalityType = symphonyui.core.PropertyType('char', 'row', {'1-d', '2-d'});
         contrastDistributionType = symphonyui.core.PropertyType('char','row', {'gaussian','binary','uniform'})
-        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'all', '2+3', '3-point', '3-point positive', '3-point negative', '2+3 positive', '2+3 negative', 'diverging positive', 'diverging negative', 'uncorrelated'});
+        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'on', 'off', 'all', '2+3', '3-point', '3-point positive', '3-point negative', '2+3 positive', '2+3 negative', 'diverging positive', 'diverging negative', 'uncorrelated'});
         stimulusNames
         noiseStream
         seed
@@ -39,6 +39,7 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
         stixelSizePix
         innerRadiusPix
         outerRadiusPix
+        contrast
     end
     
     methods
@@ -74,6 +75,10 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
                     obj.stimulusNames = {'uncorrelated', '3-point diverging positive'};
                 case 'diverging negative'
                     obj.stimulusNames = {'uncorrelated', '3-point diverging negative'};
+                case 'on'
+                    obj.stimulusNames = {'2-point positive', '3-point diverging positive'};
+                case 'off'
+                    obj.stimulusNames = {'2-point positive', '3-point diverging negative'};
                 otherwise
                     obj.stimulusNames = {'uncorrelated'};
             end
@@ -118,7 +123,8 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Get the correlation sequence.
-            obj.sequence = (1 : length(obj.stimulusNames))' * ones(1, obj.numberOfAverages);
+            obj.sequence = ones(length(obj.contrasts),1) * (1 : length(obj.stimulusNames));
+            obj.sequence = obj.sequence(:) * ones(1, ceil(obj.numberOfAverages/length(obj.stimulusNames)));
             obj.sequence = obj.sequence(:)';
             % Just take the ones you need.
             obj.sequence = obj.sequence( 1 : obj.numberOfAverages );
@@ -212,6 +218,9 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             % Get the stimulus type and parity.
             tmp = obj.stimulusNames{obj.sequence( obj.numEpochsCompleted+1 )};
             
+            % Get the current contrast.
+            obj.contrast = obj.contrasts(mod(obj.numEpochsCompleted, length(obj.contrasts))+1);
+            
             
             if ~contains(tmp,'uncorrelated')
                 % Check parity.
@@ -285,6 +294,7 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('numYChecks', obj.numYChecks);
             epoch.addParameter('stimulusType', tmp);
             epoch.addParameter('correlationSequence',c);
+            epoch.addParameter('contrast',obj.contrast);
         end
         
         % Calculate the 3-pt correlations

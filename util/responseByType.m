@@ -31,7 +31,7 @@ switch onlineAnalysis
             end
             
         else
-            spikesBinary = ThresholdDetection(response, threshold);
+            [spikesBinary, spikeTimes, spikeAmps] = ThresholdDetection(response, threshold);
         end
         response = spikesBinary * sampleRate;
     case 'spikes_CClamp'
@@ -75,6 +75,6 @@ switch onlineAnalysis
                'HalfPowerFrequency1',59,'HalfPowerFrequency2',61, ...
                'DesignMethod','butter','SampleRate',sampleRate);
 
-            response = filtfilt(d,response);
+%             response = filtfilt(d,response);
         end
 end
