@@ -76,9 +76,9 @@ classdef Glider2Contrasts < manookinlab.protocols.ManookinLabStageProtocol
                 case 'diverging negative'
                     obj.stimulusNames = {'uncorrelated', '3-point diverging negative'};
                 case 'on'
-                    obj.stimulusNames = {'2-point positive', '3-point diverging positive'};
+                    obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging positive'};
                 case 'off'
-                    obj.stimulusNames = {'2-point positive', '3-point diverging negative'};
+                    obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging negative'};
                 otherwise
                     obj.stimulusNames = {'uncorrelated'};
             end
