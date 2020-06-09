@@ -198,7 +198,9 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
             % Deal with the seed.
-            if obj.randsPerRep <= 0
+            if obj.randsPerRep < 0
+                obj.seed = RandStream.shuffleSeed;
+            elseif obj.randsPerRep == 0
                 obj.seed = 1;
             elseif obj.randsPerRep > 0 && (mod(floor(obj.numEpochsCompleted/length(obj.stimulusNames)),obj.randsPerRep+1) == 0)
                 obj.seed = 1;
