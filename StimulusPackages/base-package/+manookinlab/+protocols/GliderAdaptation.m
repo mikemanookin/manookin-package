@@ -1,22 +1,22 @@
-classdef GliderPulses < manookinlab.protocols.ManookinLabStageProtocol
+classdef GliderAdaptation < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Stimulus leading duration (ms)
-        stimTime = 500                  % Stimulus duration (ms)
+        stimTime = 8000                 % Stimulus duration (ms)
         tailTime = 250                  % Stimulus trailing duration (ms)
         waitTime = 0                    % Stimulus wait duration (ms)
         stixelSize = 50                 % Stixel edge size (microns)
-        contrasts = [0.25, 0.25]      % Contrast (0 - 1)
-        taus = [1,2,3]
+        contrast = 0.1                  % Contrast (0 - 1)
         contrastDistribution = 'binary' % Contrast distribution ('gaussian','binary','uniform')
         orientation = 0                 % Texture orientation (degrees)
         dimensionality = '1-d'          % Stixel dimensionality
-        stimulusClass = 'on'
+        stimulusClass = 'uncorrelated 3-point'
         innerRadius = 0                 % Inner mask radius in microns.
         outerRadius = 1000              % Outer mask radius in microns.
+        randsPerRep = 10                % Number of random seeds per repeat (negative value is all random)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Online analysis type.
-        numberOfAverages = uint16(210)  % Number of epochs
+        numberOfAverages = uint16(120)  % Number of epochs
     end
     
     properties (Hidden)
@@ -24,9 +24,7 @@ classdef GliderPulses < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         dimensionalityType = symphonyui.core.PropertyType('char', 'row', {'1-d', '2-d'});
         contrastDistributionType = symphonyui.core.PropertyType('char','row', {'gaussian','binary','uniform'})
-        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'on', 'off', 'all', '2+3', '3-point', '3-point positive', '3-point negative', '2+3 positive', '2+3 negative', 'diverging positive', 'diverging negative', 'uncorrelated'});
-        contrastsType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
-        tausType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
+        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'all', '3-point', '3-point positive', '3-point negative','uncorrelated 3-point','3-point diverging positive','3-point converging positive','3-point diverging negative','3-point converging negative'});
         stimulusNames
         noiseStream
         seed
@@ -39,10 +37,11 @@ classdef GliderPulses < manookinlab.protocols.ManookinLabStageProtocol
         stimulusType
         parity
         stixelSizePix
+        stimulusCombinations
+        stimulus1
+        stimulus2
         innerRadiusPix
         outerRadiusPix
-        contrast
-        tau
     end
     
     methods
@@ -56,61 +55,32 @@ classdef GliderPulses < manookinlab.protocols.ManookinLabStageProtocol
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
             obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
-            obj.innerRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.innerRadius);
             obj.outerRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.outerRadius);
+            obj.innerRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.innerRadius);
 
             switch obj.stimulusClass
                 case 'all'
                     obj.stimulusNames = {'uncorrelated', '2-point positive', '2-point negative', '3-point diverging positive', '3-point converging positive', '3-point diverging negative', '3-point converging negative'};
-                case '2+3'
-                    obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging positive', '3-point converging positive', '3-point diverging negative', '3-point converging negative'};
                 case '3-point'
                     obj.stimulusNames = {'uncorrelated', '3-point diverging positive', '3-point converging positive', '3-point diverging negative', '3-point converging negative'};
                 case '3-point positive'
                     obj.stimulusNames = {'uncorrelated', '3-point diverging positive', '3-point converging positive'};
                 case '3-point negative'
                     obj.stimulusNames = {'uncorrelated', '3-point diverging negative', '3-point converging negative'};
-                case '2+3 positive'
-                    obj.stimulusNames = {'3-point diverging positive', 'uncorrelated', '2-point positive', '3-point converging positive'};
-                case '2+3 negative'
-                    obj.stimulusNames = {'3-point diverging negative','uncorrelated', '2-point positive', '3-point converging negative'};
-                case 'diverging positive'
+                case '3-point diverging positive'
                     obj.stimulusNames = {'uncorrelated', '3-point diverging positive'};
-                case 'diverging negative'
+                case '3-point converging positive'
+                    obj.stimulusNames = {'uncorrelated', '3-point converging positive'};
+                case '3-point diverging negative'
                     obj.stimulusNames = {'uncorrelated', '3-point diverging negative'};
-                case 'on'
-                    obj.stimulusNames = {'3-point diverging positive','3-point converging positive'};
-                case 'off'
-                    obj.stimulusNames = {'3-point diverging negative','3-point converging negative'};
-                otherwise
-                    obj.stimulusNames = {'uncorrelated'};
-            end
-            
-            if length(obj.stimulusNames) > 1
-                colors = pmkmp(length(obj.stimulusNames),'CubicYF');
-            else
-                colors = [0 0 0];
-            end
-            
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            
-            if ~strcmp(obj.onlineAnalysis, 'none')
-                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                    'sweepColor',colors,...
-                    'groupBy',{'stimulusType'});
-
-                obj.showFigure('manookinlab.figures.ShiftedInformationFigure', ...
-                    obj.rig.getDevice(obj.amp), 'recordingType',obj.onlineAnalysis,...
-                    'preTime', obj.preTime, ...
-                    'stimTime', obj.stimTime, ...
-                    'frameRate', obj.frameRate, ...
-                    'groupBy', 'stimulusType',...
-                    'groupByValues', obj.stimulusNames);
+                case '3-point converging negative'
+                    obj.stimulusNames = {'uncorrelated', '3-point converging negative'};
+                case 'uncorrelated 3-point'
+                    obj.stimulusNames = {'uncorrelated', '3-point diverging positive', '3-point converging positive', '3-point diverging negative', '3-point converging negative'};
             end
             
             % Calculate the number of frames.
-            obj.numStimFrames = ceil(obj.stimTime/1000*obj.frameRate) + 10;
+            obj.numStimFrames = ceil(obj.stimTime*1e-3*obj.frameRate) + 10;
             
             % Calculate the size of the stimulus.
             sz = [min(obj.canvasSize(1), obj.outerRadiusPix*2) min(obj.canvasSize(2), obj.outerRadiusPix*2)];
@@ -125,20 +95,40 @@ classdef GliderPulses < manookinlab.protocols.ManookinLabStageProtocol
                 obj.stixelDims = obj.stixelSizePix*ones(1,2);
             end
             
+            % Get all of the possible combinations.
+            if strcmpi(obj.stimulusClass, 'uncorrelated 3-point')
+                obj.stimulusCombinations = [ones(length(obj.stimulusNames)-1,1) (2:length(obj.stimulusNames))'; (2:length(obj.stimulusNames))' ones(length(obj.stimulusNames)-1,1)];
+            else
+                tmp = combnk(1 : length(obj.stimulusNames), 2);
+            
+                % Get all of the possible combinations.
+                obj.stimulusCombinations = [tmp; tmp(:,[2 1])];
+            end
+            
             % Get the correlation sequence.
-            obj.sequence = ones(length(obj.contrasts),1) * (1 : length(obj.stimulusNames));
-            obj.sequence = obj.sequence(:) * ones(1, ceil(obj.numberOfAverages/length(obj.stimulusNames)));
+            obj.sequence = (1 : size(obj.stimulusCombinations,1))' * ones(1, obj.numberOfAverages);
             obj.sequence = obj.sequence(:)';
             % Just take the ones you need.
             obj.sequence = obj.sequence( 1 : obj.numberOfAverages );
+            
+            if length(obj.stimulusNames) > 1
+                colors = pmkmp(size(obj.stimulusCombinations,1),'CubicYF');
+            else
+                colors = [0 0 0];
+            end
+            
+            % Figures
+            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                'sweepColor',colors,...
+                'groupBy',{'stimulusType'});
         end
         
         function p = createPresentation(obj)
 
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
-            
-            
             
             % Create your noise image.
             imageMatrix = uint8((zeros(obj.numYChecks, obj.numXChecks)) * 255);
@@ -206,97 +196,43 @@ classdef GliderPulses < manookinlab.protocols.ManookinLabStageProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
-            obj.seed = RandStream.shuffleSeed;
+            % Deal with the seed.
+            if obj.randsPerRep <= 0
+                obj.seed = 1;
+            elseif obj.randsPerRep > 0 && (mod(floor(obj.numEpochsCompleted/length(obj.stimulusNames))+1,obj.randsPerRep+1) == 0)
+                obj.seed = 1;
+            else
+                obj.seed = RandStream.shuffleSeed;
+            end
             
             % Seed the random number generator.
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             
             % Get the stimulus type and parity.
-            tmp = obj.stimulusNames{obj.sequence( obj.numEpochsCompleted+1 )};
+            tmp = obj.stimulusCombinations(obj.sequence( obj.numEpochsCompleted+1 ),:);
+            obj.stimulus1 = obj.stimulusNames{tmp(1)};
+            obj.stimulus2 = obj.stimulusNames{tmp(2)};
             
-            % Get the current contrast.
-            obj.contrast = obj.contrasts(mod(obj.numEpochsCompleted, length(obj.contrasts))+1);
-            obj.tau = obj.taus(mod(floor(obj.numEpochsCompleted/length(obj.contrasts)), length(obj.taus))+1);
+            % Save the seed.
+            epoch.addParameter('seed', obj.seed);
+            epoch.addParameter('numXChecks', obj.numXChecks);
+            epoch.addParameter('numYChecks', obj.numYChecks);
+            epoch.addParameter('stimulusType', [obj.stimulus1,' ',obj.stimulus2]);
+            epoch.addParameter('halfFrames',ceil(obj.stimTime/1000*obj.frameRate/2));
             
-            if ~contains(tmp,'uncorrelated')
-                % Check parity.
-                if contains(tmp,'negative')
-                    obj.parity = 'negative';
-                    obj.stimulusType = strrep(tmp,' negative','');
-                else
-                    obj.parity = 'positive';
-                    obj.stimulusType = strrep(tmp,' positive','');
-                end
-            else
-                obj.stimulusType = tmp;
-            end
+            % Get the frame sequence.
+            obj.getFrameSequence();
+        end
+        
+        function getFrameSequence(obj)
             
-            centerStixels = round(obj.numYChecks/2)+(-2:1);
-            
-            obj.frameSequence = 0.5*ones(obj.numYChecks, obj.numXChecks, ...
-                    obj.numStimFrames);
-                
-            obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
-            % Generate the frame sequence
-            if strcmp(obj.stimulusType, 'uncorrelated')
-                count=0;
-                for j = 1 : obj.numYChecks
-                    for k = 1 : obj.tau
-                        count = count+1;
-                        obj.frameSequence(:,:,count) = obj.noiseStream.rand(obj.numYChecks,1)>0.5;
-                    end
-                end
-                par = 1;
-            else
-                % Get the glider matrix.
-                switch obj.stimulusType
-                    case '2-point'
-                        glider = [1 0 0 0; 1 1 0 0; 0 1 1 0; 0 0 1 1];
-                    case '3-point diverging'
-                        glider = [0 0 0 1; 0 0 1 1; 0 1 1 1; 1 1 1 1];
-                    case '3-point converging'
-                        glider = [1 1 1 1; 1 1 1 0; 1 1 0 0; 1 0 0 0];
-                end
-
-                % Get the parity.
-                switch obj.parity
-                    case 'positive'
-                        par = 1;
-                    otherwise
-                        par = -1;
-                end
-                
-%                 if obj.noiseStream.rand > 0.5
-%                     glider = fliplr(glider);
-%                 end
-                
-                count=0;
-                for j = 1 : obj.numYChecks
-                    for k = 1 : obj.tau
-                        count = count+1;
-                        
-                        switch obj.stimulusType
-                            case '2-point'
-                                glider = zeros(obj.numYChecks,1);
-                                glider(j:min(j+1,obj.numYChecks)) = 1;
-                            case '3-point diverging'
-                                glider = zeros(obj.numYChecks,1);
-                                glider(1:j) = 1;
-                            case '3-point converging'
-                                glider = ones(obj.numYChecks,1);
-                                glider(1:j) = 0;
-                        end
-                        obj.frameSequence(:,:,count) = glider;
-                    end
-                end
-                
-%                 for j = 1 : size(glider,1)
-%                     obj.frameSequence(centerStixels,:,(j-1)*obj.tau+1) = glider(j,:)';
-%                 end
-            end
-            % Set the contrast.
-            obj.frameSequence = (2 * obj.frameSequence - 1);
-            obj.frameSequence = obj.frameSequence * par;
+            % Calculate the half-frames.
+            halfFrames = ceil(obj.stimTime/1000*obj.frameRate/2);
+            % Get the first half.
+            seq = obj.getSequenceFromType(obj.stimulus1);
+            % Get the second half
+            obj.frameSequence = obj.getSequenceFromType(obj.stimulus2);
+            obj.frameSequence(:,:,1:halfFrames) = seq(:,:,1:halfFrames);
             
             switch obj.contrastDistribution
                 case 'binary'
@@ -308,60 +244,54 @@ classdef GliderPulses < manookinlab.protocols.ManookinLabStageProtocol
                     noiseStream2 = RandStream('mt19937ar', 'Seed', obj.seed);
                     obj.frameSequence = obj.contrast * obj.frameSequence .* abs(noiseStream2.rand(size(obj.frameSequence)));
             end
-            
-            % Calculate the 3-pt correlations
-%             c = obj.getThreePtCorr(tmp);
-%             c = squeeze(sum(sum(c,1),2));
-            c = manookinlab.util.getTemporalCorrelations(obj.frameSequence, tmp);
-            c = c(:)';
-            
             % Convert to contrast.
             obj.frameSequence = obj.frameSequence*obj.backgroundIntensity + obj.backgroundIntensity;
-%             obj.frameSequence(obj.frameSequence <= 0) = obj.frameSequence(obj.frameSequence <= 0)*obj.backgroundIntensity + obj.backgroundIntensity;
+
             % Convert to 8-bit integer.
             obj.frameSequence = uint8(obj.frameSequence * 255);
-            
-            % Save the seed.
-            epoch.addParameter('seed', obj.seed);
-            epoch.addParameter('tau', obj.tau);
-            epoch.addParameter('numXChecks', obj.numXChecks);
-            epoch.addParameter('numYChecks', obj.numYChecks);
-            epoch.addParameter('stimulusType', tmp);
-            epoch.addParameter('correlationSequence',c);
-            epoch.addParameter('contrast',obj.contrast);
         end
         
-        % Calculate the 3-pt correlations
-        function c = getThreePtCorr(obj, stimulusType)
-            S = obj.frameSequence;
-            c = zeros(size(S));
-
-            % Diverging correlations
-            if contains(stimulusType,'diverging')
-                if ismatrix(c)
-                    for k = 2 : size(S,1)
-                        c(k,2:end) = S(k,1:end-1) .* ((S(k,2:end) + S(k-1,2:end))/2);
-                    end
+        function seq = getSequenceFromType(obj, seqType)
+            
+            if ~contains(seqType,'uncorrelated')
+                % Check parity.
+                if contains(seqType,'positive')
+                    obj.parity = 'positive';
+                    seqType = strrep(seqType,' positive','');
                 else
-                    for k = 2 : size(S,1)
-                        for m = 1 : size(S,2)
-                            c(k,m,2:end) = S(k,m,1:end-1) .* ((S(k,m,2:end) + S(k-1,m,2:end))/2);
-                        end
-                    end
-                end
-            else
-                if ismatrix(c)
-                    for k = 2 : size(S,1)
-                        c(k,2:end) = S(k,2:end) .* ((S(k,1:end-1) + S(k-1,1:end-1))/2);
-                    end
-                else
-                    for k = 2 : size(S,1)
-                        for m = 1 : size(S,2)
-                            c(k,m,2:end) = S(k,m,2:end) .* ((S(k,m,1:end-1) + S(k-1,m,1:end-1))/2);
-                        end
-                    end
+                    obj.parity = 'negative';
+                    seqType = strrep(seqType,' negative','');
                 end
             end
+            
+            if strcmp(seqType, 'uncorrelated')
+                obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
+                seq = (obj.noiseStream.rand(obj.numYChecks, obj.numXChecks, ...
+                    obj.numStimFrames) > 0.5);
+            else
+                % Get the glider matrix.
+                switch seqType
+                    case '2-point'
+                        glider = [0 1 1; 1 1 0];
+                    case '3-point diverging'
+                        glider = [0 1 1; 1 1 1; 1 1 0];
+                    case '3-point converging'
+                        glider = [0 0 0; 1 0 0; 1 0 1];
+                end
+
+                % Get the parity.
+                switch obj.parity
+                    case 'positive'
+                        par = 0;
+                    otherwise
+                        par = 1;
+                end
+            
+                seq = makeGlider(obj.numYChecks, obj.numXChecks, ...
+                    obj.numStimFrames, glider, par, obj.seed);
+            end
+            % Set the contrast.
+            seq = (2 * seq - 1);
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
@@ -372,5 +302,4 @@ classdef GliderPulses < manookinlab.protocols.ManookinLabStageProtocol
             tf = obj.numEpochsCompleted < obj.numberOfAverages;
         end
     end
-    
 end
