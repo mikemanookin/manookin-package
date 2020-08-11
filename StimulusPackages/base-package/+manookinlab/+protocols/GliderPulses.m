@@ -99,14 +99,6 @@ classdef GliderPulses < manookinlab.protocols.ManookinLabStageProtocol
                     obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                     'sweepColor',colors,...
                     'groupBy',{'stimulusType'});
-
-                obj.showFigure('manookinlab.figures.ShiftedInformationFigure', ...
-                    obj.rig.getDevice(obj.amp), 'recordingType',obj.onlineAnalysis,...
-                    'preTime', obj.preTime, ...
-                    'stimTime', obj.stimTime, ...
-                    'frameRate', obj.frameRate, ...
-                    'groupBy', 'stimulusType',...
-                    'groupByValues', obj.stimulusNames);
             end
             
             % Calculate the number of frames.
@@ -266,12 +258,16 @@ classdef GliderPulses < manookinlab.protocols.ManookinLabStageProtocol
                         par = -1;
                 end
                 
+                foo = makeGlider(10,1,6,[0 0 0; 1 0 0; 1 0 1],0,1);
+                foo = squeeze(foo);
+                sidx = floor(obj.numYChecks/2)+(-4:5);
+                
 %                 if obj.noiseStream.rand > 0.5
 %                     glider = fliplr(glider);
 %                 end
                 
                 count=0;
-                for j = 1 : obj.numYChecks
+                for j = 1 : 6 %obj.numYChecks
                     for k = 1 : obj.tau
                         count = count+1;
                         
@@ -280,11 +276,15 @@ classdef GliderPulses < manookinlab.protocols.ManookinLabStageProtocol
                                 glider = zeros(obj.numYChecks,1);
                                 glider(j:min(j+1,obj.numYChecks)) = 1;
                             case '3-point diverging'
-                                glider = zeros(obj.numYChecks,1);
-                                glider(1:j) = 1;
+%                                 glider = zeros(obj.numYChecks,1);
+                                glider = 0.5*ones(obj.numYChecks,1);
+                                glider(sidx) = foo(:,7-j);
+%                                 glider(1:j) = 1;
                             case '3-point converging'
-                                glider = ones(obj.numYChecks,1);
-                                glider(1:j) = 0;
+%                                 glider = ones(obj.numYChecks,1);
+                                glider = 0.5*ones(obj.numYChecks,1);
+                                glider(sidx) = foo(:,j);
+%                                 glider(1:j) = 0;
                         end
                         obj.frameSequence(:,:,count) = glider;
                     end
