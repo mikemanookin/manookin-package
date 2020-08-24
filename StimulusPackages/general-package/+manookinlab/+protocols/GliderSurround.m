@@ -16,7 +16,7 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
         randsPerRep = -1                % Number of random seeds per repeat (negative value is all random)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Online analysis type.
-        numberOfAverages = uint16(120)  % Number of epochs
+        numberOfAverages = uint16(240)  % Number of epochs
     end
     
     properties (Hidden)
@@ -103,7 +103,7 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Get the number of center stixels.
-            obj.numCenterChecks = ceil(obj.innerRadius / obj.stixelSize);
+            obj.numCenterChecks = ceil(obj.innerRadius*2 / obj.stixelSize);
             
             % Get all of the possible combinations.
             if strcmpi(obj.stimulusClass, 'uncorrelated 3-point')
@@ -132,6 +132,11 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
                 colors = [0 0 0];
             end
             
+            foo = {};
+            for k = 1:size(obj.stimulusCombinations,1)
+                foo{k} = [obj.stimulusNames{obj.stimulusCombinations(k,1)},' ',obj.stimulusNames{obj.stimulusCombinations(k,2)}]; %#ok<AGROW>
+            end
+            
             % Figures
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             if ~strcmp(obj.onlineAnalysis, 'none')
@@ -140,13 +145,13 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
                     'sweepColor',colors,...
                     'groupBy',{'stimulusType'});
 
-                obj.showFigure('manookinlab.figures.ShiftedInformationFigure', ...
-                    obj.rig.getDevice(obj.amp), 'recordingType',obj.onlineAnalysis,...
-                    'preTime', obj.preTime, ...
-                    'stimTime', obj.stimTime, ...
-                    'frameRate', obj.frameRate, ...
-                    'groupBy', 'stimulusType',...
-                    'groupByValues', obj.stimulusNames);
+%                 obj.showFigure('manookinlab.figures.ShiftedInformationFigure', ...
+%                     obj.rig.getDevice(obj.amp), 'recordingType',obj.onlineAnalysis,...
+%                     'preTime', obj.preTime, ...
+%                     'stimTime', obj.stimTime, ...
+%                     'frameRate', obj.frameRate, ...
+%                     'groupBy', 'stimulusType',...
+%                     'groupByValues', foo);
             end
         end
         
@@ -262,7 +267,7 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
             yIndex = floor(obj.numYChecks/2 - obj.numCenterChecks/2) + (1 : obj.numCenterChecks);
             
             if strcmpi(obj.dimensionality, '1-d')
-                numXReps = obj.roundNearestOdd(min(obj.canvasSize(1), obj.outerRadiusPix*2)/obj.innerRadiusPix);
+                numXReps = obj.roundNearestOdd(min(obj.canvasSize(1), obj.outerRadiusPix*2)/(obj.innerRadiusPix*2));
                 xIndex = ceil(numXReps/2);
                 seq = repmat(seq,[1 numXReps 1]);
                 obj.frameSequence = repmat(obj.frameSequence,[1 numXReps 1]);
