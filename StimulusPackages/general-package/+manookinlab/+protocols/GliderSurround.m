@@ -24,7 +24,7 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         dimensionalityType = symphonyui.core.PropertyType('char', 'row', {'1-d', '2-d'});
         contrastDistributionType = symphonyui.core.PropertyType('char','row', {'gaussian','binary','uniform'})
-        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'all', 'positive','negative', '3-point', '3-point positive', '3-point negative','uncorrelated 3-point','3-point diverging positive','3-point converging positive','3-point diverging negative','3-point converging negative','ternary'});
+        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'all', 'positive','negative','positiveFull','negativeFull', '3-point', '3-point positive', '3-point negative','uncorrelated 3-point','3-point diverging positive','3-point converging positive','3-point diverging negative','3-point converging negative','ternary'});
         stimulusNames
         noiseStream
         seed
@@ -43,6 +43,7 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
         innerRadiusPix
         outerRadiusPix
         numCenterChecks
+        tCorrelations
     end
     
     methods
@@ -65,8 +66,12 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
                 case '3-point'
                     obj.stimulusNames = {'uncorrelated', '3-point diverging positive', '3-point converging positive', '3-point diverging negative', '3-point converging negative'};
                 case 'positive'
-                    obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging positive', '3-point converging positive'};
+                    obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging positive'};
                 case 'negative'
+                    obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging negative'};
+                case 'positiveFull'
+                    obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging positive', '3-point converging positive'};
+                case 'negativeFull'
                     obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging negative', '3-point converging negative'};
                 case '3-point positive'
                     obj.stimulusNames = {'uncorrelated', '3-point diverging positive', '3-point converging positive'};
@@ -145,13 +150,13 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
                     'sweepColor',colors,...
                     'groupBy',{'stimulusType'});
 
-%                 obj.showFigure('manookinlab.figures.ShiftedInformationFigure', ...
-%                     obj.rig.getDevice(obj.amp), 'recordingType',obj.onlineAnalysis,...
-%                     'preTime', obj.preTime, ...
-%                     'stimTime', obj.stimTime, ...
-%                     'frameRate', obj.frameRate, ...
-%                     'groupBy', 'stimulusType',...
-%                     'groupByValues', foo);
+                obj.showFigure('manookinlab.figures.ShiftedInformationFigure', ...
+                    obj.rig.getDevice(obj.amp), 'recordingType',obj.onlineAnalysis,...
+                    'preTime', obj.preTime, ...
+                    'stimTime', obj.stimTime, ...
+                    'frameRate', obj.frameRate, ...
+                    'groupBy', 'stimulusType',...
+                    'groupByValues', foo);
             end
         end
         
@@ -217,10 +222,12 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
             % Deal with the seed.
-            if obj.randsPerRep <= 0
+            if obj.randsPerRep == 0
                 obj.seed = 1;
             elseif obj.randsPerRep > 0 && (mod(floor(obj.numEpochsCompleted/length(obj.stimulusNames))+1,obj.randsPerRep+1) == 0)
                 obj.seed = 1;
+            elseif obj.randsPerRep < 0
+                obj.seed = RandStream.shuffleSeed;
             else
                 obj.seed = RandStream.shuffleSeed;
             end
@@ -236,9 +243,6 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
             % Get the frame sequence.
             obj.getFrameSequence();
             
-            c = manookinlab.util.getTemporalCorrelations(obj.frameSequence, tmp);
-            c = c(:)';
-            
             % Save the seed.
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('numXChecks', obj.numXChecks);
@@ -246,7 +250,7 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('stimulusCenter',obj.stimulus1);
             epoch.addParameter('stimulusSurround',obj.stimulus2);
             epoch.addParameter('stimulusType', [obj.stimulus1,' ',obj.stimulus2]);
-            epoch.addParameter('correlationSequence',c);
+            epoch.addParameter('correlationSequence', obj.tCorrelations);
             
         end
         
@@ -263,6 +267,10 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
                 % Get the second half
                 obj.frameSequence = obj.getSequenceFromType(obj.stimulus2);
             end
+            
+            % Calculate the temporal correlations.
+            obj.tCorrelations = manookinlab.util.getTemporalCorrelations(obj.frameSequence, obj.stimulus1);
+            obj.tCorrelations = obj.tCorrelations(:)';
             
             yIndex = floor(obj.numYChecks/2 - obj.numCenterChecks/2) + (1 : obj.numCenterChecks);
             
