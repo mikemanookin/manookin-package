@@ -18,6 +18,13 @@ classdef Package < handle
             parentPath = fileparts(fileparts(fileparts(fileparts(((((mfilename('fullpath')))))))));
             p = fullfile(parentPath, 'resources');
         end
+        
+        function p = getMoviePath()
+            parentPath = fileparts(fileparts(fileparts(fileparts(((((mfilename('fullpath')))))))));
+
+            ids = strfind(parentPath,'\');
+            p = fullfile(parentPath(1:ids(end)-1),'movies');
+        end
     end
     
 end

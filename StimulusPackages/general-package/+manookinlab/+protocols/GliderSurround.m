@@ -92,7 +92,7 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Calculate the number of frames.
-            obj.numStimFrames = ceil(obj.stimTime*1e-3*obj.frameRate) + 10;
+            obj.numStimFrames = ceil(obj.stimTime*1e-3*obj.frameRate) + 50;
             
             % Calculate the size of the stimulus.
             sz = [min(obj.canvasSize(1), obj.outerRadiusPix*2) min(obj.canvasSize(2), obj.outerRadiusPix*2)];
@@ -232,6 +232,7 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
                 obj.seed = RandStream.shuffleSeed;
             end
             
+            
             % Seed the random number generator.
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             
@@ -251,7 +252,6 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('stimulusSurround',obj.stimulus2);
             epoch.addParameter('stimulusType', [obj.stimulus1,' ',obj.stimulus2]);
             epoch.addParameter('correlationSequence', obj.tCorrelations);
-            
         end
         
         function getFrameSequence(obj)
@@ -269,7 +269,7 @@ classdef GliderSurround < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Calculate the temporal correlations.
-            obj.tCorrelations = manookinlab.util.getTemporalCorrelations(obj.frameSequence, obj.stimulus1);
+            obj.tCorrelations = manookinlab.util.getTemporalCorrelations(seq, obj.stimulus1);
             obj.tCorrelations = obj.tCorrelations(:)';
             
             yIndex = floor(obj.numYChecks/2 - obj.numCenterChecks/2) + (1 : obj.numCenterChecks);

@@ -45,7 +45,7 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
                 'sweepColor',[0 0 0]);
             
             % Get the resources directory.
-            obj.pkgDir = manookinlab.Package.getResourcePath();
+            obj.pkgDir = manookinlab.Package.getMoviePath();
             
             obj.currentStimSet = [obj.stimulusSet,'.mat'];
             
