@@ -6,16 +6,16 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 500                  % Stimulus trailing duration (ms)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         maskDiameter = 0                % Mask diameter in pixels
-        apertureDiameter = 2000         % Aperture diameter in pixels.
+        apertureDiameters = [200,2000]  % Aperture diameter in pixels.
         stimulusSet = 'CatCam'          % The current movie stimulus set
-        freezeFEMs = false
         onlineAnalysis = 'extracellular'% Type of online analysis
-        numberOfAverages = uint16(54)   % Number of epochs
+        numberOfAverages = uint16(108)   % Number of epochs
     end
     
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        apertureDiametersType = symphonyui.core.PropertyType('denserealdouble','matrix')
         imageMatrix
         backgroundFrame
         movieName
@@ -24,6 +24,7 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
         stimulusIndex
         pkgDir
         im
+        apertureDiameter
     end
     
     methods
@@ -40,9 +41,14 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
             obj.showFigure('manookinlab.figures.ResponseFigure', obj.rig.getDevices('Amp'), ...
                 'numberOfAverages', obj.numberOfAverages);
             
-            obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                'sweepColor',[0 0 0]);
+            if ~strcmp(obj.onlineAnalysis, 'none')
+                colors = zeros(length(obj.apertureDiameters),3);
+                colors(1,:) = [0.8,0,0];
+                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'sweepColor',colors,...
+                    'groupBy',{'apertureDiameter'});
+            end
             
             % Get the resources directory.
             obj.pkgDir = manookinlab.Package.getMoviePath();
@@ -55,8 +61,8 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
             obj.backgroundFrame = uint8(obj.backgroundIntensity*ones(240,320));
             
             % Get the magnification factor. Exps were done with each pixel
-            % = 2 arcmin == 2/60 degree; 200 um/degree...
-            obj.magnificationFactor = round(2/60*200/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel'));
+            % = 1 arcmin == 1/60 degree; 200 um/degree...
+            obj.magnificationFactor = round(1/60*200/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel'));
         end
         
         function p = createPresentation(obj)
@@ -83,7 +89,7 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
             function p = getScenePosition(obj, time)
                 if time > 0 && time <= obj.stimTime*1e-3
                     fr = round(time*60)+1;
-                    p = obj.M(:,:,fr);
+                    p = obj.imageMatrix(:,:,fr);
                 else 
                     p = obj.backgroundFrame;
                 end
@@ -124,7 +130,8 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
-            obj.stimulusIndex = mod(obj.numEpochsCompleted,obj.im.chunkCount) + 1;
+            obj.apertureDiameter = obj.apertureDiameters(mod(obj.numEpochsCompleted,length(obj.apertureDiameters)) + 1);
+            obj.stimulusIndex = mod(floor(obj.numEpochsCompleted/length(obj.apertureDiameters)),obj.im.chunkCount) + 1;
             
             obj.movieName = obj.im.chunknames{obj.stimulusIndex};
             
@@ -135,6 +142,7 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('stimulusIndex', obj.stimulusIndex);
             epoch.addParameter('movieName', obj.movieName);
             epoch.addParameter('magnificationFactor', obj.magnificationFactor);
+            epoch.addParameter('apertureDiameter',obj.apertureDiameter);
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
