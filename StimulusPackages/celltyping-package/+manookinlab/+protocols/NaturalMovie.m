@@ -1,12 +1,11 @@
 classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
-        preTime = 250                   % Stimulus leading duration (ms)
-        stimTime = 15000                % Stimulus duration (ms)
+        preTime = 500                   % Stimulus leading duration (ms)
+        stimTime = 12000                % Stimulus duration (ms)
         tailTime = 500                  % Stimulus trailing duration (ms)
-        backgroundIntensity = 0.5       % Background light intensity (0-1)
-        maskDiameter = 0                % Mask diameter in pixels
-        apertureDiameters = [200,2000]  % Aperture diameter in pixels.
+        maskDiameter = 0                % Mask diameter in microns
+        apertureDiameters = [200,2000]  % Aperture diameter in microns.
         stimulusSet = 'CatCam'          % The current movie stimulus set
         onlineAnalysis = 'extracellular'% Type of online analysis
         numberOfAverages = uint16(108)   % Number of epochs
@@ -25,6 +24,8 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
         pkgDir
         im
         apertureDiameter
+        apertureDiameterPix
+        backgroundIntensity        % Background light intensity (0-1)
     end
     
     methods
@@ -62,7 +63,7 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the magnification factor. Exps were done with each pixel
             % = 1 arcmin == 1/60 degree; 200 um/degree...
-            obj.magnificationFactor = round(1/60*200/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel'));
+            obj.magnificationFactor = round(2/60*200/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel'));
         end
         
         function p = createPresentation(obj)
@@ -101,7 +102,7 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
             
             %--------------------------------------------------------------
             % Size is 0 to 1
-            sz = (obj.apertureDiameter)/min(obj.canvasSize);
+            sz = (obj.apertureDiameterPix)/min(obj.canvasSize);
             % Create the outer mask.
             if sz < 1
                 aperture = stage.builtin.stimuli.Rectangle();
@@ -111,7 +112,7 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
                 [x,y] = meshgrid(linspace(-obj.canvasSize(1)/2,obj.canvasSize(1)/2,obj.canvasSize(1)), ...
                     linspace(-obj.canvasSize(2)/2,obj.canvasSize(2)/2,obj.canvasSize(2)));
                 distanceMatrix = sqrt(x.^2 + y.^2);
-                circle = uint8((distanceMatrix >= obj.apertureDiameter/2) * 255);
+                circle = uint8((distanceMatrix >= obj.apertureDiameterPix/2) * 255);
                 mask = stage.core.Mask(circle);
                 aperture.setMask(mask);
                 p.addStimulus(aperture); %add aperture
@@ -121,8 +122,8 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
                 mask = stage.builtin.stimuli.Ellipse();
                 mask.position = obj.canvasSize/2;
                 mask.color = obj.backgroundIntensity;
-                mask.radiusX = obj.maskDiameter/2;
-                mask.radiusY = obj.maskDiameter/2;
+                mask.radiusX = obj.maskDiameter/2/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel');
+                mask.radiusY = obj.maskDiameter/2/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel');
                 p.addStimulus(mask); %add mask
             end
         end
@@ -133,10 +134,15 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
             obj.apertureDiameter = obj.apertureDiameters(mod(obj.numEpochsCompleted,length(obj.apertureDiameters)) + 1);
             obj.stimulusIndex = mod(floor(obj.numEpochsCompleted/length(obj.apertureDiameters)),obj.im.chunkCount) + 1;
             
+            % Convert to pix.
+            obj.apertureDiameterPix = round(obj.apertureDiameter/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel'));
+            
             obj.movieName = obj.im.chunknames{obj.stimulusIndex};
             
             tmp = load([obj.pkgDir,'\',obj.stimulusSet,'\',obj.movieName,'.mat'],'M');
             obj.imageMatrix = tmp.M;
+            
+            obj.backgroundIntensity = mean(double(tmp.M(:))/255);
             
             % Save the parameters.
             epoch.addParameter('stimulusIndex', obj.stimulusIndex);
