@@ -59,7 +59,7 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
             % Load the current stimulus set.
             obj.im = load([obj.pkgDir,'\',obj.currentStimSet]);
             
-            obj.backgroundFrame = uint8(obj.backgroundIntensity*ones(240,320));
+            
             
             % Get the magnification factor. Exps were done with each pixel
             % = 1 arcmin == 1/60 degree; 200 um/degree...
@@ -143,6 +143,7 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
             obj.imageMatrix = tmp.M;
             
             obj.backgroundIntensity = mean(double(tmp.M(:))/255);
+            obj.backgroundFrame = uint8(obj.backgroundIntensity*ones(240,320));
             
             % Save the parameters.
             epoch.addParameter('stimulusIndex', obj.stimulusIndex);
