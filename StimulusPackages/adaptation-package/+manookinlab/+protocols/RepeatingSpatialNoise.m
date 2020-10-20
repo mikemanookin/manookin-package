@@ -12,6 +12,7 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
         maskRadius = 0                  % Mask radius in pixels.
         apertureRadius = 0              % Aperture radius in pixels
         useRandomSeed = true            % Random seed (bool)
+        repeatSequence = false          % Repeat sequence halfway through?
         noiseClass = 'binary'           % Noise class (binary or Gaussian)
         onlineAnalysis = 'extracellular'
         numberOfAverages = uint16(200)    % Number of epochs
@@ -29,6 +30,7 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
         seed
         frameValues
         backgroundFrame
+        numberOfFrames
     end
 
     methods
@@ -57,12 +59,14 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.numYChecks = ceil(obj.canvasSize(2)/obj.stixelSize);
             numFrames = floor(obj.stimTime*1e-3 * obj.frameRate / obj.frameDwell);
 
-%             obj.showFigure('manookinlab.figures.SpatialNoiseFigure', ...
-%                 obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis, 'stixelSize', obj.stixelSize,...
-%                 'numXChecks', obj.numXChecks, 'numYChecks', obj.numYChecks,...
-%                 'noiseClass', obj.noiseClass, 'chromaticClass', obj.chromaticClass,...
-%                 'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
-%                 'frameRate', obj.frameRate, 'numFrames', numFrames);
+            if ~strcmp(obj.onlineAnalysis, 'none') && ~obj.repeatSequence
+                obj.showFigure('manookinlab.figures.SpatialNoiseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis, 'stixelSize', obj.stixelSize,...
+                    'numXChecks', obj.numXChecks, 'numYChecks', obj.numYChecks,...
+                    'noiseClass', obj.noiseClass, 'chromaticClass', 'achromatic',...
+                    'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
+                    'frameRate', obj.frameRate, 'numFrames', numFrames);
+            end
 
             % Get the frame values for repeating epochs.
             if ~obj.useRandomSeed
@@ -73,7 +77,12 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
         
         function getFrameValues(obj)
             % Get the number of frames.
-            numFrames = floor(obj.stimTime * 1e-3 / 2 * obj.frameRate / obj.frameDwell)+15;
+            if ~obj.repeatSequence
+                numFrames = floor(obj.stimTime/1000 * obj.frameRate / obj.frameDwell);
+            else
+                numFrames = floor(obj.stimTime * 1e-3 / 2 * obj.frameRate / obj.frameDwell)+15;
+            end
+            obj.numberOfFrames = numFrames;
 
             % Seed the random number generator.
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
@@ -118,8 +127,13 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                 @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
             p.addController(gridVisible);
             
-            imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                @(state)setAchromaticStixels(obj, state.time - obj.preTime * 1e-3));
+            if obj.repeatSequence
+                imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+                    @(state)setAchromaticStixels(obj, state.time - obj.preTime * 1e-3));
+            else
+                imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+                    @(state)setContinuousStixels(obj, state.time - obj.preTime * 1e-3));
+            end
             p.addController(imgController);
 
             function s = setAchromaticStixels(obj, time)
@@ -128,6 +142,15 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                     s = squeeze(obj.frameValues(index,:,:));
                 elseif time > obj.stimTime*1e-3/2 && time <= obj.stimTime*1e-3
                     index = floor((time-obj.stimTime*1e-3/2)*obj.frameRate/obj.frameDwell)+1;
+                    s = squeeze(obj.frameValues(index,:,:));
+                else
+                    s = obj.backgroundFrame;
+                end
+            end
+            
+            function s = setContinuousStixels(obj, time)
+                if time > 0 && time <= obj.stimTime*1e-3
+                    index = floor(time*obj.frameRate/obj.frameDwell)+1;
                     s = squeeze(obj.frameValues(index,:,:));
                 else
                     s = obj.backgroundFrame;
@@ -168,6 +191,7 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('numXChecks', obj.numXChecks);
             epoch.addParameter('numYChecks', obj.numYChecks);
+            epoch.addParameter('numberOfFrames',obj.numberOfFrames);
         end
 
         function tf = shouldContinuePreparingEpochs(obj)

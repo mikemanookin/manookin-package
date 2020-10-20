@@ -95,6 +95,9 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                     obj.backgroundFrame = uint8(obj.backgroundIntensity*ones(obj.numYChecks,obj.numXChecks,3));
                 elseif strcmpi(obj.chromaticClass, 'achromatic')
                     M = obj.noiseStream.rand(numFrames, obj.numYChecks,obj.numXChecks) > 0.5;
+                    if obj.intensity < 1
+                        M = obj.backgroundIntensity*(obj.intensity*(2*M-1))+obj.backgroundIntensity;
+                    end
                     obj.backgroundFrame = uint8(obj.backgroundIntensity*ones(obj.numYChecks,obj.numXChecks));
                 else
                     tmp = repmat(obj.noiseStream.rand(numFrames, obj.numYChecks, obj.numXChecks) > 0.5,[1 1 1 3]);
@@ -106,7 +109,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                     M = 0.5*M+0.5;
                     obj.backgroundFrame = uint8(obj.backgroundIntensity*ones(obj.numYChecks,obj.numXChecks,3));
                 end
-                obj.frameValues = uint8(obj.intensity*255*M);
+                obj.frameValues = uint8(M*255);
             elseif strcmpi(obj.noiseClass, 'ternary')
 
                 if strcmpi(obj.chromaticClass, 'RGB')
@@ -225,7 +228,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
 
             % Create your noise image.
             if strcmpi(obj.noiseClass, 'binary')
-                imageMatrix = uint8((rand(obj.numYChecks, obj.numXChecks)>0.5) * obj.correctedIntensity);
+                imageMatrix = uint8((rand(obj.numYChecks, obj.numXChecks)>0.5) * obj.correctedMean);
             else
                 imageMatrix = uint8((0.3*randn(obj.numYChecks, obj.numXChecks) * obj.backgroundIntensity + obj.backgroundIntensity)*255);
             end
