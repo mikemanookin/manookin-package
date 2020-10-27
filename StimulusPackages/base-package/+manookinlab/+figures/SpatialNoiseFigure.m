@@ -175,7 +175,7 @@ classdef SpatialNoiseFigure < symphonyui.core.FigureHandler
                 % Display the spatial RF.
                 for k = 1 : 4
                     imagesc('XData',obj.xaxis,'YData',obj.yaxis,...
-                        'CData', obj.strf(:,:,k+1), 'Parent', obj.axesHandle(k));
+                        'CData', obj.strf(:,:,k+2), 'Parent', obj.axesHandle(k));
                     axis(obj.axesHandle(k),'tight');
                     colormap(obj.axesHandle(k), 'gray');
                 end

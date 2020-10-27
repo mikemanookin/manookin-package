@@ -48,8 +48,12 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
 
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
-
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            
+            if numel(obj.rig.getDeviceNames('Amp')) < 2
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            else
+                obj.showFigure('edu.washington.riekelab.figures.DualResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));;
+            end
 
             % Get the frame rate. Need to check if it's a LCR rig.
             if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))

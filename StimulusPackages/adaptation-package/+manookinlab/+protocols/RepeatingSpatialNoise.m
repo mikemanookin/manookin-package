@@ -42,13 +42,17 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
 
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
-
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             
-            obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                'sweepColor',[30 144 255]/255,...
-                'groupBy',{'frameRate'});
+            if numel(obj.rig.getDeviceNames('Amp')) < 2
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'sweepColor',[30 144 255]/255,...
+                    'groupBy',{'frameRate'});
+            else
+                obj.showFigure('edu.washington.riekelab.figures.DualResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));
+                obj.showFigure('edu.washington.riekelab.figures.DualMeanResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));
+            end
 
             % Calculate the corrected intensity.
             obj.correctedIntensity = obj.contrast * 255;
@@ -57,7 +61,7 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate the number of X/Y checks.
             obj.numXChecks = ceil(obj.canvasSize(1)/obj.stixelSize);
             obj.numYChecks = ceil(obj.canvasSize(2)/obj.stixelSize);
-            numFrames = floor(obj.stimTime*1e-3 * obj.frameRate / obj.frameDwell);
+            numFrames = floor(obj.stimTime*1e-3 * obj.frameRate / obj.frameDwell)+15;
 
             if ~strcmp(obj.onlineAnalysis, 'none') && ~obj.repeatSequence
                 obj.showFigure('manookinlab.figures.SpatialNoiseFigure', ...

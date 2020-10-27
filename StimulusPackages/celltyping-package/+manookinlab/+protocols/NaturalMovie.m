@@ -39,17 +39,27 @@ classdef NaturalMovie < manookinlab.protocols.ManookinLabStageProtocol
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            obj.showFigure('manookinlab.figures.ResponseFigure', obj.rig.getDevices('Amp'), ...
-                'numberOfAverages', obj.numberOfAverages);
-            
-            if ~strcmp(obj.onlineAnalysis, 'none')
+            if numel(obj.rig.getDeviceNames('Amp')) < 2
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
                 colors = zeros(length(obj.apertureDiameters),3);
                 colors(1,:) = [0.8,0,0];
                 obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
                     obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                     'sweepColor',colors,...
                     'groupBy',{'apertureDiameter'});
+            else
+                obj.showFigure('edu.washington.riekelab.figures.DualResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));
+                obj.showFigure('edu.washington.riekelab.figures.DualMeanResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));
             end
+            
+%             if ~strcmp(obj.onlineAnalysis, 'none')
+%                 colors = zeros(length(obj.apertureDiameters),3);
+%                 colors(1,:) = [0.8,0,0];
+%                 obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+%                     obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+%                     'sweepColor',colors,...
+%                     'groupBy',{'apertureDiameter'});
+%             end
             
             % Get the resources directory.
             obj.pkgDir = manookinlab.Package.getMoviePath();
