@@ -78,7 +78,7 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
         function getFrameValues(obj)
             % Get the number of frames.
             if ~obj.repeatSequence
-                numFrames = floor(obj.stimTime/1000 * obj.frameRate / obj.frameDwell);
+                numFrames = floor(obj.stimTime/1000 * obj.frameRate / obj.frameDwell)+15;
             else
                 numFrames = floor(obj.stimTime * 1e-3 / 2 * obj.frameRate / obj.frameDwell)+15;
             end
