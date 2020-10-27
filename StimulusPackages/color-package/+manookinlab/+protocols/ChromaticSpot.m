@@ -21,6 +21,10 @@ classdef ChromaticSpot < manookinlab.protocols.ManookinLabStageProtocol
         bgMean
     end
     
+    properties (Dependent, SetAccess = private)
+        amp2                            % Secondary amplifier
+    end
+    
     methods
         
         function didSetRig(obj)
@@ -115,6 +119,16 @@ classdef ChromaticSpot < manookinlab.protocols.ManookinLabStageProtocol
                 p.addStimulus(mask);
             end
             
+        end
+        
+        function a = get.amp2(obj)
+            amps = obj.rig.getDeviceNames('Amp');
+            if numel(amps) < 2
+                a = '(None)';
+            else
+                i = find(~ismember(amps, obj.amp), 1);
+                a = amps{i};
+            end
         end
         
         % Same presentation each epoch in a run. Replay.
