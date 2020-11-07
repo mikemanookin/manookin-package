@@ -3,18 +3,17 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
         amp                             % Output amplifier
         preTime = 250                   % Texture leading duration (ms)
         tailTime = 250                  % Texture trailing duration (ms)
-        waitTime = 0                    % Time texture is presented before moving (ms)
+        waitTime = 2000                 % Time texture is presented before moving (ms)
         moveTime = 2000                 % Move duration (ms)
         spaceConstants = 100:100:500    % Correlation constants (um)
-        correlationFrames = 6           % Time course between reset of correlations
-        radius = 40                     % Dot radius (microns)
+        radius = 10                     % Dot radius (microns)
         dotDensity = 200                % Number of dots per square mm.
         contrast = 1.0                  % Texture contrast (0-1)
         splitContrasts = true           % Half of dots will be opposite polarity.
         driftSpeed = 1000               % Texture drift speed (um/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Type of online analysis
-        numberOfAverages = uint16(30)   % Number of epochs
+        numberOfAverages = uint16(24)   % Number of epochs
     end
     
     properties (Dependent) 
@@ -30,9 +29,7 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
         spaceConstantPix
         numDots
         motionPerFrame
-        imageMatrix
-        numXChecks
-        numYChecks
+        positionMatrix
     end
     
     methods
@@ -55,12 +52,9 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
                     'groupBy',{'spaceConstant'});
             end
             
-            obj.motionPerFrame = obj.rig.getDevice('Stage').um2pix(obj.driftSpeed) / 60 / obj.radiusPix;
+            obj.motionPerFrame = obj.rig.getDevice('Stage').um2pix(obj.driftSpeed) / 60;
             obj.radiusPix = obj.rig.getDevice('Stage').um2pix(obj.radius);
             obj.spaceConstantsPix = obj.rig.getDevice('Stage').um2pix(obj.spaceConstants);
-            
-            obj.numXChecks = ceil(obj.canvasSize(1)/obj.radiusPix);
-            obj.numYChecks = ceil(obj.canvasSize(2)/obj.radiusPix);
             
             % Get the canvas size in square mm.
             cSize = obj.canvasSize/obj.rig.getDevice('Stage').um2pix(1) * 1e-3;
@@ -74,36 +68,46 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity); % Set background intensity
             
             
-            checkerboard = stage.builtin.stimuli.Image(obj.imageMatrix(:,:,1));
-            checkerboard.position = obj.canvasSize / 2;
-            checkerboard.size = [obj.numXChecks obj.numYChecks] * obj.radiusPix;
-
-            % Set the minifying and magnifying functions to form discrete
-            % stixels.
-            checkerboard.setMinFunction(GL.NEAREST);
-            checkerboard.setMagFunction(GL.NEAREST);
+            if obj.splitContrasts
+                dotIntensity = [obj.contrast -obj.contrast];
+            else
+                dotIntensity = obj.contrast;
+            end
             
-            % Add the stimulus to the presentation.
-            p.addStimulus(checkerboard);
+            if obj.backgroundIntensity > 0
+                dotIntensity = dotIntensity * obj.backgroundIntensity + obj.backgroundIntensity;
+            end
             
-            gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
-            p.addController(gridVisible);
+            % Generate the dots.
+            for k = 1 : obj.numDots
+                spot = stage.builtin.stimuli.Ellipse();
+                spot.radiusX = obj.radiusPix;
+                spot.radiusY = obj.radiusPix;
+                spot.position = obj.canvasSize/2;
+                spot.color = dotIntensity(mod(k-1,length(dotIntensity))+1);
+                
+                % Add the stimulus to the presentation.
+                p.addStimulus(spot);
+                
+                % Make the dot visible only during the stimulus period.
+                dotVisible = stage.builtin.controllers.PropertyController(spot, 'visible', ...
+                    @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                p.addController(dotVisible);
+                
+                positionController = stage.builtin.controllers.PropertyController(spot, 'position',...
+                    @(state)objectPosition(obj, state.time - (obj.preTime + obj.waitTime) * 1e-3, k));
+                p.addController(positionController);
+            end
             
-            % Calculate preFrames and stimFrames
-            preF = floor(obj.preTime/1000 * obj.frameRate);
-            stimF = floor(obj.stimTime/1000 * obj.frameRate);
-
-            imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                @(state)setStixels(obj, state.frame - preF, stimF));
-            p.addController(imgController);
-
-            function s = setStixels(obj, frame, stimFrames)
-                if frame > 0 && frame <= stimFrames
-                    index = ceil(frame/obj.frameDwell);
-                    s = squeeze(obj.imageMatrix(:,:,index));
+             
+            %--------------------------------------------------------------
+            % Control the texture position.
+            function p = objectPosition(obj, time, whichDot)
+                if time > 0 && time <= obj.moveTime*1e-3
+                    whichFrame = floor(time * obj.frameRate) + 1;
+                    p = squeeze(obj.positionMatrix(whichFrame,whichDot,:));
                 else
-                    s = squeeze(obj.imageMatrix(:,:,1));
+                    p = squeeze(obj.positionMatrix(1,whichDot,:));
                 end
             end
         end
@@ -122,13 +126,9 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
             
             % Calculate the stimulus frames.
             stimFrames = ceil(obj.moveTime * 1e-3 * obj.frameRate) + 30;
-            epoch.addParameter('stimFrames', stimFrames);
             
             % Get the position matrix.
-            obj.imageMatrix = manookinlab.util.getXYDotTrajectories(stimFrames,obj.motionPerFrame,obj.spaceConstantPix,obj.numDots,[obj.numYChecks,obj.numXChecks],obj.seed,obj.correlationFrames,obj.splitContrasts);
-            % Multiply by the contrast and convert to uint8.
-            obj.imageMatrix = obj.contrast * obj.imageMatrix;
-            obj.imageMatrix = uint8(255*(obj.backgroundIntensity*obj.imageMatrix + obj.backgroundIntensity));
+            obj.positionMatrix = manookinlab.util.getXYDotTrajectories(stimFrames,obj.motionPerFrame,obj.spaceConstantPix,obj.numDots,obj.canvasSize,obj.seed,obj.radius*2);
         end
         
         function stimTime = get.stimTime(obj)

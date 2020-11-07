@@ -1,7 +1,14 @@
-function xyMatrix = getXYDotTrajectories(stimFrames,motionPerFrame,spaceConstant,numDots,screenSize,seed,minRadius)
+function M = getXYDotTrajectories(stimFrames,motionPerFrame,spaceConstant,numDots,screenSize,seed,correlationFrames,splitContrasts)
 
 % Pre-allocate the x/y position matrix.
-xyMatrix = zeros(stimFrames, numDots, 2);
+M = zeros([screenSize,stimFrames]);
+
+% Make every other dot alternate black/white
+if splitContrasts
+    dotContrasts = 2*mod(1:numDots,2)-1;
+else
+    dotContrasts = ones(1,numDots);
+end
 
 % Seed the random number generator.
 noiseStream = RandStream('mt19937ar','Seed',seed);
@@ -9,47 +16,39 @@ noiseStream = RandStream('mt19937ar','Seed',seed);
 % Generate random initial positions for the dots.
 positions = ceil(noiseStream.rand(numDots,2) .* (ones(numDots,1)*screenSize));
 
-% Set the xyMatrix initial values.
-xyMatrix(1,:,:) = positions;
-
-% Get the diagonal indices.
-idx = logical(eye(numDots));
-
-for k = 2 : stimFrames
-    % Get the pairwise distance between points.
-    d = squareform(pdist(positions));
+for k = 1 : stimFrames
     
-    % Apply space constant to get the covariance matrix.
-    C = exp(-d / spaceConstant);
-    % Check whether the matrix is positive definite.
-%     [tmp, tf] = chol(C);
-%     if ~tf
-%         C = tmp;
-%     end
-    
-    % Get the x/y shift.
-    xShift = motionPerFrame * noiseStream.randn(1,numDots) * C;
-    yShift = motionPerFrame * noiseStream.randn(1,numDots) * C;
+    if mod(k+1,correlationFrames) == 0
+        % Generate random initial positions for the dots.
+        positions = ceil(noiseStream.rand(numDots,2) .* (ones(numDots,1)*screenSize));
+        xShift = motionPerFrame * noiseStream.randn(1,numDots);
+        yShift = motionPerFrame * noiseStream.randn(1,numDots);
+    else
+        % Get the pairwise distance between points.
+        d = squareform(pdist(positions));
+
+        % Apply space constant to get the covariance matrix.
+        C = exp(-d / spaceConstant);
+
+        % Get the x/y shift.
+        xShift = motionPerFrame * noiseStream.randn(1,numDots) * C;
+        yShift = motionPerFrame * noiseStream.randn(1,numDots) * C;
+    end
     
     % Add the shifts to the current positions and iterate.
     positions = round(positions + [xShift(:) yShift(:)]);
     
     % Make sure they don't go off of the screen.
-    positions(positions < 1) = 1;
-    positions(positions(:,1) > screenSize(1),1) = screenSize(1);
-    positions(positions(:,2) > screenSize(2),2) = screenSize(2);
+    positions(positions(:,1) < 1, 1) = -positions(positions(:,1) < 1, 1);
+    positions(positions(:,2) < 1, 2) = -positions(positions(:,2) < 1, 2);
+    positions(positions == 0) = 1;
+    positions(positions(:,1) > screenSize(1),1) = screenSize(1) - (positions(positions(:,1) > screenSize(1),1) - screenSize(1));
+    positions(positions(:,2) > screenSize(2),2) = screenSize(2) - (positions(positions(:,2) > screenSize(2),2) - screenSize(2));
     
-    % Shift any dots that are overlapping.
-    d = squareform(pdist(positions));
-    % Give the diagonal elements a large value so they don't violate.
-    d(idx) = 1e3;
-    [rows,~] = find(d < minRadius);
-    
-    % Shift the points that are too close.
-    if ~isempty(rows)
-        positions(unique(rows),:) = positions(unique(rows),:) + minRadius*noiseStream.randn(length(unique(rows)),2);
+    mtmp = zeros(screenSize);
+    for m = 1 : numDots
+        mtmp(positions(m,1),positions(m,2)) = dotContrasts(m);
     end
-    
-    xyMatrix(k,:,:) = positions;
+    M(:,:,k) = mtmp;
 end
 
