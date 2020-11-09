@@ -8,10 +8,10 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
         spaceConstants = 100:100:500    % Correlation constants (um)
         correlationFrames = 6           % Time course between reset of correlations
         radius = 40                     % Dot radius (microns)
-        dotDensity = 200                % Number of dots per square mm.
+        dotDensity = 100                % Number of dots per square mm.
         contrast = 1.0                  % Texture contrast (0-1)
         splitContrasts = true           % Half of dots will be opposite polarity.
-        driftSpeed = 1000               % Texture drift speed (um/sec)
+        driftSpeed = 250                % Texture drift speed (um/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Type of online analysis
         numberOfAverages = uint16(30)   % Number of epochs
@@ -21,9 +21,14 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
         stimTime
     end
     
+    properties (Dependent, SetAccess = private)
+        amp2                            % Secondary amplifier
+    end
+    
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        spaceConstantsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         seed
         radiusPix
         spaceConstantsPix
@@ -46,18 +51,38 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            if ~strcmp(obj.onlineAnalysis, 'none')
-                colors = [0 0 0; 0.8 0 0; 0 0.5 0; 0 0.7 0.2; 0 0.2 1];
-                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                    'sweepColor',colors,...
-                    'groupBy',{'spaceConstant'});
+            colors = [0 0 0; 0.8 0 0; 0 0.5 0; 0 0.7 0.2; 0 0.2 1];
+            nReps = ceil(length(obj.spaceConstants)/size(colors,1));
+            if nReps > 1
+                repmat(colors,[nReps,1]);
+            end
+            colors = colors(length(obj.spaceConstants),:);
+            
+            if numel(obj.rig.getDeviceNames('Amp')) < 2
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+                if ~strcmp(obj.onlineAnalysis, 'none')
+                    obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                        obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                        'sweepColor',colors,...
+                        'groupBy',{'spaceConstant'});
+                end
+            else
+                obj.showFigure('edu.washington.riekelab.figures.DualResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));
+                if ~strcmp(obj.onlineAnalysis, 'none')
+                    obj.showFigure('symphonyui.builtin.figures.DualMeanResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2),...
+                        'recordingType',obj.onlineAnalysis,...
+                        'sweepColor1',colors,...
+                        'groupBy1',{'spaceConstant'},...
+                        'sweepColor2',colors,...
+                        'groupBy2',{'spaceConstant'});
+                end
             end
             
-            obj.motionPerFrame = obj.rig.getDevice('Stage').um2pix(obj.driftSpeed) / 60 / obj.radiusPix;
+            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            
             obj.radiusPix = obj.rig.getDevice('Stage').um2pix(obj.radius);
-            obj.spaceConstantsPix = obj.rig.getDevice('Stage').um2pix(obj.spaceConstants);
+            obj.motionPerFrame = obj.rig.getDevice('Stage').um2pix(obj.driftSpeed) / 60 / obj.radiusPix;
+            obj.spaceConstantsPix = obj.rig.getDevice('Stage').um2pix(obj.spaceConstants) / obj.radiusPix;
             
             obj.numXChecks = ceil(obj.canvasSize(1)/obj.radiusPix);
             obj.numYChecks = ceil(obj.canvasSize(2)/obj.radiusPix);
@@ -100,8 +125,7 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
 
             function s = setStixels(obj, frame, stimFrames)
                 if frame > 0 && frame <= stimFrames
-                    index = ceil(frame/obj.frameDwell);
-                    s = squeeze(obj.imageMatrix(:,:,index));
+                    s = squeeze(obj.imageMatrix(:,:,frame));
                 else
                     s = squeeze(obj.imageMatrix(:,:,1));
                 end
@@ -133,6 +157,16 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
         
         function stimTime = get.stimTime(obj)
             stimTime = obj.waitTime + obj.moveTime;
+        end
+        
+        function a = get.amp2(obj)
+            amps = obj.rig.getDeviceNames('Amp');
+            if numel(amps) < 2
+                a = '(None)';
+            else
+                i = find(~ismember(amps, obj.amp), 1);
+                a = amps{i};
+            end
         end
         
         function tf = shouldContinuePreparingEpochs(obj)

@@ -38,16 +38,19 @@ for k = 1 : stimFrames
     % Add the shifts to the current positions and iterate.
     positions = round(positions + [xShift(:) yShift(:)]);
     
+    positions = round(positions);
     % Make sure they don't go off of the screen.
     positions(positions(:,1) < 1, 1) = -positions(positions(:,1) < 1, 1);
     positions(positions(:,2) < 1, 2) = -positions(positions(:,2) < 1, 2);
-    positions(positions == 0) = 1;
+    positions(positions <= 0) = 1;
     positions(positions(:,1) > screenSize(1),1) = screenSize(1) - (positions(positions(:,1) > screenSize(1),1) - screenSize(1));
     positions(positions(:,2) > screenSize(2),2) = screenSize(2) - (positions(positions(:,2) > screenSize(2),2) - screenSize(2));
     
     mtmp = zeros(screenSize);
     for m = 1 : numDots
-        mtmp(positions(m,1),positions(m,2)) = dotContrasts(m);
+%         if all(positions(m,:) >= 1, 'all') && (positions(m,1) <= screenSize(1)) && (positions(m,2) <= screenSize(2))
+            mtmp(positions(m,1),positions(m,2)) = dotContrasts(m);
+%         end
     end
     M(:,:,k) = mtmp;
 end
