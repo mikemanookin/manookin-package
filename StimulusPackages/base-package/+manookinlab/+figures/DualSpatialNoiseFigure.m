@@ -26,7 +26,7 @@ classdef DualSpatialNoiseFigure < symphonyui.core.FigureHandler
     
     methods
         
-        function obj = SpatialNoiseFigure(device1, device2, varargin)
+        function obj = DualSpatialNoiseFigure(device1, device2, varargin)
             ip = inputParser();
             ip.addParameter('recordingType', 'extracellular', @(x)ischar(x));
             ip.addParameter('stixelSize', [], @(x)isfloat(x));
@@ -140,6 +140,7 @@ classdef DualSpatialNoiseFigure < symphonyui.core.FigureHandler
             end
             
             function filterTmp = getSTRF(frameValues, y)
+                filterFrames = floor(obj.frameRate*0.5);
                 y(1 : floor(obj.frameRate)) = 0;
                 
                 % Perform reverse correlation.
@@ -188,15 +189,15 @@ classdef DualSpatialNoiseFigure < symphonyui.core.FigureHandler
                 for k = 1 : 2
                     imagesc('XData',obj.xaxis,'YData',obj.yaxis,...
                         'CData', obj.strf1(:,:,k+3), 'Parent', obj.axesHandle(k));
-                    axis(obj.axesHandle(k),'tight');
+                    axis(obj.axesHandle(k),'image');
                     colormap(obj.axesHandle(k), 'gray');
                 end
                 
                 for k = 1 : 2
                     imagesc('XData',obj.xaxis,'YData',obj.yaxis,...
                         'CData', obj.strf2(:,:,k+3), 'Parent', obj.axesHandle(k+2));
-                    axis(obj.axesHandle(k),'tight');
-                    colormap(obj.axesHandle(k), 'gray');
+                    axis(obj.axesHandle(k+2),'image');
+                    colormap(obj.axesHandle(k+2), 'gray');
                 end
             end
         end

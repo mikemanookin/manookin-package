@@ -176,7 +176,7 @@ classdef SpatialNoiseFigure < symphonyui.core.FigureHandler
                 for k = 1 : 4
                     imagesc('XData',obj.xaxis,'YData',obj.yaxis,...
                         'CData', obj.strf(:,:,k+2), 'Parent', obj.axesHandle(k));
-                    axis(obj.axesHandle(k),'tight');
+                    axis(obj.axesHandle(k),'image');
                     colormap(obj.axesHandle(k), 'gray');
                 end
 %                 if obj.numXChecks == 1 || obj.numYChecks == 1

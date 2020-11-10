@@ -4,17 +4,17 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Texture leading duration (ms)
         tailTime = 250                  % Texture trailing duration (ms)
         waitTime = 0                    % Time texture is presented before moving (ms)
-        moveTime = 2000                 % Move duration (ms)
-        spaceConstants = 100:100:500    % Correlation constants (um)
-        correlationFrames = 6           % Time course between reset of correlations
+        moveTime = 5000                 % Move duration (ms)
+        spaceConstants = [50,100:100:500, 750,1000]    % Correlation constants (um)
+        correlationFrames = 12           % Time course between reset of correlations
         radius = 40                     % Dot radius (microns)
         dotDensity = 100                % Number of dots per square mm.
         contrast = 1.0                  % Texture contrast (0-1)
         splitContrasts = true           % Half of dots will be opposite polarity.
-        driftSpeed = 250                % Texture drift speed (um/sec)
+        motionStd = 1000                % Standard deviation of motion speed (um/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Type of online analysis
-        numberOfAverages = uint16(30)   % Number of epochs
+        numberOfAverages = uint16(42)   % Number of epochs
     end
     
     properties (Dependent) 
@@ -54,7 +54,7 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
             colors = [0 0 0; 0.8 0 0; 0 0.5 0; 0 0.7 0.2; 0 0.2 1];
             nReps = ceil(length(obj.spaceConstants)/size(colors,1));
             if nReps > 1
-                repmat(colors,[nReps,1]);
+                colors = repmat(colors,[nReps,1]);
             end
             colors = colors(length(obj.spaceConstants),:);
             
@@ -69,7 +69,7 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
             else
                 obj.showFigure('edu.washington.riekelab.figures.DualResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));
                 if ~strcmp(obj.onlineAnalysis, 'none')
-                    obj.showFigure('symphonyui.builtin.figures.DualMeanResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2),...
+                    obj.showFigure('manookinlab.figures.DualMeanResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2),...
                         'recordingType',obj.onlineAnalysis,...
                         'sweepColor1',colors,...
                         'groupBy1',{'spaceConstant'},...
@@ -78,10 +78,8 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
                 end
             end
             
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            
             obj.radiusPix = obj.rig.getDevice('Stage').um2pix(obj.radius);
-            obj.motionPerFrame = obj.rig.getDevice('Stage').um2pix(obj.driftSpeed) / 60 / obj.radiusPix;
+            obj.motionPerFrame = obj.rig.getDevice('Stage').um2pix(obj.motionStd) / 60 / obj.radiusPix;
             obj.spaceConstantsPix = obj.rig.getDevice('Stage').um2pix(obj.spaceConstants) / obj.radiusPix;
             
             obj.numXChecks = ceil(obj.canvasSize(1)/obj.radiusPix);
