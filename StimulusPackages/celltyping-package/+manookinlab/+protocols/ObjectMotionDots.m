@@ -5,16 +5,16 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Texture trailing duration (ms)
         waitTime = 0                    % Time texture is presented before moving (ms)
         moveTime = 5000                 % Move duration (ms)
-        spaceConstants = [50,100:100:500, 750,1000]    % Correlation constants (um)
+        spaceConstants = [50,100:100:500,750,1000]    % Correlation constants (um)
         correlationFrames = 12           % Time course between reset of correlations
         radius = 40                     % Dot radius (microns)
-        dotDensity = 100                % Number of dots per square mm.
+        dotDensity = 200                % Number of dots per square mm.
         contrast = 1.0                  % Texture contrast (0-1)
         splitContrasts = true           % Half of dots will be opposite polarity.
         motionStd = 1000                % Standard deviation of motion speed (um/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Type of online analysis
-        numberOfAverages = uint16(42)   % Number of epochs
+        numberOfAverages = uint16(64)   % Number of epochs
     end
     
     properties (Dependent) 
