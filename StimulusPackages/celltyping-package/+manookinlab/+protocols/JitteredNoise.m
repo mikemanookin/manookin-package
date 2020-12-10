@@ -1,16 +1,16 @@
 classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
-        preTime = 500                   % Noise leading duration (ms)
+        preTime = 250                   % Noise leading duration (ms)
         stimTime = 21000                % Noise duration (ms)
         tailTime = 500                  % Noise trailing duration (ms)
         stixelSize = 40                 % Edge length of stixel (microns)
         stepsPerStixel = 2              % Size of underling grid
         contrast = 1.0                  % Max light contrast (0-1)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        useRandomSeed = true            % Random seed (bool)
+        randsPerRep = -1                % Number of random seeds between repeats
         onlineAnalysis = 'extracellular'
-        numberOfAverages = uint16(60)    % Number of epochs
+        numberOfAverages = uint16(105)  % Number of epochs
     end
 
     properties (Hidden)
@@ -103,12 +103,16 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
 
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
-
+            
             % Deal with the seed.
-            if obj.useRandomSeed
-                obj.seed = RandStream.shuffleSeed;
-            else
+            if obj.randsPerRep == 0 
                 obj.seed = 1;
+            elseif obj.randsPerRep < 0
+                obj.seed = RandStream.shuffleSeed;
+            elseif obj.randsPerRep > 0 && (mod(obj.numEpochsCompleted+1,obj.randsPerRep+1) == 0)
+                obj.seed = 1;
+            else
+                obj.seed = RandStream.shuffleSeed;
             end
             
             obj.imageMatrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed);
