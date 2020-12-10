@@ -56,7 +56,13 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
             if nReps > 1
                 colors = repmat(colors,[nReps,1]);
             end
-            colors = colors(length(obj.spaceConstants),:);
+            colors = colors(1:length(obj.spaceConstants),:);
+            
+            obj.showFigure('manookinlab.figures.IntegratedResponseFigure', ...
+                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                'preTime',obj.preTime,...
+                'stimTime',obj.stimTime,...
+                'groupBy',{'spaceConstant'});
             
             if numel(obj.rig.getDeviceNames('Amp')) < 2
                 obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
