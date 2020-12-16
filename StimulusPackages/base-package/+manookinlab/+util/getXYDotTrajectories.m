@@ -39,12 +39,16 @@ for k = 1 : stimFrames
     positions = round(positions + [xShift(:) yShift(:)]);
     
     positions = round(positions);
+    
+
     % Make sure they don't go off of the screen.
     positions(positions(:,1) < 1, 1) = -positions(positions(:,1) < 1, 1);
     positions(positions(:,2) < 1, 2) = -positions(positions(:,2) < 1, 2);
-    positions(positions <= 0) = 1;
+    
     positions(positions(:,1) > screenSize(1),1) = screenSize(1) - (positions(positions(:,1) > screenSize(1),1) - screenSize(1));
     positions(positions(:,2) > screenSize(2),2) = screenSize(2) - (positions(positions(:,2) > screenSize(2),2) - screenSize(2));
+    
+    positions(positions <= 0) = 1;
     
     mtmp = zeros(screenSize);
     for m = 1 : numDots
