@@ -13,6 +13,8 @@ classdef IntegratedResponseFigure < symphonyui.core.FigureHandler
         sweepIndex
         xValues
         yValues
+        xMean
+        yMean
         preTime
         stimTime
     end
