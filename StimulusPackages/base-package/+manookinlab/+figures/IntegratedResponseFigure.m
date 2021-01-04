@@ -108,7 +108,7 @@ classdef IntegratedResponseFigure < symphonyui.core.FigureHandler
             
             obj.setTitle([obj.device.name ' Integrated Response (' obj.groupBy{1} ')']);
             
-            xsort = unique(x);
+            xsort = unique(obj.xValues);
             ysort = zeros(size(xsort));
             for k = 1 : length(xsort)
                 index = (obj.xValues == xsort(k));
