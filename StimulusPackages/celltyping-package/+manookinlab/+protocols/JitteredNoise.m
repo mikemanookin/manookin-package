@@ -9,6 +9,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
         contrast = 1.0                  % Max light contrast (0-1)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         randsPerRep = -1                % Number of random seeds between repeats
+        maxWidth = 600                  % Maximum width of the stimulus in microns.
         onlineAnalysis = 'extracellular'
         numberOfAverages = uint16(105)  % Number of epochs
     end
@@ -24,6 +25,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
         numFrames
         stixelSizePix
         imageMatrix
+        maxWidthPix
     end
     
     properties (Dependent, SetAccess = private)
@@ -44,9 +46,15 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
 
             obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
             
+            if obj.maxWidth > 0
+                obj.maxWidthPix = obj.rig.getDevice('Stage').um2pix(obj.maxWidth);
+            else
+                obj.maxWidthPix = min(obj.canvasSize);
+            end
+            
             % Calculate the number of X/Y checks.
-            obj.numXStixels = ceil(obj.canvasSize(1)/obj.stixelSizePix) + 1;
-            obj.numYStixels = ceil(obj.canvasSize(2)/obj.stixelSizePix) + 1;
+            obj.numXStixels = ceil(obj.maxWidthPix/obj.stixelSizePix) + 1;
+            obj.numYStixels = ceil(obj.maxWidthPix/obj.stixelSizePix) + 1;
             obj.numXChecks = ceil((obj.numXStixels-1) * double(obj.stepsPerStixel));
             obj.numYChecks = ceil((obj.numYStixels-1) * double(obj.stepsPerStixel));
             % Get the number of frames.
