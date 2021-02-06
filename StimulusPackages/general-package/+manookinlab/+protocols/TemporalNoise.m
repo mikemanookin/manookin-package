@@ -40,6 +40,10 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             
+            if strcmp(obj.onlineAnalysis,'extracellular')
+                obj.showFigure('manookinlab.figures.AutocorrelationFigure', obj.rig.getDevice(obj.amp));
+            end
+            
             if ~strcmp(obj.onlineAnalysis, 'none')
                 obj.showFigure('manookinlab.figures.TemporalNoiseFigure', ...
                     obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis, 'noiseClass', obj.noiseClass,...

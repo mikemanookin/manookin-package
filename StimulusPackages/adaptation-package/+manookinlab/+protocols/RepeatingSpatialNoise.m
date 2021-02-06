@@ -62,6 +62,10 @@ classdef RepeatingSpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                     'sweepColor2',[30 144 255]/255,...
                     'groupBy2',{'frameRate'});
             end
+            
+            if strcmp(obj.onlineAnalysis,'extracellular')
+                obj.showFigure('manookinlab.figures.AutocorrelationFigure', obj.rig.getDevice(obj.amp));
+            end
 
             % Calculate the corrected intensity.
             obj.correctedIntensity = obj.contrast * 255;

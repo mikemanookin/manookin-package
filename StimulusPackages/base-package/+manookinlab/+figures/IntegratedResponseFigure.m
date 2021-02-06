@@ -63,7 +63,7 @@ classdef IntegratedResponseFigure < symphonyui.core.FigureHandler
                 'FontName', get(obj.figureHandle, 'DefaultUicontrolFontName'), ...
                 'FontSize', get(obj.figureHandle, 'DefaultUicontrolFontSize'), ...
                 'XTickMode', 'auto');
-            xlabel(obj.axesHandle, 'sec');
+            xlabel(obj.axesHandle, 'space constant');
             obj.yValues = [];
             obj.xValues = [];
             obj.setTitle([obj.device.name ' Integrated Response']);
@@ -96,7 +96,7 @@ classdef IntegratedResponseFigure < symphonyui.core.FigureHandler
                 prePts = round(obj.preTime*1e-3*sampleRate);
                 stimPts = round(obj.stimTime*1e-3*sampleRate);
                 
-                y = sum(y(prePts+(501:stimPts)));
+                y = mean(y(prePts+(501:stimPts)));
             else
                 y = [];
             end

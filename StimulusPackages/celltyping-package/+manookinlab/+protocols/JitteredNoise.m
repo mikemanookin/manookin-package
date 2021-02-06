@@ -9,7 +9,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
         contrast = 1.0                  % Max light contrast (0-1)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         randsPerRep = -1                % Number of random seeds between repeats
-        maxWidth = 600                  % Maximum width of the stimulus in microns.
+        maxWidth = 0                    % Maximum width of the stimulus in microns.
         onlineAnalysis = 'extracellular'
         numberOfAverages = uint16(105)  % Number of epochs
     end
@@ -59,6 +59,10 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.numYChecks = ceil((obj.numYStixels-1) * double(obj.stepsPerStixel));
             % Get the number of frames.
             obj.numFrames = floor(obj.stimTime * 1e-3 * obj.frameRate)+15;
+            
+            if strcmp(obj.onlineAnalysis,'extracellular')
+                obj.showFigure('manookinlab.figures.AutocorrelationFigure', obj.rig.getDevice(obj.amp));
+            end
 
             if ~strcmp(obj.onlineAnalysis, 'none')
                 obj.showFigure('manookinlab.figures.JitteredNoiseFigure', ...

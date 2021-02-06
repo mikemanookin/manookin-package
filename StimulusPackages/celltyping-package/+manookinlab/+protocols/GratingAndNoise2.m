@@ -59,6 +59,10 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             
+            if strcmp(obj.onlineAnalysis,'extracellular')
+                obj.showFigure('manookinlab.figures.AutocorrelationFigure', obj.rig.getDevice(obj.amp));
+            end
+            
             obj.radiusPix = obj.rig.getDevice('Stage').um2pix(obj.radius);
             obj.apertureRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.apertureRadius);
             obj.barWidthPix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
