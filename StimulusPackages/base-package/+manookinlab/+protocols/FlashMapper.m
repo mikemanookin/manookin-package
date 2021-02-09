@@ -43,6 +43,8 @@ classdef FlashMapper < manookinlab.protocols.ManookinLabStageProtocol
             [x,y] = meshgrid(linspace(-obj.stixelSizePix*edgeChecks/2+obj.stixelSizePix/2,obj.stixelSizePix*edgeChecks/2-obj.stixelSizePix/2,edgeChecks));
             obj.positions = [x(:), y(:)];
             
+            % Online analysis figures
+            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             
             if ~strcmp(obj.onlineAnalysis, 'none')
                 obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
