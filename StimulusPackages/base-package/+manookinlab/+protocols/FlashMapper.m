@@ -4,12 +4,12 @@ classdef FlashMapper < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Stimulus leading duration (ms)
         stimTime = 500                  % Stimulus duration (ms)
         tailTime = 250                  % Stimulus trailing duration (ms)
-        gridWidth = 250                 % Width of mapping grid (microns)
+        gridWidth = 300                 % Width of mapping grid (microns)
         stixelSize = 50                 % Stixel edge size (microns)
         contrast = 1.0                  % Contrast (0 - 1)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Online analysis type.
-        numberOfAverages = uint16(210)  % Number of epochs
+        numberOfAverages = uint16(144)  % Number of epochs
     end
     
     properties (Hidden)
@@ -81,7 +81,7 @@ classdef FlashMapper < manookinlab.protocols.ManookinLabStageProtocol
             end
             obj.intensity = obj.stimContrast*obj.backgroundIntensity + obj.backgroundIntensity;
             
-            obj.position = obj.positions(mod(floor(obj.numEpochsCompleted/2),length(obj.positions))+1);
+            obj.position = obj.positions(mod(floor(obj.numEpochsCompleted/2),length(obj.positions))+1,:);
             
             epoch.addParameter('numChecks',obj.numChecks);
             epoch.addParameter('position', obj.position);
