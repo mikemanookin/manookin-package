@@ -82,8 +82,10 @@ classdef FlashMapperFigure < symphonyui.core.FigureHandler
             response = epoch.getResponse(obj.device);
             [quantities, ~] = response.getData();
             sampleRate = response.sampleRate.quantityInBaseUnits;
-            prePts = round((obj.preTime*1e-3)*sampleRate);
-            stimPts = round((obj.stimTime*1e-3)*sampleRate);
+            prePts = round((obj.preTime*1e-3)*60);
+            stimPts = round((obj.stimTime*1e-3)*60);
+            
+            
             
             if numel(quantities) > 0
                 % Parse the response by type.
@@ -102,13 +104,15 @@ classdef FlashMapperFigure < symphonyui.core.FigureHandler
                     y = binData(y, 60, sampleRate);
                 end
                 
+                
                 y = mean(y(prePts+(1:stimPts)));
+                
                 
                 % Pull the seed.
                 position = epoch.parameters('position');
                 stimContrast = epoch.parameters('stimContrast');
                 
-                [row,col] = find(x == position(1) & y == position(2),1);
+                [row,col] = find(obj.xvals == position(1) & obj.yvals == position(2),1);
                 
                 if stimContrast < 0
                     obj.strf(row,col,1) = obj.strf(row,col,1) + y;
