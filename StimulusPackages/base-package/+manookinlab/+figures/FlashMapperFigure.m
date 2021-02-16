@@ -11,10 +11,9 @@ classdef FlashMapperFigure < symphonyui.core.FigureHandler
     properties (Access = private)
         axesHandle
         imgHandle
+        xvals
+        yvals
         strf
-        spaceFilter
-        xaxis
-        yaxis
     end
     
     methods
@@ -36,9 +35,9 @@ classdef FlashMapperFigure < symphonyui.core.FigureHandler
             obj.preTime = ip.Results.preTime;
             obj.stimTime = ip.Results.stimTime;
             
-            % Set the x/y axes
-            obj.xaxis = linspace(-obj.numXChecks/2,obj.numXChecks/2,obj.numXChecks)*obj.stixelSize;
-            obj.yaxis = linspace(-obj.numYChecks/2,obj.numYChecks/2,obj.numYChecks)*obj.stixelSize;
+            % Meshgrid.
+            edgeChecks = ceil(obj.gridWidth / obj.stixelSize);
+            [obj.xvals,obj.yvals] = meshgrid(linspace(-obj.stixelSize*edgeChecks/2+obj.stixelSize/2,obj.stixelSize*edgeChecks/2-obj.stixelSize/2,edgeChecks));
             
             obj.createUi();
         end
@@ -51,8 +50,8 @@ classdef FlashMapperFigure < symphonyui.core.FigureHandler
 %                 'FontName', get(obj.figureHandle, 'DefaultUicontrolFontName'), ...
 %                 'FontSize', get(obj.figureHandle, 'DefaultUicontrolFontSize'), ...
 %                 'XTickMode', 'auto');
-            for k = 1 : 4
-            obj.axesHandle(k) = subplot(2, 2, k, ...
+            for k = 1 : 2
+            obj.axesHandle(k) = subplot(1, 2, k, ...
                 'Parent', obj.figureHandle, ...
                 'FontUnits', get(obj.figureHandle, 'DefaultUicontrolFontUnits'), ...
                 'FontName', get(obj.figureHandle, 'DefaultUicontrolFontName'), ...
@@ -60,8 +59,7 @@ classdef FlashMapperFigure < symphonyui.core.FigureHandler
                 'XTickMode', 'auto');
             end
             
-            obj.strf = zeros(obj.numYChecks, obj.numXChecks, floor(obj.frameRate*0.5));
-            obj.spaceFilter = [];
+            obj.strf = zeros(size(obj.xvals,1), size(obj.xvals,2), 2);
             
             obj.setTitle([obj.device.name 'receptive field']);
         end
@@ -73,11 +71,7 @@ classdef FlashMapperFigure < symphonyui.core.FigureHandler
         
         function clear(obj)
             cla(obj.axesHandle);
-            obj.strf = zeros(obj.numYChecks, obj.numXChecks, floor(obj.frameRate*0.5));
-            obj.spaceFilter = [];
-            % Set the x/y axes
-            obj.xaxis = linspace(-obj.numXChecks/2,obj.numXChecks/2,obj.numXChecks)*obj.stixelSize;
-            obj.yaxis = linspace(-obj.numYChecks/2,obj.numYChecks/2,obj.numYChecks)*obj.stixelSize;
+            obj.strf = zeros(size(obj.xvals,1), size(obj.xvals,2), 2);
         end
         
         function handleEpoch(obj, epoch)
@@ -88,14 +82,15 @@ classdef FlashMapperFigure < symphonyui.core.FigureHandler
             response = epoch.getResponse(obj.device);
             [quantities, ~] = response.getData();
             sampleRate = response.sampleRate.quantityInBaseUnits;
-            prePts = round((obj.preTime*1e-3 - 1/60)*sampleRate);
+            prePts = round((obj.preTime*1e-3)*sampleRate);
+            stimPts = round((obj.stimTime*1e-3)*sampleRate);
             
             if numel(quantities) > 0
                 % Parse the response by type.
                 y = manookinlab.util.responseByType(quantities, obj.recordingType, obj.preTime, sampleRate);
                 
                 if strcmp(obj.recordingType,'extracellular') || strcmp(obj.recordingType, 'spikes_CClamp')
-                    y = BinSpikeRate(y(prePts+1:end), obj.frameRate, sampleRate);
+                    y = BinSpikeRate(y, 60, sampleRate);
                 else
                     % Bandpass filter to get rid of drift.
                     y = bandPassFilter(y, 0.2, 500, 1/sampleRate);
@@ -104,74 +99,35 @@ classdef FlashMapperFigure < symphonyui.core.FigureHandler
                     else
                         y = y - median(y);
                     end
-                    y = binData(y(prePts+1:end), obj.frameRate, sampleRate);
+                    y = binData(y, 60, sampleRate);
                 end
                 
-                % Make it the same size as the stim frames.
-                y = y(1 : obj.numFrames);
+                y = mean(y(prePts+(1:stimPts)));
                 
-                % Columate.
-                y = y(:);
-
                 % Pull the seed.
-                seed = epoch.parameters('seed');
+                position = epoch.parameters('position');
+                stimContrast = epoch.parameters('stimContrast');
                 
-                % Get the frame/contrast sequence.
-                if strcmpi(obj.noiseClass, 'pink')
-                    spatialPower = epoch.parameters('spatialPower');
-                    temporalPower = epoch.parameters('temporalPower');
-                    frameValues = manookinlab.util.getPinkNoiseFrames(obj.numXChecks, obj.numYChecks, obj.numFrames, ...
-                        0.3, spatialPower, temporalPower, seed);
+                [row,col] = find(x == position(1) & y == position(2),1);
+                
+                if stimContrast < 0
+                    obj.strf(row,col,1) = obj.strf(row,col,1) + y;
                 else
-                    frameValues = getSpatialNoiseFrames(obj.numXChecks, obj.numYChecks, ...
-                        obj.numFrames, obj.noiseClass, obj.chromaticClass, seed);
-                end
-                
-                % Zero out the first second while cell is adapting to
-                % stimulus.
-                y(1 : floor(obj.frameRate)) = 0;
-                if strcmpi(obj.chromaticClass, 'RGB')
-                    frameValues(1 : floor(obj.frameRate),:,:,:) = 0;
-                else
-                    frameValues(1 : floor(obj.frameRate),:,:) = 0;
-                end
-                
-                filterFrames = floor(obj.frameRate*0.5);
-                lobePts = 2:4; %round(0.03*obj.frameRate) : round(0.15*obj.frameRate);
-                
-                % Perform reverse correlation.
-                if strcmpi(obj.chromaticClass, 'RGB')
-                else
-                    filterTmp = zeros(obj.numYChecks, obj.numXChecks, filterFrames);
-                    for m = 1 : obj.numYChecks
-                        for n = 1 : obj.numXChecks
-                            tmp = ifft(fft([y; zeros(60,1)]) .* conj(fft([squeeze(frameValues(:,m,n)); zeros(60,1);])));
-                            filterTmp(m,n,:) = tmp(1 : filterFrames);
-                        end
-                    end
-                    obj.strf = obj.strf + filterTmp;
-                    if obj.numXChecks == 1 || obj.numYChecks == 1
-                        obj.spaceFilter = squeeze(obj.strf);
-                    else
-                        obj.spaceFilter = squeeze(mean(obj.strf(:,:,lobePts),3));
-                    end
+                    obj.strf(row,col,2) = obj.strf(row,col,2) + y;
                 end
                 
                 % Display the spatial RF.
-                for k = 1 : 4
-                    imagesc('XData',obj.xaxis,'YData',obj.yaxis,...
-                        'CData', obj.strf(:,:,k+2), 'Parent', obj.axesHandle(k));
+                for k = 1 : 2
+                    imagesc('XData',unique(obj.xvals),'YData',unique(obj.yvals),...
+                        'CData', obj.strf(:,:,k), 'Parent', obj.axesHandle(k));
                     axis(obj.axesHandle(k),'image');
                     colormap(obj.axesHandle(k), 'gray');
+                    if k == 1
+                        title(obj.axesHandle(k),'negative contrast');
+                    else
+                        title(obj.axesHandle(k),'positive contrast');
+                    end
                 end
-%                 if obj.numXChecks == 1 || obj.numYChecks == 1
-%                     obj.imgHandle = imagesc(obj.spaceFilter, 'Parent', obj.axesHandle);
-%                 else
-%                     obj.imgHandle = imagesc('XData',obj.xaxis,'YData',obj.yaxis,...
-%                         'CData', obj.spaceFilter, 'Parent', obj.axesHandle);
-%                     axis(obj.axesHandle, 'image');
-%                 end
-%                 colormap(obj.axesHandle, 'gray');
             end
         end
         
