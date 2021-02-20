@@ -5,7 +5,7 @@ classdef ChirpStimulusLED < edu.washington.riekelab.protocols.RiekeLabProtocol
         led                             % Output LED
         amp                             % Input amplifier
         stepTime = 500                  % Step duration (ms)
-        frequencyTime = 10000           % Frequency sweep duration (ms)
+        frequencyTime = 15000           % Frequency sweep duration (ms)
         contrastTime = 8000             % Contrast sweep duration (ms)
         interTime = 500                % Duration between stimuli (ms)
         stepContrast = 1.0              % Step contrast (0 - 1)
@@ -15,7 +15,7 @@ classdef ChirpStimulusLED < edu.washington.riekelab.protocols.RiekeLabProtocol
         contrastMin = 0.02              % Minimum contrast (0-1)
         contrastMax = 1.0               % Maximum contrast (0-1)
         contrastFrequency = 2.0         % Temporal frequency of contrast sweep (Hz)
-        backgroundIntensity = 0.5       % Background light intensity (0-1)
+        backgroundIntensity = 1.0       % Background light intensity (0-5)
         psth = false;                   % Toggle psth in mean response figure
     end
  
