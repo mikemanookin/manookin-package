@@ -18,7 +18,7 @@ classdef ChirpStimulus < manookinlab.protocols.ManookinLabStageProtocol
         stimulusClass = 'spot'          % Stimulus class
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular'         % Online analysis type.
-        numberOfAverages = uint16(5)   % Number of epochs
+        numberOfAverages = uint16(3)   % Number of epochs
     end
     
     properties (Dependent) 
@@ -42,6 +42,13 @@ classdef ChirpStimulus < manookinlab.protocols.ManookinLabStageProtocol
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            
+            if ~strcmp(obj.onlineAnalysis, 'none')
+                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'sweepColor',[0,0,0],...
+                    'groupBy',{'frameRate'});
+            end
         end
         
         function p = createPresentation(obj)

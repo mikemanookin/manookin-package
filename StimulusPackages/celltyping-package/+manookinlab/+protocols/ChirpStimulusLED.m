@@ -17,6 +17,7 @@ classdef ChirpStimulusLED < edu.washington.riekelab.protocols.RiekeLabProtocol
         contrastFrequency = 2.0         % Temporal frequency of contrast sweep (Hz)
         backgroundIntensity = 1.0       % Background light intensity (0-5)
         psth = false;                   % Toggle psth in mean response figure
+        onlineAnalysis = 'extracellular'         % Online analysis type.
     end
  
     properties (Dependent, SetAccess = private)
@@ -24,13 +25,14 @@ classdef ChirpStimulusLED < edu.washington.riekelab.protocols.RiekeLabProtocol
     end
     
     properties
-        numberOfAverages = uint16(5)    % Number of epochs
+        numberOfAverages = uint16(3)    % Number of epochs
         interpulseInterval = 0          % Duration between pulses (s)
     end
     
     properties (Hidden)
         ledType
         ampType
+        onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
     end
     
     methods

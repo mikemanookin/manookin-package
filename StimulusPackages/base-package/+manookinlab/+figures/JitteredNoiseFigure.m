@@ -160,6 +160,7 @@ classdef JitteredNoiseFigure < symphonyui.core.FigureHandler
                         'CData', obj.strf(:,:,k+2), 'Parent', obj.axesHandle(k));
                     axis(obj.axesHandle(k),'image');
                     colormap(obj.axesHandle(k), 'gray');
+                    title(obj.axesHandle(k),['t: -',num2str(round((k+1)/obj.frameRate*1000)),' ms']);
                 end
             end
         end
