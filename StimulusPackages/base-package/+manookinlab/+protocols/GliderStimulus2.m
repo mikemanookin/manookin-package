@@ -6,6 +6,7 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Stimulus trailing duration (ms)
         waitTime = 0                    % Stimulus wait duration (ms)
         stixelSize = 50                 % Stixel edge size (microns)
+        frameDwell = 1                  % Stimulus update rate (screen refreshes / stim update)
         contrast = 0.5                  % Contrast (0 - 1)
         contrastDistribution = 'binary' % Contrast distribution ('gaussian','binary','uniform')
         orientation = 0                 % Texture orientation (degrees)
@@ -74,6 +75,10 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
                     obj.stimulusNames = {'uncorrelated', '3-point diverging positive'};
                 case 'diverging negative'
                     obj.stimulusNames = {'uncorrelated', '3-point diverging negative'};
+                case 'positive'
+                    obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging positive'};
+                case 'negative'
+                    obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging negative'};
                 otherwise
                     obj.stimulusNames = {'uncorrelated'};
             end
@@ -97,12 +102,13 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
                     'preTime', obj.preTime, ...
                     'stimTime', obj.stimTime, ...
                     'frameRate', obj.frameRate, ...
+                    'frameDwell', obj.frameDwell,...
                     'groupBy', 'stimulusType',...
                     'groupByValues', obj.stimulusNames);
             end
             
             % Calculate the number of frames.
-            obj.numStimFrames = ceil(obj.stimTime/1000*obj.frameRate) + 10;
+            obj.numStimFrames = ceil(obj.stimTime/1000*obj.frameRate/obj.frameDwell) + 10;
             
             % Calculate the size of the stimulus.
             sz = [min(obj.canvasSize(1), obj.outerRadiusPix*2) min(obj.canvasSize(2), obj.outerRadiusPix*2)];
@@ -175,7 +181,7 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             
             function s = frameSeq(obj, time)
                 if time >= 0 && time <= obj.stimTime*1e-3
-                    frame = floor(obj.frameRate * time) + 1;
+                    frame = floor(obj.frameRate/obj.frameDwell * time) + 1;
                     s = squeeze(obj.frameSequence(:, :, frame));
                 else
                     s = squeeze(obj.frameSequence(:, :, 1));

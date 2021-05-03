@@ -5,6 +5,7 @@ classdef ShiftedInformationFigure < symphonyui.core.FigureHandler
         preTime
         stimTime
         frameRate
+        frameDwell
         numFrames
         groupBy
         groupByValues
@@ -32,6 +33,7 @@ classdef ShiftedInformationFigure < symphonyui.core.FigureHandler
             ip.addParameter('frameRate',60.0, @(x)isfloat(x));
             ip.addParameter('groupBy','',@(x)ischar(x));
             ip.addParameter('groupByValues',{},@(x)iscellstr(x));
+            ip.addParameter('frameDwell',1,@(x)isfloat(x));
             
             ip.parse(varargin{:});
             
@@ -42,6 +44,7 @@ classdef ShiftedInformationFigure < symphonyui.core.FigureHandler
             obj.frameRate = ip.Results.frameRate;
             obj.groupBy = ip.Results.groupBy;
             obj.groupByValues = ip.Results.groupByValues;
+            obj.frameDwell = ip.Results.frameDwell;
             
             obj.epochCount = 0;
             
@@ -102,7 +105,7 @@ classdef ShiftedInformationFigure < symphonyui.core.FigureHandler
             prePts = obj.preTime*1e-3*sampleRate;
             stimPts = obj.stimTime*1e-3*sampleRate;
             
-            binRate = 60;
+            binRate = 60/obj.frameDwell;
             % Account for early frame presentation.
             prePts = prePts - round(sampleRate/obj.frameRate);
             
