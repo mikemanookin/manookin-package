@@ -5,7 +5,7 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
         firstStimTime = 6000            % Noise duration with first stdev (ms)
         secondStimTime = 6000           % Noise duration with second stdev (ms)
         tailTime = 500                  % Time after noise (ms)
-        lightMean = 1.0                 % Noise and LED background mean (V or norm. [0-1] depending on LED units)
+        lightMean = 2.0                 % Noise and LED background mean (V or norm. [0-1] depending on LED units)
         firstStdv = 0.3                 % First noise standard deviation, post-smoothing (V or norm. [0-1] depending on LED units)
         secondStdv = 0.1                % First noise standard deviation, post-smoothing (V or norm. [0-1] depending on LED units)
         frequencyCutoff = 60            % Noise frequency cutoff for smoothing (Hz)
@@ -47,15 +47,7 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
         function p = getPreview(obj, panel)
             p = symphonyui.builtin.previews.StimuliPreview(panel, @()createPreviewStimuli(obj));
             function s = createPreviewStimuli(obj)
-                s = cell(1, obj.pulsesInFamily);
-                for i = 1:numel(s)
-                    if ~obj.useRandomSeed
-                        seed = 0;
-                    elseif mod(i - 1, obj.repeatsPerStdv) == 0
-                        seed = RandStream.shuffleSeed;
-                    end
-                    s{i} = obj.createLedStimulus(i, seed);
-                end
+                s = obj.createLedStimulus(0);
             end
         end
         
