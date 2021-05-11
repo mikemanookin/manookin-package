@@ -11,7 +11,6 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
         randsPerRep = 10                % Number of random seeds per repeat
         frequencyCutoff = 60            % Noise frequency cutoff for smoothing (Hz)
         numberOfFilters = 4             % Number of filters in cascade for noise smoothing
-        useRandomSeed = true            % Use a random seed for each standard deviation multiple?
         amp                             % Input amplifier
     end
     
@@ -134,12 +133,6 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
             else
                 seed = RandStream.shuffleSeed;
             end
-            
-%             if ~obj.useRandomSeed
-%                 seed = 0;
-%             else
-%                 seed = RandStream.shuffleSeed;
-%             end
 
             stim = obj.createLedStimulus(seed);
 
