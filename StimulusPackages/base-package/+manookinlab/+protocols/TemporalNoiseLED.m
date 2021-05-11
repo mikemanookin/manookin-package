@@ -6,8 +6,9 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
         secondStimTime = 6000           % Noise duration with second stdev (ms)
         tailTime = 500                  % Time after noise (ms)
         lightMean = 2.0                 % Noise and LED background mean (V or norm. [0-1] depending on LED units)
-        firstStdv = 0.3                 % First noise standard deviation, post-smoothing (V or norm. [0-1] depending on LED units)
-        secondStdv = 0.1                % First noise standard deviation, post-smoothing (V or norm. [0-1] depending on LED units)
+        firstStdv = 0.3                 % First noise standard deviation, RMS contrast [0-1]
+        secondStdv = 0.1                % First noise standard deviation, RMS contrast [0-1]
+        randsPerRep = 10                % Number of random seeds per repeat
         frequencyCutoff = 60            % Noise frequency cutoff for smoothing (Hz)
         numberOfFilters = 4             % Number of filters in cascade for noise smoothing
         useRandomSeed = true            % Use a random seed for each standard deviation multiple?
@@ -75,7 +76,7 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
             gen1.preTime = obj.preTime;
             gen1.stimTime = obj.firstStimTime;
             gen1.tailTime = obj.secondStimTime + obj.tailTime;
-            gen1.stDev = obj.firstStdv;
+            gen1.stDev = obj.firstStdv * obj.lightMean;
             gen1.freqCutoff = obj.frequencyCutoff;
             gen1.numFilters = obj.numberOfFilters;
             gen1.mean = obj.lightMean;
@@ -97,7 +98,7 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
             gen2.preTime = obj.preTime + obj.firstStimTime;
             gen2.stimTime = obj.secondStimTime;
             gen2.tailTime = obj.tailTime;
-            gen2.stDev = obj.secondStdv;
+            gen2.stDev = obj.secondStdv * obj.lightMean;
             gen2.freqCutoff = obj.frequencyCutoff;
             gen2.numFilters = obj.numberOfFilters;
             gen2.mean = 0;
@@ -124,11 +125,21 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
             prepareEpoch@edu.washington.riekelab.protocols.RiekeLabProtocol(obj, epoch);
             
             persistent seed;
-            if ~obj.useRandomSeed
-                seed = 0;
+            % Deal with the seed.
+            if obj.randsPerRep <= 0 
+                seed = 1;
+%             elseif obj.randsPerRep > 0 && (mod(obj.numEpochsCompleted+1,obj.randsPerRep+1) == 0)
+            elseif obj.randsPerRep > 0 && (mod(obj.numEpochsPrepared+1,obj.randsPerRep+1) == 0)
+                seed = 1;
             else
                 seed = RandStream.shuffleSeed;
             end
+            
+%             if ~obj.useRandomSeed
+%                 seed = 0;
+%             else
+%                 seed = RandStream.shuffleSeed;
+%             end
 
             stim = obj.createLedStimulus(seed);
 

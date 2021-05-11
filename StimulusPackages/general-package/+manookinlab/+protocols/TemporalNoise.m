@@ -5,7 +5,7 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Stim leading duration (ms)
         stimTime = 10000                % Stim duration (ms)
         tailTime = 250                  % Stim trailing duration (ms)
-        randsPerRep = 7                 % Number of random seeds per repeat
+        randsPerRep = 12                % Number of random seeds per repeat
         noiseContrast = 1/3             % Noise contrast (0-1)
         radius = 200                    % Spot/annulus inner radius in microns.
         backgroundIntensity = 0.5       % Background light intensity (0-1) 
