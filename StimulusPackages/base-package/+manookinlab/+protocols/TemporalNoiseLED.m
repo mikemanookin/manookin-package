@@ -11,6 +11,7 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
         randsPerRep = 10                % Number of random seeds per repeat
         frequencyCutoff = 60            % Noise frequency cutoff for smoothing (Hz)
         numberOfFilters = 4             % Number of filters in cascade for noise smoothing
+        onlineAnalysis = 'extracellular'% Online analysis type.
         amp                             % Input amplifier
     end
     
@@ -26,6 +27,7 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
     properties (Hidden)
         ledType
         ampType
+        onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
     end
     
     methods
@@ -61,6 +63,12 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
             else
                 obj.showFigure('edu.washington.riekelab.figures.DualResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));
                 obj.showFigure('edu.washington.riekelab.figures.DualMeanResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));
+            end
+            
+            if ~strcmp(obj.onlineAnalysis, 'none')
+                obj.showFigure('manookinlab.figures.TemporalNoiseLEDFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis,...
+                    'preTime', obj.preTime, 'stimTime', obj.firstStimTime+obj.secondStimTime);
             end
             
             device = obj.rig.getDevice(obj.led);
@@ -139,6 +147,10 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
             epoch.addParameter('seed', seed);
             epoch.addStimulus(obj.rig.getDevice(obj.led), stim);
             epoch.addResponse(obj.rig.getDevice(obj.amp));
+            
+            % Save the stimulus contrast.
+            ct = (stim.getData() - obj.lightMean) / obj.lightMean;
+            epoch.addParameter('contrast', ct);
             
             if numel(obj.rig.getDeviceNames('Amp')) >= 2
                 epoch.addResponse(obj.rig.getDevice(obj.amp2));
