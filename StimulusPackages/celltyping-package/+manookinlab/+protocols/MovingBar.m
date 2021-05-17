@@ -5,10 +5,10 @@ classdef MovingBar < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 2500                 % Bar duration (ms)
         tailTime = 500                  % Bar trailing duration (ms)
         orientations = 0:30:330         % Bar angle (deg)
-        speed = 600                     % Bar speed (pix/sec)
+        speed = 1000                    % Bar speed (pix/sec)
         intensity = 1.0                 % Max light intensity (0-1)
-        barSize = [150, 300]            % Bar size (x,y) in microns
-        backgroundIntensity = 0.0       % Background light intensity (0-1)
+        barSize = [600, 600]            % Bar size (x,y) in microns
+        backgroundIntensity = 0.5       % Background light intensity (0-1)
         innerMaskRadius = 0             % Inner mask radius in microns.
         outerMaskRadius = 570           % Outer mask radius in microns.
         randomOrder = true              % Random orientation order?
