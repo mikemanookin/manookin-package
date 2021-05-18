@@ -142,7 +142,7 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             checkerboard = stage.builtin.stimuli.Image(imageMatrix);
             checkerboard.position = obj.canvasSize / 2;
             checkerboard.size = [obj.numXChecks obj.numYChecks] .* obj.stixelDims;
-            checkerboard.orientation = obj.orientation;
+            checkerboard.orientation = obj.orientation - 90;
             
             % Set the minifying and magnifying functions to form discrete
             % stixels.

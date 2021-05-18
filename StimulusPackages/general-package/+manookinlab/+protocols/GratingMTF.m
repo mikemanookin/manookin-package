@@ -26,6 +26,7 @@ classdef GratingMTF < manookinlab.protocols.ManookinLabStageProtocol
         spatialClassType = symphonyui.core.PropertyType('char', 'row', {'sinewave', 'squarewave'})
         temporalClassType = symphonyui.core.PropertyType('char', 'row', {'drifting', 'reversing'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        barWidthsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         spatialFrequency
         barWidth
         widths

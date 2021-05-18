@@ -19,6 +19,7 @@ classdef MovingBar < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        orientationsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         sequence
         orientation
         orientationRads
@@ -41,7 +42,11 @@ classdef MovingBar < manookinlab.protocols.ManookinLabStageProtocol
             obj.innerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.innerMaskRadius);
             obj.outerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.outerMaskRadius);
             
-            colors = pmkmp(length(obj.orientations),'CubicYF');
+            if length(obj.orientations) > 1
+                colors = pmkmp(length(obj.orientations),'CubicYF');
+            else
+                colors = zeros(1,3);
+            end
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
