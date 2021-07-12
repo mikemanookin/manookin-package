@@ -149,8 +149,8 @@ classdef TemporalNoiseLED < edu.washington.riekelab.protocols.RiekeLabProtocol
             epoch.addResponse(obj.rig.getDevice(obj.amp));
             
             % Save the stimulus contrast.
-            ct = (stim.getData() - obj.lightMean) / obj.lightMean;
-            epoch.addParameter('contrast', ct);
+%             ct = (stim.getData() - obj.lightMean) / obj.lightMean;
+%             epoch.addParameter('contrast', ct);
             
             if numel(obj.rig.getDeviceNames('Amp')) >= 2
                 epoch.addResponse(obj.rig.getDevice(obj.amp2));
