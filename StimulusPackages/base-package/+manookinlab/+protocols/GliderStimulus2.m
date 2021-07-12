@@ -25,7 +25,7 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         dimensionalityType = symphonyui.core.PropertyType('char', 'row', {'1-d', '2-d'});
         contrastDistributionType = symphonyui.core.PropertyType('char','row', {'gaussian','binary','uniform'})
-        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'all', '2+3', '3-point', '3-point positive', '3-point negative', '2+3 positive', '2+3 negative', 'diverging positive', 'diverging negative', 'uncorrelated'});
+        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'all', '2+3', '3-point', '3-point positive', '3-point negative', '2+3 positive', '2+3 negative', 'diverging positive', 'diverging negative', 'uncorrelated','2+'});
         stimulusNames
         noiseStream
         seed
@@ -79,6 +79,8 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
                     obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging positive'};
                 case 'negative'
                     obj.stimulusNames = {'uncorrelated', '2-point positive', '3-point diverging negative'};
+                case '2+'
+                    obj.stimulusNames = {'uncorrelated', '2-point positive'};
                 otherwise
                     obj.stimulusNames = {'uncorrelated'};
             end
