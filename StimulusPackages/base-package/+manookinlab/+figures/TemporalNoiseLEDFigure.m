@@ -97,19 +97,27 @@ classdef TemporalNoiseLEDFigure < symphonyui.core.FigureHandler
             
             obj.epochCount = obj.epochCount + 1;
             
+            binRate = 1000;
+            
+            disp('I am here...');
+            
             response = epoch.getResponse(obj.device);
             [quantities, ~] = response.getData();
             sampleRate = response.sampleRate.quantityInBaseUnits;
             prePts = obj.preTime*1e-3*sampleRate;
             stimPts = obj.stimTime*1e-3*sampleRate;
+            disp('Calculated points...');
             
-            binRate = sampleRate;
+            disp(stimPts);
             
-            
+            disp(numel(quantities));
             
             if numel(quantities) > 0
                 % Parse the response by type.
                 y = manookinlab.util.responseByType(quantities, obj.recordingType, obj.preTime, sampleRate);
+                
+                disp('Got the data');
+                disp(numel(y))
                 
                 if strcmp(obj.recordingType,'extracellular') || strcmp(obj.recordingType, 'spikes_CClamp')
                     if sampleRate > binRate
@@ -130,14 +138,23 @@ classdef TemporalNoiseLEDFigure < symphonyui.core.FigureHandler
                 
                 % Make sure it's a row.
                 y = y(:)';
+                
+                disp(['Got the data',num2str(size(y))]);
 
                 % Pull the contrast sequence.
                 frameValues = epoch.parameters('contrast');
                 frameValues = frameValues(prePts+(1:stimPts));
                 
+                disp('Got the frame values...');
+                
+                disp(numel(frameValues));
+                
                 
                 % Make it the same size as the stim frames.
                 y = y(1 : length(frameValues));
+                
+                size(y)
+                size(frameValues)
                 
                 % Zero out the first half-second while cell is adapting to
                 % stimulus.
