@@ -140,10 +140,13 @@ classdef TemporalNoiseLEDFigure < symphonyui.core.FigureHandler
                 y = y(:)';
                 
                 disp(['Got the data',num2str(size(y))]);
+                
+                preBins = obj.preTime*1e-3*binRate;
+                stimBins = obj.stimTime*1e-3*binRate;
 
                 % Pull the contrast sequence.
                 frameValues = epoch.parameters('contrast');
-                frameValues = frameValues(prePts+(1:stimPts));
+                frameValues = frameValues(preBins+(1:stimBins));
                 
                 disp('Got the frame values...');
                 
