@@ -39,6 +39,10 @@ classdef ContrastResponseSpot < manookinlab.protocols.ManookinLabStageProtocol
         analysisFigure
     end
     
+    properties (Dependent, SetAccess = private)
+        amp2                            % Secondary amplifier
+    end
+    
     methods
         
         function didSetRig(obj)
@@ -292,6 +296,16 @@ classdef ContrastResponseSpot < manookinlab.protocols.ManookinLabStageProtocol
             % Add the radius to the epoch.
             if strcmp(obj.stimulusClass, 'annulus')
                 epoch.addParameter('outerRadius', min(obj.canvasSize/2));
+            end
+        end
+        
+        function a = get.amp2(obj)
+            amps = obj.rig.getDeviceNames('Amp');
+            if numel(amps) < 2
+                a = '(None)';
+            else
+                i = find(~ismember(amps, obj.amp), 1);
+                a = amps{i};
             end
         end
         
