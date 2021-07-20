@@ -8,6 +8,7 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
         randsPerRep = 12                % Number of random seeds per repeat
         noiseContrast = 1/3             % Noise contrast (0-1)
         radius = 200                    % Spot/annulus inner radius in microns.
+        frameDwell = 1                  % Frames per unique contrast presentation.
         backgroundIntensity = 0.5       % Background light intensity (0-1) 
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
         stimulusClass = 'spot'          % Stimulus class
@@ -48,7 +49,7 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
                 obj.showFigure('manookinlab.figures.TemporalNoiseFigure', ...
                     obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis, 'noiseClass', obj.noiseClass,...
                     'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
-                    'frameRate', obj.frameRate, 'numFrames', floor(obj.stimTime/1000 * obj.frameRate), 'frameDwell', 1, ...
+                    'frameRate', obj.frameRate, 'numFrames', floor(obj.stimTime/1000 * obj.frameRate / obj.frameDwell), 'frameDwell', obj.frameDwell, ...
                     'stdev', obj.noiseContrast*0.3, 'frequencyCutoff', 0, 'numberOfFilters', 0, ...
                     'correlation', 0, 'stimulusClass', 'Stage');
                 
@@ -98,8 +99,13 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Control the spot color.
             if strcmpi(obj.noiseClass, 'gaussian')
-                colorController = stage.builtin.controllers.PropertyController(spot, 'color', ...
-                    @(state)getSpotAchromaticGaussian(obj, state.time - obj.preTime * 1e-3));
+                if obj.frameDwell > 1
+                    colorController = stage.builtin.controllers.PropertyController(spot, 'color', ...
+                        @(state)getGaussianFrame(obj, state.time - obj.preTime * 1e-3));
+                else
+                    colorController = stage.builtin.controllers.PropertyController(spot, 'color', ...
+                        @(state)getSpotAchromaticGaussian(obj, state.time - obj.preTime * 1e-3));
+                end
             elseif strcmpi(obj.noiseClass, 'binary')
                 colorController = stage.builtin.controllers.PropertyController(spot, 'color', ...
                     @(state)getSpotAchromaticBinary(obj, state.time - obj.preTime * 1e-3));
@@ -112,6 +118,15 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
             function c = getSpotAchromaticGaussian(obj, time)
                 if time > 0 && time <= obj.stimTime*1e-3
                     c = (obj.noiseContrast * 0.3 * obj.noiseStream.randn) * obj.backgroundIntensity + obj.backgroundIntensity;
+                else
+                    c = obj.backgroundIntensity;
+                end
+            end
+            
+            function c = getGaussianFrame(obj, time)
+                if time > 0 && time <= obj.stimTime*1e-3
+                    frame = ceil(time*obj.frameRate);
+                    c = obj.frameSeq(frame);
                 else
                     c = obj.backgroundIntensity;
                 end
@@ -148,6 +163,13 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Seed the random number generators.
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
+            
+            if obj.frameDwell > 1
+                obj.frameSeq = manookinlab.util.getGaussianNoiseFrames(...
+                    floor(obj.stimTime/1000 * obj.frameRate / obj.frameDwell)+15, obj.frameDwell, ...
+                    obj.noiseContrast*0.3, obj.seed);
+                obj.frameSeq = obj.frameSeq * obj.backgroundIntensity + obj.backgroundIntensity;
+            end
             
             % Save the seed.
             epoch.addParameter('seed', obj.seed);

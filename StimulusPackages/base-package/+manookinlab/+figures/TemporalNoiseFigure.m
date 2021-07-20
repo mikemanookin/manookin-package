@@ -201,6 +201,7 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                     end
                     plotLngth = round(binRate*0.025);
                 end
+                
                 % Make it the same size as the stim frames.
                 y = y(1 : length(frameValues));
                 
