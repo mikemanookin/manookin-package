@@ -97,20 +97,13 @@ classdef TemporalNoiseLEDFigure < symphonyui.core.FigureHandler
             
             obj.epochCount = obj.epochCount + 1;
             
-            binRate = 1000;
-            
-            disp('I am here...');
+            binRate = 200; %1000;
             
             response = epoch.getResponse(obj.device);
             [quantities, ~] = response.getData();
             sampleRate = response.sampleRate.quantityInBaseUnits;
             prePts = obj.preTime*1e-3*sampleRate;
             stimPts = obj.stimTime*1e-3*sampleRate;
-            disp('Calculated points...');
-            
-            disp(stimPts);
-            
-            disp(numel(quantities));
             
             if numel(quantities) > 0
                 % Parse the response by type.
@@ -148,16 +141,9 @@ classdef TemporalNoiseLEDFigure < symphonyui.core.FigureHandler
                 frameValues = epoch.parameters('contrast');
                 frameValues = frameValues(preBins+(1:stimBins));
                 
-                disp('Got the frame values...');
-                
-                disp(numel(frameValues));
-                
                 
                 % Make it the same size as the stim frames.
                 y = y(1 : length(frameValues));
-                
-                size(y)
-                size(frameValues)
                 
                 % Zero out the first half-second while cell is adapting to
                 % stimulus.
@@ -188,7 +174,7 @@ classdef TemporalNoiseLEDFigure < symphonyui.core.FigureHandler
                     pred = ifft(fft([frameValues(:)' zeros(1,100)]) .* fft(obj.linearFilter(:)'));
                     pred=pred(:)';
                     obj.P(obj.epochCount,:) = pred(1:length(y));
-                end   
+                end
                 
                 % Get the binned nonlinearity.
                 [xBin, yBin] = obj.getNL(obj.P(:,floor(binRate/2)+1:end), obj.R(:,floor(binRate/2)+1:end));
@@ -196,7 +182,7 @@ classdef TemporalNoiseLEDFigure < symphonyui.core.FigureHandler
                 obj.yaxis(gbIndex,:) = yBin;
 
                 % Plot the data.
-                plotLngth = 5000;
+                plotLngth = round(0.5*binRate);
                 cla(obj.axesHandle);
                 obj.lineHandle = line((1:plotLngth)/binRate, obj.linearFilter(1:plotLngth),...
                     'Parent', obj.axesHandle, 'Color', 'k');
