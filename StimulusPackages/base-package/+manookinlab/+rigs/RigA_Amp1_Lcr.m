@@ -24,7 +24,8 @@ classdef RigA_Amp1_Lcr < manookinlab.rigs.RigA
             obj.addDevice(red);
             
             % Add the LightCrafter
-            lightCrafter = edu.washington.riekelab.devices.LightCrafterDevice('micronsPerPixel', 0.8);
+%             lightCrafter = edu.washington.riekelab.devices.LightCrafterDevice('micronsPerPixel', 0.8);
+            lightCrafter = edu.washington.riekelab.devices.LightCrafterDevice('micronsPerPixel', 0.8, 'host', 'ELMATADOR-PC');
             
             % Binding the lightCrafter to an unused stream only so its configuration settings are written to each epoch.
             lightCrafter.bindStream(daq.getStream('doport1'));

@@ -28,7 +28,7 @@ classdef RigA_Amp1_Video < manookinlab.rigs.RigA
             % Add the LightCrafter
             lightCrafter = manookinlab.devices.LcrVideoDevice(...
                 'micronsPerPixel', 0.8, ...
-                'gammaRamps',ramps);
+                'gammaRamps',ramps, 'host', 'ELMATADOR-PC');
             
             % Binding the lightCrafter to an unused stream only so its configuration settings are written to each epoch.
             daq = obj.daqController;
