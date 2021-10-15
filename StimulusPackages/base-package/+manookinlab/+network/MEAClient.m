@@ -83,8 +83,10 @@ classdef MEAClient < handle
         end
         
         function fname = getFileName(obj, timeout)
+            fname = '';
             try
                 fname = obj.listenToServer(timeout);
+                fname = char(fname);
             catch
             end
         end

@@ -45,7 +45,7 @@ classdef MEADevice < symphonyui.core.Device
         end
         
         function fname = getFileName(obj, timeout)
-            if isempty('timeout','var')
+            if ~exist('timeout','var')
                 timeout = 30; % 30 second timeout by default.
             end
             fname = obj.client.getFileName(timeout);
