@@ -11,7 +11,7 @@ classdef SimulatedMEA < symphonyui.core.descriptions.RigDescription
             obj.daqController = daq;
             
             % Rig name and laboratory.
-            rigDev = manookinlab.devices.RigPropertyDevice('ManookinLab','SimulatedStage');
+            rigDev = manookinlab.devices.RigPropertyDevice('ManookinLab','SimulatedMEA');
             obj.addDevice(rigDev);
             
             amp1 = MultiClampDevice('Amp1', 1).bindStream(daq.getStream('ao0')).bindStream(daq.getStream('ai0'));
@@ -70,7 +70,7 @@ classdef SimulatedMEA < symphonyui.core.descriptions.RigDescription
             filterWheel = manookinlab.devices.FilterWheelDevice('comPort', 'COM13');
             obj.addDevice(filterWheel);
             
-            mea = manookinlab.devices.MEADevice('host', '10.0.0.106');
+            mea = manookinlab.devices.MEADevice('host', '192.168.0.100');
             obj.addDevice(mea);
         end
     end
