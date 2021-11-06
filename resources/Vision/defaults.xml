@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+
+    <ParametersGroup name="Spike Finding">
+        <IntegerParameter name="Buffer Size (Kb)" value="1000"/>
+        <IntegerParameter name="Buffers Count" value="200"/>
+        <DoubleParameter name="Spike Threshold" value="4"/>
+        <DoubleParameter name="TTL Threshold" value="1000"/>
+        <DoubleParameter name="Mean Time Constant" value="0.01"/>
+        
+
+      <ParametersGroup name="Analysis" value="true">
+            <EnumeratorParameter name="Analysis To Do" value="0.0" values="DO NOTHING:0:SAVE SPIKES:1:SAVE SPIKES AND COVARINCES:2"/>
+            <IntegerParameter name="Left Points" value="10"/>
+            <IntegerParameter name="Right Points" value="15"/>
+            <DoubleParameter name="Minimization Error" value="0.0010"/>
+            <IntegerParameter name="Spike To Use" value="-1"/>
+            <IntegerParameter name="Minimum Noise Events" value="1000"/>
+            <EnumeratorParameter name="Electrode Usage" value="1.0" values=":1 Electrode:0 :7 Electrodes:1 :19 Electrodes:2"/>
+            <FileParameter extension="+" name="Output_Path" screenName="Spike Output Folder" value=""/>
+        </ParametersGroup>
+        
+        <ParametersGroup name="Set Electrodes" value="false">
+            <IntegerParameter name="arrayID" screenName="array ID" value="0"/>
+            <IntegerParameter name="arrayPart" screenName="array part" value="1"/>
+            <IntegerParameter name="arrayNParts" screenName="number of array parts" value="1"/>
+            <BooleanParameter name="flipX" screenName="flipX (A:F, B:T, C:F)" value="false"/>
+            <BooleanParameter name="flipY" screenName="flipY (A:T, B:F, C:T)" value="false"/>
+        </ParametersGroup>
+    </ParametersGroup>
+    
+    <ParametersGroup name="Noise Whitened Covariances">
+        <FileParameter extension="+bin" name="Raw Data Path" screenName="Raw Data Source" value="/data/2000-12-14-1/data051.bin"/>
+        <FileParameter extension="+" name="Dataset Folder" value="/data/2000-12-14-1test/data051"/>      
+        <IntegerParameter name="Number of Threads" value="4"/>
+    </ParametersGroup>
+
+    <ParametersGroup name="PCA Neuron Finding: Projections">
+        <IntegerParameter name="PCA Dimensions" value="5"/>
+    </ParametersGroup>
+
+    <ParametersGroup name="PCA Neuron Finding: Clustering">
+        <BooleanParameter name="Generate Report" value="false"/>
+         <BooleanParameter name="BufferTimes" screenName="Buffer Spike Times ?" value="true"/>
+        <IntegerParameter name="Bins Per Dimension" value="30"/>
+        <DoubleParameter name="Clustering Significance" value="3"/>
+        <IntegerParameter name="Minimum Clusters" value="2"/>
+        <IntegerParameter name="Miximum Clusters" value="8"/>
+        <IntegerParameter name="Spikes Used For EM" value="20000"/>
+        <IntegerParameter name="Density Clustering Spike Loss" value="100"/>
+        <IntegerParameter name="Min EM Iterations" value="5"/>
+        <IntegerParameter name="Max EM Iterations" value="200"/>
+        <DoubleParameter name="EM Likelihood Delta" value="1e-6"/>
+        <IntegerParameter name="Clustering Threads" value="2"/>
+    </ParametersGroup>
+
+    <ParametersGroup name="Neuron Cleaning">
+        <IntegerParameter name="Minimun Number of Spikes" value="100"/>
+        <DoubleParameter name="Maximum Contamination" value="0.1"/>
+        <IntegerParameter name="Coincidence Time" value="10"/>
+        <DoubleParameter name="Maximum Correlation" value="0.25"/>
+    </ParametersGroup>
+
+    <ParametersGroup name="STA Calculation">
+        <IntegerParameter name="STA Depth" value="30"/>
+        <IntegerParameter name="Spikes To Calculate" value="100000"/>
+        <IntegerParameter name="STAs Calculated At Once" value="5000"/>
+        <BooleanParameter name="Double Threaded" value="true"/>
+        <BooleanParameter name="Calculate STV" value="false"/>
+        <BooleanParameter name="Resume Calculation" value="false"/>
+    </ParametersGroup>
+
+    <ParametersGroup name="Electrophysiological Imaging">
+        <IntegerParameter name="Left Samples" value="20"/>
+        <IntegerParameter name="Right Samples" value="60"/>
+        <IntegerParameter name="Spikes To Average" value="1000"/>
+    </ParametersGroup>
+
+    <ParametersGroup name="Electrophysiological Imaging Fast">
+        <IntegerParameter name="Left Samples" value="20"/>
+        <IntegerParameter name="Right Samples" value="60"/>
+        <IntegerParameter name="Spikes To Average" value="5000"/>
+    </ParametersGroup>
+
+    <ParametersGroup name="Make Parameters File">
+        <IntegerParameter name="nThreads" value="2"/>
+        <ParametersGroup name="TimeCourseCalculator" value="true">
+            <DoubleParameter name="significance" value="3.0"/>
+            <IntegerParameter name="nTemporalSubfilters" value="0"/>
+            <DoubleParameter name="latestZero" value="-40.0"/>
+        </ParametersGroup>
+    </ParametersGroup>
+
+</Configuration>

@@ -142,15 +142,15 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
                     eb.setProperty('maxRod', sum(obj.quantalCatch(:,4)));
                     
                     % Check if this is an MEA rig.
-                    mea = obj.rig.getDevices('MEA');
-                    if ~isempty(mea)
-                        mea = mea{1};
-                        % Try to pull the output file name from the server.
-                        fname = mea.getFileName(30);
-                        if ~isempty(fname)
-                            eb.setProperty('dataFileName', char(fname))
-                        end
-                    end
+%                     mea = obj.rig.getDevices('MEA');
+%                     if ~isempty(mea)
+%                         mea = mea{1};
+%                         % Try to pull the output file name from the server.
+%                         fname = mea.getFileName(30);
+%                         if ~isempty(fname)
+%                             eb.setProperty('dataFileName', char(fname))
+%                         end
+%                     end
                 end
             end
             

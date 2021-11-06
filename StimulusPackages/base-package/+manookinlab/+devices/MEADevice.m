@@ -20,14 +20,6 @@ classdef MEADevice < symphonyui.core.Device
             % Connect to the host server.
             obj.connect(ip.Results.host, ip.Results.port);
             
-%             obj.meaServer.start();
-%             obj.meaServer.connect(ip.Results.host, ip.Results.port);
-%             canvasSize = obj.meaServer.getCanvasSize();
-%             
-%             obj.addConfigurationSetting('canvasSize', canvasSize, 'isReadOnly', true);
-%             obj.addConfigurationSetting('monitorRefreshRate', obj.meaServer.getMonitorRefreshRate(), 'isReadOnly', true);
-%             obj.addConfigurationSetting('centerOffset', [0 0], 'isReadOnly', true);
-%             obj.addConfigurationSetting('micronsPerPixel', ip.Results.micronsPerPixel, 'isReadOnly', true);
         end
         
         function start(obj)
@@ -49,24 +41,6 @@ classdef MEADevice < symphonyui.core.Device
                 timeout = 30; % 30 second timeout by default.
             end
             fname = obj.client.getFileName(timeout);
-        end
-        
-        function s = getCanvasSize(obj)
-            s = obj.getConfigurationSetting('canvasSize');
-        end
-        
-        function setCenterOffset(obj, o)
-            delta = o - obj.getCenterOffset();
-            obj.meaServer.setCanvasProjectionTranslate(delta(1), delta(2), 0);
-            obj.setReadOnlyConfigurationSetting('centerOffset', [o(1) o(2)]);
-        end
-        
-        function o = getCenterOffset(obj)
-            o = obj.getConfigurationSetting('centerOffset');
-        end
-        
-        function r = getMonitorRefreshRate(obj)
-            r = obj.getConfigurationSetting('monitorRefreshRate');
         end
         
         
