@@ -6,7 +6,7 @@ classdef MEADevice < symphonyui.core.Device
     methods
         function obj = MEADevice(varargin)
             ip = inputParser();
-            ip.addParameter('host', '192.168.1.1', @ischar);
+            ip.addParameter('host', 'localhost', @ischar);
             ip.addParameter('port', 9876, @isnumeric);
             ip.parse(varargin{:});
             
@@ -27,6 +27,10 @@ classdef MEADevice < symphonyui.core.Device
         end
         
         function connect(obj, host, port)
+            % Check if this is the local host.
+            if strcmpi(host, 'localhost')
+                host = java.net.InetAddress.getLocalHost();
+            end
             obj.client.connect(host, port)
         end
         
