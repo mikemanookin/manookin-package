@@ -139,7 +139,7 @@ classdef MeanResponseFigure < symphonyui.core.FigureHandler
                     warning('Not enough colors supplied for sweeps')
                 end
                 sweep.line = line(x, y, 'Parent', obj.axesHandle,...
-                    'Color', obj.sweepColor(cInd,:));
+                    'Color', obj.sweepColor(cInd,:), 'LineWidth',1.5);
                 sweep.parameters = parameters;
                 sweep.count = 1;
                 obj.sweeps{end + 1} = sweep;
