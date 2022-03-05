@@ -1,4 +1,4 @@
-function frameValues = getJitteredNoiseFrames(numXStixels, numYStixels, numXChecks, numYChecks, numFrames, stepsPerStixel, seed)
+function frameValues = getJitteredNoiseFrames(numXStixels, numYStixels, numXChecks, numYChecks, numFrames, stepsPerStixel, seed, frameDwell)
 % 
 % stepsPerStixel = 4;
 % % 
@@ -23,13 +23,19 @@ function frameValues = getJitteredNoiseFrames(numXStixels, numYStixels, numXChec
 % numFrames = 120;
 % seed = 1;
 
+if ~exist('frameDwell','var')
+    frameDwell = 1;
+end
+
+frameDwell = double(frameDwell);
+
 % Seed the random number generator.
 noiseStream = RandStream('mt19937ar', 'Seed', seed);
 
 % Generate the larger grid of stixels.
-gridValues = 2*(noiseStream.rand(numYStixels,numXStixels,numFrames) > 0.5)-1;
+gridValues = 2*(noiseStream.rand(numYStixels,numXStixels,ceil(numFrames/frameDwell)) > 0.5)-1;
 % Replicate/expand the grid along the spatial dimensions.
-fullGrid = zeros(numYStixels*stepsPerStixel,numXStixels*stepsPerStixel,numFrames);
+fullGrid = zeros(numYStixels*stepsPerStixel,numXStixels*stepsPerStixel,ceil(numFrames/frameDwell));
 for k = 1 : numYStixels*stepsPerStixel
     yindex = ceil(k/stepsPerStixel);
     for m = 1 : numXStixels*stepsPerStixel
@@ -40,13 +46,14 @@ end
 
 % Generate the motion trajectory of the larger stixels.
 noiseStream = RandStream('mt19937ar', 'Seed', seed); % reseed
-xSteps = round((stepsPerStixel-1)*noiseStream.rand(1,numFrames));
-ySteps = round((stepsPerStixel-1)*noiseStream.rand(1,numFrames));
+xSteps = round((stepsPerStixel-1)*noiseStream.rand(1,ceil(numFrames/frameDwell)));
+ySteps = round((stepsPerStixel-1)*noiseStream.rand(1,ceil(numFrames/frameDwell)));
 
 % Get the frame values for the finer grid.
 frameValues = zeros(numYChecks,numXChecks,numFrames);
 for k = 1 : numFrames
-    frameValues(:,:,k) = fullGrid((1:numYChecks)+ySteps(k),(1:numXChecks)+xSteps(k),k);
+    tidx = ceil(k/frameDwell);
+    frameValues(:,:,k) = fullGrid((1:numYChecks)+ySteps(tidx),(1:numXChecks)+xSteps(tidx), tidx);
 end
 
 

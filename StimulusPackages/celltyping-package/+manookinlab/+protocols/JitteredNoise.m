@@ -8,6 +8,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
         stepsPerStixel = 2              % Size of underling grid
         contrast = 1.0                  % Max light contrast (0-1)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
+        frameDwell = uint16(1)          % Frame dwell.
         randsPerRep = -1                % Number of random seeds between repeats
         maxWidth = 0                    % Maximum width of the stimulus in microns.
         chromaticClass = 'achromatic'   % Chromatic type
@@ -19,7 +20,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
-        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','S-iso','LM-iso'})
+        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','S-iso','LM-iso','blue','yellow'})
         numXStixels
         numYStixels
         numXChecks
@@ -50,14 +51,14 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
             
             if obj.maxWidth > 0
-                obj.maxWidthPix = obj.rig.getDevice('Stage').um2pix(obj.maxWidth);
+                obj.maxWidthPix = obj.rig.getDevice('Stage').um2pix(obj.maxWidth)*ones(1,2);
             else
-                obj.maxWidthPix = min(obj.canvasSize);
+                obj.maxWidthPix = obj.canvasSize; %min(obj.canvasSize);
             end
             
             % Calculate the number of X/Y checks.
-            obj.numXStixels = ceil(obj.maxWidthPix/obj.stixelSizePix) + 1;
-            obj.numYStixels = ceil(obj.maxWidthPix/obj.stixelSizePix) + 1;
+            obj.numXStixels = ceil(obj.maxWidthPix(1)/obj.stixelSizePix) + 1;
+            obj.numYStixels = ceil(obj.maxWidthPix(2)/obj.stixelSizePix) + 1;
             obj.numXChecks = ceil((obj.numXStixels-1) * double(obj.stepsPerStixel));
             obj.numYChecks = ceil((obj.numYStixels-1) * double(obj.stepsPerStixel));
             % Get the number of frames.
@@ -76,7 +77,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
                     'frameRate', obj.frameRate, 'numFrames', obj.numFrames);
             end
             
-            if ~strcmp(obj.chromaticClass,'achromatic')
+            if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
                 obj.setColorWeights();
             end
         end
@@ -107,8 +108,13 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
             preF = floor(obj.preTime/1000 * obj.frameRate);
             stimF = floor(obj.stimTime/1000 * obj.frameRate);
 
-            imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                @(state)setStixels(obj, state.frame - preF, stimF));
+            if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+                imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+                    @(state)setColorStixels(obj, state.frame - preF, stimF));
+            else
+                imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+                    @(state)setStixels(obj, state.frame - preF, stimF));
+            end
             p.addController(imgController);
 
             function s = setStixels(obj, frame, stimFrames)
@@ -116,6 +122,14 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
                     s = squeeze(obj.imageMatrix(:,:,frame));
                 else
                     s = squeeze(obj.imageMatrix(:,:,1));
+                end
+            end
+            
+            function s = setColorStixels(obj, frame, stimFrames)
+                if frame > 0 && frame <= stimFrames
+                    s = squeeze(obj.imageMatrix(:,:,frame,:));
+                else
+                    s = squeeze(obj.imageMatrix(:,:,1,:));
                 end
             end
         end
@@ -134,8 +148,21 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
                 obj.seed = RandStream.shuffleSeed;
             end
             
-            obj.imageMatrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed);
-            if ~strcmp(obj.chromaticClass,'achromatic')
+            obj.imageMatrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed, obj.frameDwell);
+            if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+                tmp = repmat(obj.imageMatrix,[1,1,1,3]);
+                for k = 1 : 3
+                    tmp(:,:,:,k) = obj.colorWeights(k)*tmp(:,:,:,k);
+                end
+                
+                switch obj.chromaticClass
+                    case 'yellow'
+                        tmp(:,:,:,3) = -1;
+                    case 'blue'
+                        tmp(:,:,:,1:2) = -1;
+                end
+                
+                obj.imageMatrix = tmp;
             end
             
             % Multiply by the contrast and convert to uint8.
