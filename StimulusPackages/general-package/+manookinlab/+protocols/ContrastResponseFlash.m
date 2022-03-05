@@ -23,6 +23,7 @@ classdef ContrastResponseFlash < manookinlab.protocols.ManookinLabStageProtocol
         chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic', 'red', 'green', 'blue', 'yellow', 'L-iso', 'M-iso', 'S-iso', 'LM-iso'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus'})
+        contrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         sequence
         contrast
         surroundContrast

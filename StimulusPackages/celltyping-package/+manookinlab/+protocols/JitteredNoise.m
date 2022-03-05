@@ -10,6 +10,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         randsPerRep = -1                % Number of random seeds between repeats
         maxWidth = 0                    % Maximum width of the stimulus in microns.
+        chromaticClass = 'achromatic'   % Chromatic type
         onlineAnalysis = 'extracellular'
         numberOfAverages = uint16(105)  % Number of epochs
     end
@@ -17,6 +18,8 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
+        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','S-iso','LM-iso'})
         numXStixels
         numYStixels
         numXChecks
@@ -71,6 +74,10 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
                     'numXChecks', obj.numXChecks, 'numYChecks', obj.numYChecks,...
                     'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
                     'frameRate', obj.frameRate, 'numFrames', obj.numFrames);
+            end
+            
+            if ~strcmp(obj.chromaticClass,'achromatic')
+                obj.setColorWeights();
             end
         end
 
@@ -128,6 +135,9 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             obj.imageMatrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed);
+            if ~strcmp(obj.chromaticClass,'achromatic')
+            end
+            
             % Multiply by the contrast and convert to uint8.
             obj.imageMatrix = obj.contrast * obj.imageMatrix;
             obj.imageMatrix = uint8(255*(obj.backgroundIntensity*obj.imageMatrix + obj.backgroundIntensity));
