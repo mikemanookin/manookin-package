@@ -24,6 +24,8 @@ classdef Cell < manookinlab.sources.Cell
                 'description', 'Quality');
                 
             % X/Y locations in the mount.
+            obj.addProperty('locationX', '');
+            obj.addProperty('locationY', '');
             
             
             obj.addAllowableParentType('manookinlab.sources.primate.Preparation');
