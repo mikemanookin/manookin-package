@@ -22,6 +22,9 @@ classdef Cell < manookinlab.sources.Cell
             obj.addProperty('quality', '', ...
                 'type', PropertyType('char', 'row', {'', 'EXCELLENT', 'HIGH', 'MEDIUM','LOW'}), ... 
                 'description', 'Quality');
+                
+            % X/Y locations in the mount.
+            
             
             obj.addAllowableParentType('manookinlab.sources.primate.Preparation');
         end
