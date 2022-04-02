@@ -70,7 +70,8 @@ classdef SimulatedMEA < symphonyui.core.descriptions.RigDescription
             filterWheel = manookinlab.devices.FilterWheelDevice('comPort', 'COM13');
             obj.addDevice(filterWheel);
             
-            mea = manookinlab.devices.MEADevice('host', 'localhost');
+            mea = manookinlab.devices.MEADevice(9001);
+%             mea = manookinlab.devices.MEADevice('host', 'localhost');
             obj.addDevice(mea);
         end
     end
