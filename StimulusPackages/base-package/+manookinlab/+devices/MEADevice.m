@@ -5,8 +5,10 @@ classdef MEADevice < symphonyui.core.Device
     end
     
     properties (Access = private)
+        server
         stopRequested
         port
+        readTimeout
     end
     
     methods
@@ -27,6 +29,8 @@ classdef MEADevice < symphonyui.core.Device
             if nargin < 1
                 port = 9001;
             end
+            
+            obj.readTimeout = 10000; % Timeout in milliseconds
             
 %             host = InetAddress.getLocalHost();
 %             disp(['Local Host Name: ', host.getHostName()]);
@@ -51,47 +55,69 @@ classdef MEADevice < symphonyui.core.Device
             obj.stopRequested = false;
             
             disp('Creating server socket...');
-            myService = ServerSocket(obj.port);
-            
-            host = InetAddress.getLocalHost();
-            disp(['Serving on host: ', char(host.getHostName()), ' and port: ', num2str(obj.port)]);
-            
-            while ~obj.stopRequested
-                clientSocket = myService.accept;
-                disp(['Client connected from ', char(clientSocket.getInetAddress().getHostAddress())]);
-                try
-                    % Get the data stream.
-                    inputStream = clientSocket.getInputStream();
-                    
-                    % Parse the header from the input stream.
-                    h = edu.ucsc.neurobiology.vision.io.RawDataHeader512(inputStream);
+            try
+                obj.server = ServerSocket(obj.port);
+                % Set the timeout (must be in milliseconds).
+                obj.server.setSoTimeout(obj.readTimeout);
 
-                    obj.fileName = [char(h.getExperimentIdentifier()), '\',char(h.getDatasetName()), '.bin'];
-                    disp(obj.fileName)
-                    
-                    obj.stopRequested = true;
-                    
-                    % Close the socket.
-                    inputStream.close();
-                    clientSocket.close();
-                catch x
-                    if strcmp(x.identifier, 'TcpListen:AcceptTimeout')
-                        notify(obj, 'Interrupt');
-                        continue;
-                    else
-                        rethrow(x);
+                host = InetAddress.getLocalHost();
+                disp(['Serving on host: ', char(host.getHostName()), ' and port: ', num2str(obj.port)]);
+
+                while ~obj.stopRequested
+                    clientSocket = obj.server.accept;
+                    disp(['Client connected from ', char(clientSocket.getInetAddress().getHostAddress())]);
+                    try
+                        % Get the data stream.
+                        inputStream = clientSocket.getInputStream();
+
+                        % Parse the header from the input stream.
+                        h = edu.ucsc.neurobiology.vision.io.RawDataHeader512(inputStream);
+
+                        obj.fileName = [char(h.getExperimentIdentifier()), '\',char(h.getDatasetName()), '.bin'];
+                        disp(obj.fileName)
+
+                        obj.stopRequested = true;
+
+                        % Close the socket.
+                        inputStream.close();
+                        clientSocket.close();
+                    catch x
+                        if strcmp(x.identifier, 'TcpListen:AcceptTimeout')
+                            notify(obj, 'Interrupt');
+                            continue;
+                        elseif strcmp(x.identifier, 'java.net.SocketTimeoutException')
+                            obj.fileName = '';
+                            disp('MEADevice waited too long for a connection from LabView/Vision...');
+                            obj.server.close();
+                            return;
+                        else
+                            rethrow(x);
+                        end
                     end
                 end
+            catch x
+                if strcmp(x.identifier, 'java.net.SocketTimeoutException')
+                    obj.fileName = '';
+                    disp('MEADevice waited too long for a connection from LabView/Vision...');
+                    obj.server.close();
+                    return;
+                elseif strcmp(x.identifier, 'MATLAB:Java:GenericException')
+                    obj.fileName = '';
+                    disp('MEADevice waited too long for a connection from LabView/Vision...');
+                    disp(x.identifier);
+                    obj.server.close();
+                    return;
+                else
+                    rethrow(x);
+                end
             end
-            myService.close();
-            return;
+            obj.stop();
         end
         
         function stop(obj)
             % Automatically called when start completes.
-            
-%             obj.server.requestStop();
-            % TODO: Wait until tcpServer stops.
+            obj.server.close();
+            return;
         end
         
     end

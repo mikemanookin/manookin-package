@@ -781,7 +781,7 @@
         
         
         
-        <StringParameter name="folder" value="/Users/alexandersher/Downloads"/>
+        <StringParameter name="folder" value="C:\Users\manoo\Documents\Data\data011"/>
                                                                                                                                                                                         
         
         
@@ -3864,7 +3864,7 @@
         
         
         
-        <FileParameter extension="+bin" name="Raw_Data_Source" screenName="Raw Data Source" value="net://192.168.1.1/9876"/>
+        <FileParameter extension="+bin" name="Raw_Data_Source" screenName="Raw Data Source" value="C:\Users\manoo\Documents\Data\data011\data011000.bin"/>
                                                                                                                                                                                         
         
         
