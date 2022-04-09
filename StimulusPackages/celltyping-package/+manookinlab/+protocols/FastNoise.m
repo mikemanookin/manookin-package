@@ -169,7 +169,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
                     if mod(frame, obj.frameDwell) == 0
                         M = zeros(obj.numYStixels,obj.numXStixels,3);
                         tmpM = 2*obj.backgroundIntensity * ...
-                            (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5);
+                            (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5);
                         M(:,:,1:2) = repmat(tmpM(:,:,1),[1,1,2]);
                         M(:,:,3) = tmpM(:,:,2);
                     end
