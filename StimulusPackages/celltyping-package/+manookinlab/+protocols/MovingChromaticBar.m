@@ -92,6 +92,8 @@ classdef MovingChromaticBar < manookinlab.protocols.ManookinLabStageProtocol
             % Check the outer mask radius.
             if obj.outerMaskRadiusPix > min(obj.canvasSize/2)
                 obj.outerMaskRadiusPix = min(obj.canvasSize/2);
+            elseif obj.outerMaskRadiusPix <= 0
+                obj.outerMaskRadiusPix = max(obj.canvasSize/2);
             end
             
             obj.organizeParameters();
