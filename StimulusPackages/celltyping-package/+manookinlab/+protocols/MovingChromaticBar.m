@@ -15,7 +15,7 @@ classdef MovingChromaticBar < manookinlab.protocols.ManookinLabStageProtocol
         outerMaskRadius = 570           % Outer mask radius in microns.
         randomOrder = true              % Random orientation order?
         onlineAnalysis = 'extracellular'         % Online analysis type.
-        numberOfAverages = uint16(36)   % Number of epochs
+        numberOfAverages = uint16(32)   % Number of epochs
     end
     
     properties (Hidden)
@@ -31,6 +31,7 @@ classdef MovingChromaticBar < manookinlab.protocols.ManookinLabStageProtocol
         barSizePix
         innerMaskRadiusPix
         outerMaskRadiusPix
+        speedPix
         contrast
         barRGB
         backgroundRGB
@@ -49,6 +50,7 @@ classdef MovingChromaticBar < manookinlab.protocols.ManookinLabStageProtocol
             obj.barSizePix = obj.rig.getDevice('Stage').um2pix(obj.barSize);
             obj.innerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.innerMaskRadius);
             obj.outerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.outerMaskRadius);
+            obj.speedPix = obj.rig.getDevice('Stage').um2pix(obj.speed);
             
             if length(obj.orientations) > 1
                 colors = pmkmp(length(obj.orientations),'CubicYF');
@@ -165,7 +167,7 @@ classdef MovingChromaticBar < manookinlab.protocols.ManookinLabStageProtocol
             
             function p = motionTable(obj, time)
                 % Calculate the increment with time.  
-                inc = time * obj.speed - obj.outerMaskRadiusPix - obj.barSizePix(1)/2 ;
+                inc = time * obj.speedPix - obj.outerMaskRadiusPix - obj.barSizePix(1)/2 ;
                 
                 p = [cos(obj.orientationRads) sin(obj.orientationRads)] .* (inc*ones(1,2)) + obj.canvasSize/2;
             end
@@ -176,7 +178,7 @@ classdef MovingChromaticBar < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Create the outer mask.
-            if (obj.outerMaskRadiusPix > 0)
+            if (obj.outerMaskRadius > 0)
                 p.addStimulus(obj.makeOuterMask());
             end
         end

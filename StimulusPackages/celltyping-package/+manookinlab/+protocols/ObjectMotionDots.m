@@ -94,7 +94,7 @@ classdef ObjectMotionDots < manookinlab.protocols.ManookinLabStageProtocol
             obj.numYChecks = ceil(obj.canvasSize(2)/obj.radiusPix);
             
             % Get the canvas size in square mm.
-            cSize = obj.canvasSize/obj.rig.getDevice('Stage').um2pix(1) * 1e-3;
+            cSize = obj.canvasSize * (1e6/obj.rig.getDevice('Stage').um2pix(1e6)) * 1e-3;
             % Get the number of dots.
             obj.numDots = ceil(obj.dotDensity * (cSize(1)*cSize(2)));
         end
