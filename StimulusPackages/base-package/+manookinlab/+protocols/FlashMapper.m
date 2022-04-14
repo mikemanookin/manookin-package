@@ -3,10 +3,11 @@ classdef FlashMapper < manookinlab.protocols.ManookinLabStageProtocol
         amp                             % Output amplifier
         preTime = 250                   % Stimulus leading duration (ms)
         stimTime = 500                  % Stimulus duration (ms)
-        tailTime = 250                  % Stimulus trailing duration (ms)
+        tailTime = 500                  % Stimulus trailing duration (ms)
         gridWidth = 300                 % Width of mapping grid (microns)
         stixelSize = 50                 % Stixel edge size (microns)
         contrast = 1.0                  % Contrast (0 - 1)
+        chromaticClass = 'achromatic'   % Chromatic type
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         onlineAnalysis = 'extracellular' % Online analysis type.
         numberOfAverages = uint16(144)  % Number of epochs
@@ -15,6 +16,7 @@ classdef FlashMapper < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic', 'BY'})
         stixelSizePix
         gridWidthPix
         intensity
@@ -88,13 +90,31 @@ classdef FlashMapper < manookinlab.protocols.ManookinLabStageProtocol
             else
                 obj.stimContrast = -obj.contrast;
             end
-            obj.intensity = obj.stimContrast*obj.backgroundIntensity + obj.backgroundIntensity;
+            
+            % Check the chromatic class
+            if strcmp(obj.chromaticClass, 'BY') % blue-yellow
+                if obj.stimContrast > 0
+                    flashColor = 'blue';
+                    obj.intensity = [0,0,obj.contrast]*obj.backgroundIntensity + obj.backgroundIntensity;
+                else
+                    flashColor = 'yellow';
+                    obj.intensity = [obj.contrast*ones(1,2),0]*obj.backgroundIntensity + obj.backgroundIntensity;
+                end
+            else
+                obj.intensity = obj.stimContrast*obj.backgroundIntensity + obj.backgroundIntensity;
+                if obj.stimContrast > 0
+                    flashColor = 'white';
+                else
+                    flashColor = 'black';
+                end
+            end
             
             obj.position = obj.positions(mod(floor(obj.numEpochsCompleted/2),length(obj.positions))+1,:);
             
             epoch.addParameter('numChecks',obj.numChecks);
             epoch.addParameter('position', obj.position);
             epoch.addParameter('stimContrast', obj.stimContrast);
+            epoch.addParameter('flashColor', flashColor);
         end
         
         function tf = shouldContinuePreparingEpochs(obj)

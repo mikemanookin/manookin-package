@@ -48,7 +48,8 @@ classdef SimulatedStage < symphonyui.core.descriptions.RigDescription
             frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai7'));
             obj.addDevice(frameMonitor);
             
-            microdisplay = manookinlab.devices.VideoDevice('micronsPerPixel', 0.8);
+            microdisplay = manookinlab.devices.VideoDevice('micronsPerPixel', 3.0);
+%             microdisplay = manookinlab.devices.VideoDevice('micronsPerPixel', 0.8);
             microdisplay.addResource('quantalCatch', containers.Map( ...
                 {'10xND00','10xND05','10xND10','10xND20','10xND30','10xND40','60xND00','60xND05','60xND10','60xND20','60xND30','60xND40'}, {...
                 importdata(manookinlab.Package.getCalibrationResource('rigs', 'rig_A', 'LCR10xND00.txt')), ...
