@@ -70,6 +70,12 @@ classdef SimulatedMEA < symphonyui.core.descriptions.RigDescription
             filterWheel = manookinlab.devices.FilterWheelDevice('comPort', 'COM13');
             obj.addDevice(filterWheel);
             
+            % Add a device for external triggering to synchronize MEA DAQ clock with Symphony DAQ clock.
+            trigger = riekelab.devices.TriggerDevice();
+            trigger.bindStream(daq.getStream('doport1'));
+            daq.getStream('doport1').setBitPosition(trigger, 1);
+            obj.addDevice(trigger);
+            
             mea = manookinlab.devices.MEADevice(9001);
 %             mea = manookinlab.devices.MEADevice('host', 'localhost');
             obj.addDevice(mea);
