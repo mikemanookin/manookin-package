@@ -6,6 +6,7 @@ classdef SimulatedMEA < symphonyui.core.descriptions.RigDescription
             import symphonyui.builtin.daqs.*;
             import symphonyui.builtin.devices.*;
             import symphonyui.core.*;
+            import edu.washington.*;
             
             daq = HekaSimulationDaqController();
             obj.daqController = daq;
