@@ -16,7 +16,7 @@ classdef FlashMapper < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
-        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic', 'BY'})
+        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic', 'BY', 'RG'})
         stixelSizePix
         gridWidthPix
         intensity
@@ -99,6 +99,14 @@ classdef FlashMapper < manookinlab.protocols.ManookinLabStageProtocol
                 else
                     flashColor = 'yellow';
                     obj.intensity = [obj.contrast*ones(1,2),0]*obj.backgroundIntensity + obj.backgroundIntensity;
+                end
+            elseif strcmp(obj.chromaticClass, 'RG') % red-green
+                if obj.stimContrast > 0
+                    flashColor = 'red';
+                    obj.intensity = [obj.contrast,0,0]*obj.backgroundIntensity + obj.backgroundIntensity;
+                else
+                    flashColor = 'green';
+                    obj.intensity = [0,obj.contrast,0]*obj.backgroundIntensity + obj.backgroundIntensity;
                 end
             else
                 obj.intensity = obj.stimContrast*obj.backgroundIntensity + obj.backgroundIntensity;
