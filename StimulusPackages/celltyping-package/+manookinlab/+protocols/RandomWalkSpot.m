@@ -11,6 +11,7 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
         backgroundSpeed = 500
         stimulusIndices = [2 6 12 15 18 24 30 40 50]         % Stimulus number (1:161)
         backgroundMotionClass = 'natural'
+        chromaticClass = 'achromatic'
         repeatingSeed = false
         onlineAnalysis = 'none'% Type of online analysis
         numberOfAverages = uint16(48)   % Number of epochs
@@ -25,6 +26,7 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         spotContrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         backgroundMotionClassType = symphonyui.core.PropertyType('char', 'row', {'natural','gaussian'})
+        chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','blue','yellow'})
         stimulusIndicesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         imageMatrix
         backgroundIntensity
@@ -61,12 +63,14 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            obj.showFigure('manookinlab.figures.ResponseFigure', obj.rig.getDevices('Amp'), ...
-                'numberOfAverages', obj.numberOfAverages);
-            
-            obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                'sweepColor',[0 0 0]);
+            if ~strcmp(obj.onlineAnalysis, 'none')
+                obj.showFigure('manookinlab.figures.ResponseFigure', obj.rig.getDevices('Amp'), ...
+                    'numberOfAverages', obj.numberOfAverages);
+
+                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'sweepColor',[0 0 0]);
+            end
             
             % Get the resources directory.
             obj.pkgDir = manookinlab.Package.getResourcePath();
@@ -108,7 +112,17 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
             img = double(img');
             img = (img./max(img(:))); %rescale s.t. brightest point is maximum monitor level
             obj.backgroundIntensity = mean(img(:));%set the mean to the mean over the image
-            img = img.*255; %rescale s.t. brightest point is maximum monitor level
+            
+            switch chromaticClass
+                case 'blue'
+                    img = repmat(img,[1,1,3]);
+                    img(:,:,1:2) = obj.backgroundIntensity;
+                case 'yellow'
+                    img = repmat(img,[1,1,3]);
+                    img(:,:,3) = obj.backgroundIntensity;
+                otherwise
+                    img = img.*255; %rescale s.t. brightest point is maximum monitor level
+            end
             obj.imageMatrix = uint8(img);
             
             if strcmp(obj.backgroundCondition,'motion-natural')
