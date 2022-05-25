@@ -2,14 +2,14 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 200                   % Stimulus leading duration (ms)
-        moveTime = 10000                 % Stimulus duration (ms)
+        moveTime = 30000                 % Stimulus duration (ms)
         tailTime = 200                  % Stimulus trailing duration (ms)
         waitTime = 1000                 % Stimulus wait duration (ms)
         spotDiameter = 200              % Spot diameter in microns
         spotContrasts = [-0.5,0.5]      % Spot contrasts
         spotSpeed = 500 % Spot speed (std) in microns/second
         backgroundSpeed = 500
-        stimulusIndices = [2 6 12 15 18 24 30 40 50]         % Stimulus number (1:161)
+        stimulusIndices = [2 6 12 15 18 24]         % Stimulus number (1:161)
         backgroundMotionClass = 'natural'
         chromaticClass = 'achromatic'
         repeatingSeed = false
@@ -44,7 +44,7 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
         spotContrast
         spotSpeedPix
         backgroundSpeedPix
-        spotRng
+        spotPositions
         backgroundRng
         freezeFEMs = false
         backgroundConditions
@@ -113,7 +113,7 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
             img = (img./max(img(:))); %rescale s.t. brightest point is maximum monitor level
             obj.backgroundIntensity = mean(img(:));%set the mean to the mean over the image
             
-            switch chromaticClass
+            switch obj.chromaticClass
                 case 'blue'
                     img = repmat(img,[1,1,3]);
                     img(:,:,1:2) = obj.backgroundIntensity;
@@ -226,22 +226,32 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
                 @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
             p.addController(spotVisible);
             
+%             spotPosition = stage.builtin.controllers.PropertyController(spot,...
+%                 'position', @(state)getSpotPosition(obj, state.time - (obj.preTime+obj.waitTime)/1e3));
             spotPosition = stage.builtin.controllers.PropertyController(spot,...
-                'position', @(state)getSpotPosition(obj, state.time - (obj.preTime+obj.waitTime)/1e3));
+                'position', @(state)getSpotPosition(obj, state.frame - ceil((obj.preTime+obj.waitTime)/1e3*60)));
             p.addController(spotPosition);
             
-            function p = getSpotPosition(obj, time)
-                persistent lastP
-                if isempty(lastP)
-                    lastP = obj.canvasSize/2;
-                end
-                if time > 0 && time <= obj.moveTime*1e-3
-                    lastP = lastP + obj.backgroundSpeedPix*obj.spotRng.randn(1,2);
+            function p = getSpotPosition(obj, frame)
+                if frame > 0 
+                    p = obj.spotPositions(frame,:)+obj.canvasSize/2;
                 else
-                    lastP = obj.canvasSize/2;
+                    p = obj.canvasSize/2;
                 end
-                p = lastP;
             end
+            
+%             function p = getSpotPosition(obj, time)
+%                 persistent lastP
+%                 if isempty(lastP)
+%                     lastP = obj.canvasSize/2;
+%                 end
+%                 if time > 0 && time <= obj.moveTime*1e-3
+%                     lastP = lastP + obj.backgroundSpeedPix*obj.spotRng.randn(1,2);
+%                 else
+%                     lastP = obj.canvasSize/2;
+%                 end
+%                 p = lastP;
+%             end
             
             function p = getScenePositionGauss(obj, time)
                 persistent lP
@@ -293,7 +303,8 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
                 end
             end
             
-            obj.spotRng = RandStream('mt19937ar', 'Seed', obj.seed);
+%             obj.spotRng = RandStream('mt19937ar', 'Seed', obj.seed);
+            obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed);
             obj.backgroundRng = RandStream('mt19937ar', 'Seed', obj.seed+10);
             
             % Get the spot contrast.
@@ -309,6 +320,8 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('spotContrast',obj.spotContrast);
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('backgroundCondition',obj.backgroundCondition)
+            epoch.addParameter('spotX',obj.spotPositions(:,1)');
+            epoch.addParameter('spotY',obj.spotPositions(:,2)');
         end
         
         function stimTime = get.stimTime(obj)

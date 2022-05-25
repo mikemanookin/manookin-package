@@ -37,9 +37,9 @@ for t = 1 : length(T)-1
     V(t+1,:) = (1-params.correlationTime*dt)*V(t,:) - omega^2*positions(t,:)*dt + sqrt(dt*D_HMM)*v_noise(t,:);
 end
 
-% speed = sqrt(sum(diff(positions).^2,2));
+speed = sqrt(sum(diff(positions).^2,2));
 % Get a smoothed estimate of the speed.
-speed = sqrt(sum(diff(movmean(positions,15)).^2,2));
+% speed = sqrt(sum(diff(movmean(positions,15)).^2,2));
 avgSpeed = mean(speed)*params.frameRate;
 
 % Adjust the values to the indicated speed.
