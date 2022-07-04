@@ -300,7 +300,7 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
             if obj.repeatingSeed
                 obj.seed = 1;
             else
-                seedIdx = mod(obj.numEpochsCompleted,length(obj.spotContrasts)*length(obj.backgroundConditions))+1;
+                seedIdx = mod(obj.numEpochsCompleted,length(obj.spotContrasts)*length(obj.spotContrasts))+1;
                 if seedIdx == 1
                     obj.seed = RandStream.shuffleSeed;
                 end
@@ -318,7 +318,7 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Get the spot contrast.
-            obj.spotContrast = obj.spotContrasts(mod(floor(obj.numEpochsCompleted/length(obj.backgroundConditions)),length(obj.spotContrasts))+1);
+            obj.spotContrast = obj.spotContrasts(mod(floor(obj.numEpochsCompleted/length(obj.spotContrasts)),length(obj.backgroundConditions))+1);
             
             % Save the parameters.
             epoch.addParameter('stimulusCondition',obj.stimulusCondition);
