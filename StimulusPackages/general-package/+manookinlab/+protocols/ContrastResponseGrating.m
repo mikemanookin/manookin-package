@@ -6,8 +6,8 @@ classdef ContrastResponseGrating < manookinlab.protocols.ManookinLabStageProtoco
         tailTime = 250                  % Grating trailing duration (ms)
         contrasts = [0 0.01 0.02 0.04 0.04 0.08 0.08 0.16 0.16 0.32 0.64 0.96] % Grating contrast (0-1)
         orientation = 0.0               % Grating orientation (deg)
-        barWidth = 250                  % Grating bar width (pix)
-        temporalFrequency = 2.0         % Temporal frequency (Hz)
+        barWidth = 300                  % Grating bar width (pix)
+        temporalFrequency = 4.0         % Temporal frequency (Hz)
         spatialPhase = 0.0              % Spatial phase of grating (deg)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         centerOffset = [0,0]            % Center offset in pixels (x,y)
@@ -16,7 +16,7 @@ classdef ContrastResponseGrating < manookinlab.protocols.ManookinLabStageProtoco
         spatialClass = 'squarewave'     % Spatial type (sinewave or squarewave)
         temporalClass = 'drifting'      % Temporal type (drifting or reversing)      
         chromaticClass = 'achromatic'   % Chromatic type
-        onlineAnalysis = 'extracellular'% Type of online analysis
+        onlineAnalysis = 'none'% Type of online analysis
         numberOfAverages = uint16(12)   % Number of epochs
     end
     
@@ -27,11 +27,13 @@ classdef ContrastResponseGrating < manookinlab.protocols.ManookinLabStageProtoco
         temporalClassType = symphonyui.core.PropertyType('char', 'row', {'drifting', 'reversing'})
         chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','red-green isoluminant','red-green isochromatic','S-iso','M-iso','L-iso'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        contrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         rawImage
         spatialPhaseRad % The spatial phase in radians.
         contrast
         spatialFreq % The current spatial frequency for the epoch
         backgroundMeans
+        barWidthPix
     end
     
     % Analysis properties
@@ -59,13 +61,15 @@ classdef ContrastResponseGrating < manookinlab.protocols.ManookinLabStageProtoco
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             
-            obj.showFigure('manookinlab.figures.ContrastResponseFigure', ...
-                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                'preTime',obj.preTime,...
-                'stimTime',obj.stimTime,...
-                'contrasts',unique(obj.contrasts),...
-                'temporalClass','drifting',...
-                'temporalFrequency',obj.temporalFrequency);
+            if ~strcmp(obj.onlineAnalysis, 'none')
+                obj.showFigure('manookinlab.figures.ContrastResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'preTime',obj.preTime,...
+                    'stimTime',obj.stimTime,...
+                    'contrasts',unique(obj.contrasts),...
+                    'temporalClass','drifting',...
+                    'temporalFrequency',obj.temporalFrequency);
+            end
             
 %             if ~strcmp(obj.onlineAnalysis, 'none')
 %                 obj.analysisFigure = obj.showFigure('symphonyui.builtin.figures.CustomFigure', @obj.CRFanalysis);
@@ -76,8 +80,12 @@ classdef ContrastResponseGrating < manookinlab.protocols.ManookinLabStageProtoco
             
             % Calculate the spatial phase in radians.
             obj.spatialPhaseRad = obj.spatialPhase / 180 * pi;
+            
+            % Get the bar width in pixels
+            obj.barWidthPix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
+            
             % Calculate the spatial frequency.
-            obj.spatialFreq = min(obj.canvasSize)/(2*obj.barWidth);
+            obj.spatialFreq = min(obj.canvasSize)/(2*obj.barWidthPix);
             
             % Set the LED weights.
             if strcmp(obj.stageClass,'LightCrafter')
