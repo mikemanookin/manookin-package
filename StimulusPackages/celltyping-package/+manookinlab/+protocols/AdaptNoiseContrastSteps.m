@@ -4,8 +4,10 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
         amp                             % Output amplifier
         preTime = 250                   % Stim leading duration (ms)
         stimTime = 10000                % Stim duration (ms)
-        tailTime = 250                  % Stim trailing duration (ms)
+        tailTime = 250                  % Stim trailing 	 (ms)
         stepDuration = 2000             % Duration series (ms)
+        maxContrast = 0.35
+        minContrast = 0.05
         randsPerRep = 6                 % Number of random seeds per repeat
         radius = 100                    % Inner radius in pixels.
         apertureRadius = 100            % Aperture/blank radius in pixels.
@@ -159,19 +161,23 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             
             % Get the contrast series. [0.05 to 0.35 RMS contrast]
-            obj.contrasts = 0.3*obj.noiseStream.rand(1, length(obj.durations)) + 0.05;
+            obj.contrasts = (obj.maxContrast-obj.minContrast)*obj.noiseStream.rand(1, length(obj.durations)) + obj.minContrast;
             
             % Re-seed the random number generator.
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             
             % Pre-generate frames for the epoch.
-            nframes = obj.stimTime*1e-3*obj.frameRate + 15; 
+            nframes = obj.stimTime*1e-3*obj.frameRate + ceil(1.5*obj.stimTime*1e-3); 
             eFrames = cumsum(obj.durations*1e-3*obj.frameRate);
             sFrames = [0 eFrames(1:end-1)]+1;
             eFrames(end) = nframes;
             
             % Generate the raw sequence.
-            obj.frameSeq = obj.noiseStream.randn(1,nframes);
+            if strcmp(obj.noiseClass, 'binary')
+                obj.frameSeq = 2 * (obj.noiseStream.rand(1,nframes)>0.5) - 1;
+            else
+                obj.frameSeq = obj.noiseStream.randn(1,nframes);
+            end
             
             % Assign appropriate contrasts to the frame blocks.
             for k = 1 : length(sFrames)

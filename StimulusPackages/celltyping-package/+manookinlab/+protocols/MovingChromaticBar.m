@@ -206,7 +206,7 @@ classdef MovingChromaticBar < manookinlab.protocols.ManookinLabStageProtocol
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
             % Get the bar contrast.
-            obj.contrast = obj.contrasts(mod(obj.numEpochsCompleted,length(obj.contrasts))+1);
+            obj.contrast = obj.contrasts(mod(floor(obj.numEpochsCompleted/length(obj.orientations)), length(obj.contrasts))+1);
             
             % Get the current bar orientation.
             obj.orientation = obj.sequence(obj.numEpochsCompleted+1);
