@@ -7,7 +7,7 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
         tailTime = 250                  % Stim trailing 	 (ms)
         stepDuration = 2000             % Duration series (ms)
         maxContrast = 0.35
-        minContrast = 0.05
+        minContrast = 0.1
         randsPerRep = 6                 % Number of random seeds per repeat
         radius = 100                    % Inner radius in pixels.
         apertureRadius = 100            % Aperture/blank radius in pixels.
@@ -44,11 +44,13 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                'sweepColor',[30 144 255]/255,...
-                'groupBy',{'frameRate'});
+            if ~strcmp(obj.onlineAnalysis, 'none')
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'sweepColor',[30 144 255]/255,...
+                    'groupBy',{'frameRate'});
+            end
             
             if obj.backgroundIntensity == 0
                 obj.bkg = 0.5;
@@ -172,66 +174,76 @@ classdef AdaptNoiseContrastSteps < manookinlab.protocols.ManookinLabStageProtoco
             sFrames = [0 eFrames(1:end-1)]+1;
             eFrames(end) = nframes;
             
-            % Generate the raw sequence.
-            if strcmp(obj.noiseClass, 'binary')
-                obj.frameSeq = 2 * (obj.noiseStream.rand(1,nframes)>0.5) - 1;
-            else
-                obj.frameSeq = obj.noiseStream.randn(1,nframes);
-            end
+            [obj.frameSeq, obj.frameSeqSurround,obj.contrasts] = manookinlab.util.getAdaptNoiseStepFrames(...
+                nframes, obj.durations, sFrames, eFrames, obj.seed,...
+                'maxContrast', obj.maxContrast, ...
+                'minContrast', obj.minContrast, ...
+                'noiseClass', obj.noiseClass, ...
+                'stimulusClass',obj.stimulusClass);
             
-            % Assign appropriate contrasts to the frame blocks.
-            for k = 1 : length(sFrames)
-                obj.frameSeq(sFrames(k) : eFrames(k)) = obj.frameSeq(sFrames(k) : eFrames(k)) * obj.contrasts(k);
-            end
-            obj.frameSeq(obj.frameSeq < -1) = -1;
-            obj.frameSeq(obj.frameSeq > 1) = 1;
+            figure(100); clf;
+            plot(obj.frameSeq);
             
-            if strcmp(obj.stimulusClass,'center-const-surround')
-                obj.frameSeq = min(obj.contrasts)*obj.frameSeq;
-                obj.frameSeqSurround = zeros(size(obj.frameSeq));
-                highInd = find(obj.contrasts == max(obj.contrasts),1);
-                % Reseed the generator.
-                obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed+1);
-                obj.frameSeqSurround(sFrames(highInd):eFrames(highInd)) = obj.noiseStream.randn(1,length(sFrames(highInd):eFrames(highInd)));
-                if strcmp(obj.noiseClass, 'binary-gaussian') || strcmp(obj.noiseClass, 'binary')
-                    obj.frameSeqSurround(obj.frameSeqSurround > 0) = 1;
-                    obj.frameSeqSurround(obj.frameSeqSurround < 0) = -1;
-                else
-                    obj.frameSeqSurround = 0.3*obj.frameSeqSurround;
-                end
-                obj.frameSeqSurround = max(obj.contrasts)*obj.frameSeqSurround;
-                % Convert to LED contrast.
-                obj.frameSeqSurround = obj.bkg*obj.frameSeqSurround + obj.bkg;
-            else
-                for k = 1 : length(sFrames)
-                    if strcmp(obj.noiseClass, 'binary-gaussian')
-                        if obj.contrasts(min(k,length(obj.contrasts))) == max(obj.contrasts) && ~isequal(obj.contrasts,obj.contrasts(1)*ones(size(obj.contrasts)))
-                            obj.frameSeq(sFrames(k):eFrames(k)) = obj.contrasts(min(k,length(obj.contrasts)))*...
-                                (2*(obj.frameSeq(sFrames(k):eFrames(k)) > 0)-1);
-                        else
-                            obj.frameSeq(sFrames(k):eFrames(k)) = obj.contrasts(min(k,length(obj.contrasts)))*...
-                                obj.frameSeq(sFrames(k):eFrames(k));
-                        end
-                    else
-                        obj.frameSeq(sFrames(k):eFrames(k)) = obj.contrasts(min(k,length(obj.contrasts)))*...
-                            obj.frameSeq(sFrames(k):eFrames(k));
-                    end
-                end
-
-                if strcmp(obj.stimulusClass, 'center-full') || strcmp(obj.stimulusClass, 'center-surround')
-                    obj.frameSeqSurround = ones(size(obj.frameSeq))*obj.bkg;
-                    obj.frameSeqSurround(sFrames(2):eFrames(2)) = obj.frameSeq(sFrames(2):eFrames(2));
-                    if strcmp(obj.stimulusClass, 'center-surround')
-                        obj.frameSeq(sFrames(2):eFrames(2)) = obj.bkg;
-                    end
-                end
-            end
+%             % Generate the raw sequence.
+%             if strcmp(obj.noiseClass, 'binary')
+%                 obj.frameSeq = 2 * (obj.noiseStream.rand(1,nframes)>0.5) - 1;
+%             else
+%                 obj.frameSeq = obj.noiseStream.randn(1,nframes);
+%             end
+%             
+%             % Assign appropriate contrasts to the frame blocks.
+%             for k = 1 : length(sFrames)
+%                 obj.frameSeq(sFrames(k) : eFrames(k)) = obj.frameSeq(sFrames(k) : eFrames(k)) * obj.contrasts(k);
+%             end
+%             obj.frameSeq(obj.frameSeq < -1) = -1;
+%             obj.frameSeq(obj.frameSeq > 1) = 1;
+%             
+%             if strcmp(obj.stimulusClass,'center-const-surround')
+%                 obj.frameSeq = min(obj.contrasts)*obj.frameSeq;
+%                 obj.frameSeqSurround = zeros(size(obj.frameSeq));
+%                 highInd = find(obj.contrasts == max(obj.contrasts),1);
+%                 % Reseed the generator.
+%                 obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed+1);
+%                 obj.frameSeqSurround(sFrames(highInd):eFrames(highInd)) = obj.noiseStream.randn(1,length(sFrames(highInd):eFrames(highInd)));
+%                 if strcmp(obj.noiseClass, 'binary-gaussian') || strcmp(obj.noiseClass, 'binary')
+%                     obj.frameSeqSurround(obj.frameSeqSurround > 0) = 1;
+%                     obj.frameSeqSurround(obj.frameSeqSurround < 0) = -1;
+%                 else
+%                     obj.frameSeqSurround = 0.3*obj.frameSeqSurround;
+%                 end
+%                 obj.frameSeqSurround = max(obj.contrasts)*obj.frameSeqSurround;
+%                 % Convert to LED contrast.
+%                 obj.frameSeqSurround = obj.bkg*obj.frameSeqSurround + obj.bkg;
+%             else
+%                 for k = 1 : length(sFrames)
+%                     if strcmp(obj.noiseClass, 'binary-gaussian')
+%                         if obj.contrasts(min(k,length(obj.contrasts))) == max(obj.contrasts) && ~isequal(obj.contrasts,obj.contrasts(1)*ones(size(obj.contrasts)))
+%                             obj.frameSeq(sFrames(k):eFrames(k)) = obj.contrasts(min(k,length(obj.contrasts)))*...
+%                                 (2*(obj.frameSeq(sFrames(k):eFrames(k)) > 0)-1);
+%                         else
+%                             obj.frameSeq(sFrames(k):eFrames(k)) = obj.contrasts(min(k,length(obj.contrasts)))*...
+%                                 obj.frameSeq(sFrames(k):eFrames(k));
+%                         end
+%                     else
+%                         obj.frameSeq(sFrames(k):eFrames(k)) = obj.contrasts(min(k,length(obj.contrasts)))*...
+%                             obj.frameSeq(sFrames(k):eFrames(k));
+%                     end
+%                 end
+% 
+%                 if strcmp(obj.stimulusClass, 'center-full') || strcmp(obj.stimulusClass, 'center-surround')
+%                     obj.frameSeqSurround = ones(size(obj.frameSeq))*obj.bkg;
+%                     obj.frameSeqSurround(sFrames(2):eFrames(2)) = obj.frameSeq(sFrames(2):eFrames(2));
+%                     if strcmp(obj.stimulusClass, 'center-surround')
+%                         obj.frameSeq(sFrames(2):eFrames(2)) = obj.bkg;
+%                     end
+%                 end
+%             end
             
             % Save the seed.
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('contrasts', obj.contrasts);
             epoch.addParameter('durations', obj.durations);
-            epoch.addParameter('frameSeq', obj.frameSeq);
+%             epoch.addParameter('frameSeq', obj.frameSeq);
             
             % Convert to LED contrast.
             obj.frameSeq = obj.bkg*obj.frameSeq + obj.bkg;
