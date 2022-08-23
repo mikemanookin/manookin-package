@@ -1,5 +1,4 @@
-classdef NaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol
-
+classdef FlashedSpatialNoise < edu.washington.riekelab.protocols.RiekeLabStageProtocol
     properties
         preTime = 200 % ms
         flashTime = 200 % ms
@@ -8,26 +7,23 @@ classdef NaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.N
         apertureDiameter = 200 % um
         noiseFilterSD = 2 % pixels
         noiseContrast = 1;
-        numNoiseRepeats = 5;
+        backgroundIntensity = 0.2; 
+        numNoiseRepeats = 10;
         numberOfAverages = uint16(180) % number of epochs to queue
+        amp                             % Output amplifier
     end
     
     properties (Hidden)
-        %saved out to each epoch...
-        stimulusTag
-        imagePatchIndex
-        currentPatchLocation
-        temporalMask
+        ampType
+        initMatrix
         noiseSeed
         noiseStream
-        noiseFilterSDPix
     end
-   
-    properties (Dependent) 
+    
+    properties (Dependent)
         stimTime
     end
     
-
     properties (Dependent, SetAccess = private)
         amp2                            % Secondary amplifier
     end
@@ -40,7 +36,7 @@ classdef NaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.N
         end
 
         function prepareRun(obj)
-            prepareRun@edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol(obj);
+            prepareRun@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj);
 
             if numel(obj.rig.getDeviceNames('Amp')) < 2
                 obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
@@ -48,17 +44,15 @@ classdef NaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.N
                 obj.showFigure('edu.washington.riekelab.figures.DualResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));
             end
             
-            obj.showFigure('edu.washington.riekelab.turner.figures.MeanResponseFigure',...
-                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis);
             obj.showFigure('edu.washington.riekelab.turner.figures.FrameTimingFigure',...
                 obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));
         
         end
         
         function prepareEpoch(obj, epoch)
-            prepareEpoch@edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol(obj, epoch);
+            prepareEpoch@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj, epoch);
             device = obj.rig.getDevice(obj.amp);
-            duration = (obj.preTime + obj.flashTime + obj.tailTime) * obj.numNoiseRepeats / 1e3;
+            duration = ((obj.preTime + obj.flashTime + obj.tailTime) * obj.numNoiseRepeats) / 1e3;
             epoch.addDirectCurrentStimulus(device, device.background, duration, obj.sampleRate);
             epoch.addResponse(device);
          
@@ -66,23 +60,12 @@ classdef NaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.N
                 epoch.addResponse(obj.rig.getDevice(obj.amp2));
             end
                         
-            %pull patch location:
-            obj.imagePatchIndex = mod(floor(obj.numEpochsCompleted),obj.noPatches) + 1;
-            obj.currentPatchLocation(1) = obj.patchLocations(1,obj.imagePatchIndex); %in VH pixels
-            obj.currentPatchLocation(2) = obj.patchLocations(2,obj.imagePatchIndex);
-            
-            obj.imagePatchMatrix = ...
-                edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol.getImagePatchMatrix(...
-                obj, obj.currentPatchLocation);
-            
             obj.noiseSeed = RandStream.shuffleSeed;
             
             %at start of epoch, set random stream
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.noiseSeed);
 
             epoch.addParameter('noiseSeed', obj.noiseSeed);
-            epoch.addParameter('imagePatchIndex', obj.imagePatchIndex);
-            epoch.addParameter('currentPatchLocation', obj.currentPatchLocation);
         end
         
         function p = createPresentation(obj)            
@@ -91,11 +74,10 @@ classdef NaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.N
             
             canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
             apertureDiameterPix = obj.rig.getDevice('Stage').um2pix(obj.apertureDiameter);
-            obj.noiseFilterSDPix = obj.rig.getDevice('Stage').um2pix(obj.noiseFilterSD);
             
             % Create image
-            initMatrix = uint8(255.*(obj.backgroundIntensity .* ones(size(obj.imagePatchMatrix))));
-            board = stage.builtin.stimuli.Image(initMatrix);
+            obj.initMatrix = uint8(255.*(obj.backgroundIntensity .* ones(canvasSize/4)));
+            board = stage.builtin.stimuli.Image(obj.initMatrix);
             board.size = canvasSize;
             board.position = canvasSize/2;
             board.setMinFunction(GL.NEAREST); %don't interpolate to scale up board
@@ -111,20 +93,20 @@ classdef NaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.N
                 persistent boardMatrix;
                 curFrame = rem(frame, flashDurFrames);
                 if curFrame == preFrames
-                    noiseMatrix = imgaussfilt(obj.noiseStream.randn(size(obj.imagePatchMatrix)), obj.noiseFilterSDPix);
+                    noiseMatrix = imgaussfilt(obj.noiseStream.randn(size(obj.initMatrix)), obj.noiseFilterSD);
                     noiseMatrix = noiseMatrix / std(noiseMatrix(:));
-                    boardMatrix = obj.imagePatchMatrix - 255*obj.backgroundIntensity + uint8(255 * noiseMatrix * obj.backgroundIntensity * obj.noiseContrast + 255*obj.backgroundIntensity);
+                    boardMatrix = obj.initMatrix - 255*obj.backgroundIntensity + uint8(255 * noiseMatrix * obj.backgroundIntensity * obj.noiseContrast + 255*obj.backgroundIntensity);
                 end
                 if curFrame == 0
-                    boardMatrix = 255 * obj.backgroundIntensity .* ones(size(obj.imagePatchMatrix));
+                    boardMatrix = 255 * obj.backgroundIntensity .* ones(size(obj.initMatrix));
                 end
                 if curFrame == (flashDurFrames-1)
-                    boardMatrix = 255 * obj.backgroundIntensity .* ones(size(obj.imagePatchMatrix));
+                    boardMatrix = 255 * obj.backgroundIntensity .* ones(size(obj.initMatrix));
                 end
                 i = uint8(boardMatrix);
             end
 
-            if (obj.apertureDiameter > 0) %% Create aperture
+             if (obj.apertureDiameter > 0) %% Create aperture
                 aperture = stage.builtin.stimuli.Rectangle();
                 aperture.position = canvasSize/2;
                 aperture.color = obj.backgroundIntensity;
@@ -134,11 +116,11 @@ classdef NaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.N
                 p.addStimulus(aperture); %add aperture
             end
         end
-    
+        
         function stimTime = get.stimTime(obj)
             stimTime = (obj.preTime + obj.flashTime + obj.tailTime) * double(obj.numNoiseRepeats) - obj.preTime - obj.tailTime;
         end
-
+        
         function tf = shouldContinuePreparingEpochs(obj)
             tf = obj.numEpochsPrepared < obj.numberOfAverages;
         end
