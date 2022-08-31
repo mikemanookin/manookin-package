@@ -47,6 +47,9 @@ classdef DisplacedSpatialNoise < edu.washington.riekelab.protocols.RiekeLabStage
             
             obj.showFigure('edu.washington.riekelab.turner.figures.FrameTimingFigure',...
                 obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));
+            
+            % Show the progress bar.
+            obj.showFigure('manookinlab.figures.ProgressFigure', obj.numberOfAverages);
         
         end
         

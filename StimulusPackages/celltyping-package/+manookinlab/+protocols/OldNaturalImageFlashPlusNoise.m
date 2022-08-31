@@ -1,4 +1,4 @@
-classdef NaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol
+classdef OldNaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol
 
     properties
         preTime = 200 % ms
@@ -48,6 +48,8 @@ classdef NaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.N
                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis);
             obj.showFigure('edu.washington.riekelab.turner.figures.FrameTimingFigure',...
                 obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));
+            % Show the progress bar.
+            obj.showFigure('manookinlab.figures.ProgressFigure', obj.numberOfAverages);
             disp('Finished with prepare run');
         end
         

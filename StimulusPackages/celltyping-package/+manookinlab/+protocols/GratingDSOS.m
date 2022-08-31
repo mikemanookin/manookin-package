@@ -2,22 +2,22 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Grating leading duration (ms)
-        stimTime = 2500                 % Grating duration (ms)
+        stimTime = 5000                 % Grating duration (ms)
         tailTime = 250                  % Grating trailing duration (ms)
         waitTime = 0                    % Grating wait time before motion (ms)
         contrast = 1.0                  % Grating contrast (0-1)
         orientations = 0:30:330         % Grating orientation (deg)
-        barWidth = 50                   % Grating half-cycle width (pix)
+        barWidths = [100,400]           % Grating half-cycle width (microns)
         temporalFrequency = 4.0         % Temporal frequency (Hz)
         spatialPhase = 0.0              % Spatial phase of grating (deg)
+        randomOrder = true              % Random orientation order?
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        centerOffset = [0,0]            % Center offset in pixels (x,y)
-        apertureRadius = 200            % Aperture radius in pixels.
+        apertureRadius = 0              % Aperture radius in microns.
         apertureClass = 'spot'          % Spot or annulus?       
         spatialClass = 'sinewave'       % Spatial type (sinewave or squarewave)
         temporalClass = 'drifting'      % Temporal type (drifting or reversing)      
         onlineAnalysis = 'extracellular'         % Type of online analysis
-        numberOfAverages = uint16(12)   % Number of epochs
+        numberOfAverages = uint16(24)   % Number of epochs
     end
     
     properties (Hidden)
@@ -26,9 +26,15 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
         spatialClassType = symphonyui.core.PropertyType('char', 'row', {'sinewave', 'squarewave'})
         temporalClassType = symphonyui.core.PropertyType('char', 'row', {'drifting', 'reversing'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        orientationsType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        barWidthsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         spatialFrequency
         orientation
         phaseShift
+        barWidth
+        barWidthPix
+        apertureRadiusPix
+        sequence
     end
     
     methods
@@ -51,6 +57,27 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
                     'orientations', obj.orientations, ...
                     'temporalFrequency', obj.temporalFrequency);
             end
+            
+            % Convert from microns to pixels
+            obj.apertureRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.apertureRadius);
+            obj.organizeParameters();
+        end
+        
+        function organizeParameters(obj)
+            % Calculate the number of repetitions of each annulus type.
+            numReps = ceil(double(obj.numberOfAverages) / length(obj.orientations));
+            
+            % Set the sequence.
+            if obj.randomOrder
+                obj.sequence = zeros(length(obj.orientations), numReps);
+                for k = 1 : numReps
+                    obj.sequence(:,k) = obj.orientations(randperm(length(obj.orientations)));
+                end
+            else
+                obj.sequence = obj.orientations(:) * ones(1, numReps);
+            end
+            obj.sequence = obj.sequence(:)';
+            obj.sequence = obj.sequence(1 : obj.numberOfAverages);
         end
         
         function p = createPresentation(obj)
@@ -66,13 +93,13 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
                     grate = stage.builtin.stimuli.Grating('square'); 
             end
             grate.orientation = obj.orientation;
-            if obj.apertureRadius > 0 && obj.apertureRadius < max(obj.canvasSize/2) && strcmpi(obj.apertureClass, 'spot')
-                grate.size = 2*obj.apertureRadius*ones(1,2);
+            if obj.apertureRadiusPix > 0 && obj.apertureRadiusPix < max(obj.canvasSize/2) && strcmpi(obj.apertureClass, 'spot')
+                grate.size = 2*obj.apertureRadiusPix*ones(1,2);
             else
-                grate.size = max(obj.canvasSize) * ones(1,2);
+                grate.size = sqrt(sum(obj.canvasSize.^2)) * ones(1,2);
             end
-            grate.position = obj.canvasSize/2 + obj.centerOffset;
-            grate.spatialFreq = 1/(2*obj.barWidth); %convert from bar width to spatial freq
+            grate.position = obj.canvasSize/2;
+            grate.spatialFreq = 1/(2*obj.barWidthPix); %convert from bar width to spatial freq
             grate.contrast = obj.contrast;
             grate.color = 2*obj.backgroundIntensity;
             %calc to apply phase shift s.t. a contrast-reversing boundary
@@ -130,18 +157,18 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
             if obj.apertureRadius > 0
                 if strcmpi(obj.apertureClass, 'spot')
                     aperture = stage.builtin.stimuli.Rectangle();
-                    aperture.position = obj.canvasSize/2 + obj.centerOffset;
+                    aperture.position = obj.canvasSize/2;
                     aperture.color = obj.backgroundIntensity;
                     aperture.size = [max(obj.canvasSize) max(obj.canvasSize)];
-                    mask = stage.core.Mask.createCircularAperture(obj.apertureRadius*2/max(obj.canvasSize), 1024);
+                    mask = stage.core.Mask.createCircularAperture(obj.apertureRadiusPix*2/max(obj.canvasSize), 1024);
                     aperture.setMask(mask);
                     p.addStimulus(aperture);
                 else
                     mask = stage.builtin.stimuli.Ellipse();
                     mask.color = obj.backgroundIntensity;
-                    mask.radiusX = obj.apertureRadius;
-                    mask.radiusY = obj.apertureRadius;
-                    mask.position = obj.canvasSize / 2 + obj.centerOffset;
+                    mask.radiusX = obj.apertureRadiusPix;
+                    mask.radiusY = obj.apertureRadiusPix;
+                    mask.position = obj.canvasSize / 2;
                     p.addStimulus(mask);
                 end
             end
@@ -151,11 +178,18 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
             % Set the current orientation.
-            obj.orientation = obj.orientations(mod(obj.numEpochsCompleted,...
-                length(obj.orientations)) + 1);
+%             obj.orientation = obj.orientations(mod(obj.numEpochsCompleted,...
+%                 length(obj.orientations)) + 1);
+            obj.orientation = obj.sequence(obj.numEpochsCompleted+1);
+            
+            % Get the bar width in pixels
+            obj.barWidth = obj.barWidths(mod(floor(obj.numEpochsCompleted/length(obj.orientations)),...
+                length(obj.barWidths)) + 1);
+            obj.barWidthPix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
+            epoch.addParameter('barWidth', obj.barWidth);
             
             % Get the spatial frequency.
-            obj.spatialFrequency = 1/(2*obj.barWidth);
+            obj.spatialFrequency = 1/(2*obj.barWidthPix);
 
             % Add the spatial frequency to the epoch.
             epoch.addParameter('spatialFrequency', obj.spatialFrequency);
