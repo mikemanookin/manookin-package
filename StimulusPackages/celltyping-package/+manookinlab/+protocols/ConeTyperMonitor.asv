@@ -20,7 +20,7 @@ classdef ConeTyperMonitor < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         bgMean
         stimulusNames
-        chromaticClass
+        stimulusName
         rgbContrasts
     end
     
@@ -54,15 +54,15 @@ classdef ConeTyperMonitor < manookinlab.protocols.ManookinLabStageProtocol
             
             switch obj.stimulusClass
                 case 'blue-yellow'
-                    obj.stimulusNames = {'ON','OFF','blue','yellow'};
+                    obj.stimulusNames = {'ON','OFF','Blue','Yellow'};
                 case 'S-LM'
-                    obj.stimulusNames = {'ON','OFF','S-iso','LM-iso'};
+                    obj.stimulusNames = {'ON','OFF','S','LM'};
 %                 case 'red-green'
 %                     obj.stimulusNames = {'ON','OFF','R-G','G-R'};
 %                 case 'L-M'
 %                     obj.stimulusNames = {'ON','OFF','R-G','G-R','L','M'};
                 case 'all'
-                    obj.stimulusNames = {'ON','OFF','blue','yellow','S-iso','LM-iso'}; %{'ON','OFF','B-Y','Y-B','S','LM','R-G','G-R','L','M'};
+                    obj.stimulusNames = {'ON','OFF','Blue','Yellow','S','LM'}; %{'ON','OFF','B-Y','Y-B','S','LM','R-G','G-R','L','M'};
             end
             obj.bgMean = obj.backgroundIntensity*ones(1,3);
             
@@ -122,10 +122,10 @@ classdef ConeTyperMonitor < manookinlab.protocols.ManookinLabStageProtocol
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
             % Get the current stimulus name
-            obj.chromaticClass = obj.stimulusNames{mod(obj.numEpochsPrepared - 1,length(obj.stimulusNames))+1};
-            epoch.addParameter('chromaticClass',obj.chromaticClass);
+            obj.stimulusName = obj.stimulusNames{mod(obj.numEpochsPrepared - 1,length(obj.stimulusNames))+1};
+            epoch.addParameter('stimulusName',obj.stimulusName);
             
-            switch obj.chromaticClass
+            switch obj.stimulusName
                 case 'ON'
                     obj.rgbContrasts = ones(1,3);
                 case 'OFF'
@@ -134,9 +134,9 @@ classdef ConeTyperMonitor < manookinlab.protocols.ManookinLabStageProtocol
                     obj.rgbContrasts = obj.getDeltaRGB(0.5*ones(1,3), [0;0;1]); %[0.779174761176273, -0.418329218657993, 1];
                 case 'LM-iso'
                     obj.rgbContrasts = obj.getDeltaRGB(0.5*ones(1,3), [1;1;0]); %[-0.823447657789278, 1, -0.444877821696775];
-                case 'blue'
+                case 'Blue'
                     obj.rgbContrasts = [0, 0, 1];
-                case 'yellow'
+                case 'Yellow'
                     obj.rgbContrasts = [1, 1, 0];
             end
             obj.rgbContrasts = obj.rgbContrasts(:)';

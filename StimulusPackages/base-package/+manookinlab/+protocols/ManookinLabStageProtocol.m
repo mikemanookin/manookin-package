@@ -46,6 +46,8 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
                 obj.labName = 'RiekeLab';
             end
             
+            stageRes = obj.rig.getDevice('Stage').getResourceNames();
+            
 %             d = obj.rig.getDevices();
 %             r = d{7}.getResource('quantalCatch');
 %             r('10xND00')
@@ -53,7 +55,9 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
             
             % Look for a filter wheel device.
             fw = obj.rig.getDevices('FilterWheel');
-            if ~isempty(fw) && strcmp(obj.labName, 'ManookinLab')
+            if ismember('quantalCatch', stageRes)
+                obj.quantalCatch = obj.rig.getDevice('Stage').getResource('quantalCatch');
+            elseif ~isempty(fw) && strcmp(obj.labName, 'ManookinLab')
                 % Get the quantal catch.
                 q = load('QCatch.mat');
                 
@@ -83,7 +87,10 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
             else
                 obj.objectiveMag = 'null';
                 obj.ndf = 0;
-                obj.quantalCatch = ones(3,4);
+                obj.quantalCatch = [
+                   0.085339321892876   0.049257766442639   0.012802386483357   0.030261353423080
+                   0.256255343995659   0.242446609484392   0.020355688054126   0.166042086525636
+                   0.078179137266082   0.099240718319820   0.041298793557274   0.115078981568732];
                 obj.muPerPixel = 0.8;
                 obj.greenLEDName = 'null';
             end
