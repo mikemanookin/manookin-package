@@ -19,11 +19,11 @@ classdef FlashedSpatialNoise < edu.washington.riekelab.protocols.RiekeLabStagePr
         noiseSeed
         noiseStream
     end
-    
-    properties (Dependent)
+
+    properties (Dependent) 
         stimTime
     end
-    
+
     properties (Dependent, SetAccess = private)
         amp2                            % Secondary amplifier
     end
@@ -46,9 +46,6 @@ classdef FlashedSpatialNoise < edu.washington.riekelab.protocols.RiekeLabStagePr
             
             obj.showFigure('edu.washington.riekelab.turner.figures.FrameTimingFigure',...
                 obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));
-            
-            % Show the progress bar.
-            obj.showFigure('manookinlab.figures.ProgressFigure', obj.numberOfAverages);
         
         end
         
@@ -91,7 +88,7 @@ classdef FlashedSpatialNoise < edu.washington.riekelab.protocols.RiekeLabStagePr
             imageController = stage.builtin.controllers.PropertyController(board, 'imageMatrix',...
                 @(state)getNewImage(obj, state.frame, preFrames, flashDurFrames));
             p.addController(imageController); %add the controller
-            
+
             function i = getNewImage(obj, frame, preFrames, flashDurFrames)
                 persistent boardMatrix;
                 curFrame = rem(frame, flashDurFrames);
@@ -120,10 +117,6 @@ classdef FlashedSpatialNoise < edu.washington.riekelab.protocols.RiekeLabStagePr
             end
         end
         
-        function stimTime = get.stimTime(obj)
-            stimTime = (obj.preTime + obj.flashTime + obj.tailTime) * double(obj.numNoiseRepeats) - obj.preTime - obj.tailTime;
-        end
-        
         function tf = shouldContinuePreparingEpochs(obj)
             tf = obj.numEpochsPrepared < obj.numberOfAverages;
         end
@@ -131,7 +124,11 @@ classdef FlashedSpatialNoise < edu.washington.riekelab.protocols.RiekeLabStagePr
         function tf = shouldContinueRun(obj)
             tf = obj.numEpochsCompleted < obj.numberOfAverages;
         end
-        
+
+        function stimTime = get.stimTime(obj)
+            stimTime = (obj.preTime + obj.flashTime + obj.tailTime) * double(obj.numNoiseRepeats) - obj.preTime - obj.tailTime;
+        end
+
         function a = get.amp2(obj)
             amps = obj.rig.getDeviceNames('Amp');
             if numel(amps) < 2

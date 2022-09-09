@@ -20,11 +20,11 @@ classdef DisplacedSpatialNoise < edu.washington.riekelab.protocols.RiekeLabStage
         noiseStream
         currentEdgeDisplacement
     end
-    
-    properties (Dependent)
+
+    properties (Dependent) 
         stimTime
     end
-    
+
     properties (Dependent, SetAccess = private)
         amp2                            % Secondary amplifier
     end
@@ -47,9 +47,6 @@ classdef DisplacedSpatialNoise < edu.washington.riekelab.protocols.RiekeLabStage
             
             obj.showFigure('edu.washington.riekelab.turner.figures.FrameTimingFigure',...
                 obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));
-            
-            % Show the progress bar.
-            obj.showFigure('manookinlab.figures.ProgressFigure', obj.numberOfAverages);
         
         end
         
@@ -117,13 +114,12 @@ classdef DisplacedSpatialNoise < edu.washington.riekelab.protocols.RiekeLabStage
             tf = obj.numEpochsPrepared < obj.numberOfAverages;
         end
         
-        function stimTime = get.stimTime(obj)
-            stimTime = (obj.preTime + obj.flashTime + obj.tailTime) * double(obj.numNoiseRepeats) - obj.preTime - obj.tailTime;
-        end
-
-      
         function tf = shouldContinueRun(obj)
             tf = obj.numEpochsCompleted < obj.numberOfAverages;
+        end
+        
+        function stimTime = get.stimTime(obj)
+            stimTime = (obj.preTime + obj.flashTime + obj.tailTime) * double(obj.numNoiseRepeats) - obj.preTime - obj.tailTime;
         end
         
         function a = get.amp2(obj)
