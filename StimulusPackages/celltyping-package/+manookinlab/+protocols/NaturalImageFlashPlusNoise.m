@@ -112,7 +112,6 @@ classdef NaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.N
             
             obj.noiseSeed = RandStream.shuffleSeed;
             
-            obj.noiseSeed = 1;
             %at start of epoch, set random stream
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.noiseSeed);
 
