@@ -216,11 +216,19 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             if obj.randsPerRep == 0 
                 obj.seed = 1;
             elseif obj.randsPerRep < 0
-                obj.seed = RandStream.shuffleSeed;
+                if obj.numEpochsCompleted == 0
+                    obj.seed = RandStream.shuffleSeed;
+                else
+                    obj.seed = obj.seed + 1;
+                end
             elseif obj.randsPerRep > 0 && (mod(obj.numEpochsCompleted+1,obj.randsPerRep+1) == 0)
                 obj.seed = 1;
             else
-                obj.seed = RandStream.shuffleSeed;
+                if obj.numEpochsCompleted == 0
+                    obj.seed = RandStream.shuffleSeed;
+                else
+                    obj.seed = obj.seed + 1;
+                end
             end
             
             % Seed the generator
