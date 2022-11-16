@@ -30,7 +30,8 @@ tf(1) = 1;
 
 
 % Generate the Amplitude spectrum
-sf = (x.^2 + y.^2) .^ -spatialAmplitude;
+sf = (x.^2 + y.^2) .^ -spatialAmplitude/2;
+sf = sf';
 
 % Set any infinities to zero
 sf(sf == inf) = 0;
@@ -39,7 +40,7 @@ sf(sf == inf) = 0;
 sf = sf * 0.5;
 
 st_f = sf(:) * tf';
-st_f = reshape(st_f,[numXChecks,numYChecks,numFrames]);
+st_f = reshape(st_f,[numYChecks,numXChecks,numFrames]);
 
 if strcmpi(chromaticClass,'RGB')
     st_f = repmat(st_f,[1,1,1,3]);
@@ -50,7 +51,7 @@ end
 phi = noiseStream.rand(size(st_f));
 
 % Generate the noise sequence.
-frameValues = ifftn(st_f .* (cos(2*pi*phi)+1i*sin(2*pi*phi)));
+frameValues = ifftn(st_f.^0.5 .* (cos(2*pi*phi)+1i*sin(2*pi*phi)));
 frameValues = real(frameValues);
 
 if strcmpi(chromaticClass,'BY')
