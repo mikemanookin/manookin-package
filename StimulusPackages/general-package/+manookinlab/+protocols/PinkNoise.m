@@ -27,11 +27,7 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
         frameValues
         backgroundFrame
     end
-
-    properties (Hidden, Transient)
-        analysisFigure
-    end
-
+    
     methods
         function didSetRig(obj)
             didSetRig@manookinlab.protocols.ManookinLabStageProtocol(obj);
@@ -47,10 +43,13 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
+            
+            obj.stixelSizePix
 
             % Calculate the number of X/Y checks.
             obj.numXChecks = ceil(obj.canvasSize(1)/obj.stixelSizePix);
             obj.numYChecks = ceil(obj.canvasSize(2)/obj.stixelSizePix);
+            disp('done with prepare run')
         end
 
         function getFrameValues(obj, numFrames)
@@ -67,6 +66,7 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Convert to uint8 values for the display.
             obj.frameValues = obj.backgroundIntensity * obj.frameValues + obj.backgroundIntensity;
             obj.frameValues = uint8(obj.frameValues * 255);
+            disp('have frame values')
         end
 
         function p = createPresentation(obj)
@@ -75,7 +75,7 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity);
 
             % Create your noise image.
-            imageMatrix = obj.backgroundFrame;
+            imageMatrix = squeeze(obj.frameValues(:,:,1));
             checkerboard = stage.builtin.stimuli.Image(imageMatrix);
             checkerboard.position = obj.canvasSize / 2;
             checkerboard.size = [obj.numXChecks, obj.numYChecks] * obj.stixelSizePix;
@@ -96,21 +96,31 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             preF = floor(obj.preTime/1000 * 60.2);
             stimF = floor(obj.stimTime/1000 * 60.2333);
 
-            if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
-                imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                    @(state)setChromaticStixels(obj, state.frame - preF, stimF));
-            else
-                imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                    @(state)setAchromaticStixels(obj, state.frame - preF, stimF));
-            end
-            p.addController(imgController);
+%             if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+%                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+%                     @(state)setChromaticStixels(obj, state.frame - preF, stimF));
+%             else
+%                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+%                     @(state)setAchromaticStixels(obj, state.frame - preF, stimF));
+%                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+%                     @(state)setAchromaticStixels(obj, state.time, stimF));
+%                 disp('in controller')
+% %             end
+%             p.addController(imgController);
 
+            imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+                @(state)setStixels(obj, state.time));
+            p.addController(imgController);
+            function img = setStixels(obj, time)
+                img = squeeze(obj.frameValues(:,:,1));
+            end
             function s = setAchromaticStixels(obj, frame, stimFrames)
-                if frame > 0 && frame <= stimFrames
-                    s = squeeze(obj.frameValues(:,:,frame));
-                else
-                    s = obj.backgroundFrame;
-                end
+                s = uint8(255*obj.backgroundIntensity*ones(obj.numXChecks, obj.numYChecks));
+%                 if frame > 0 && frame <= stimFrames
+%                     s = squeeze(obj.frameValues(:,:,frame));
+%                 else
+%                     s = obj.backgroundFrame;
+%                 end
             end
             
             function s = setChromaticStixels(obj, frame, stimFrames)
@@ -127,6 +137,7 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the number of frames.
             numFrames = floor(obj.stimTime*1e-3 * 60.2333) + 15;
+            disp('in prepare epoch')
             
             % Deal with the seed.
             if obj.randsPerRep == 0 
@@ -154,6 +165,9 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('numXChecks', obj.numXChecks);
             epoch.addParameter('numYChecks', obj.numYChecks);
             epoch.addParameter('numFrames',numFrames);
+            disp('finished prepare epoch')
+            size(obj.frameValues)
+            size(obj.backgroundFrame)
         end
 
         function tf = shouldContinuePreparingEpochs(obj)
