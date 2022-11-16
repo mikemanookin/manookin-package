@@ -54,15 +54,10 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
         end
 
         function getFrameValues(obj, numFrames)
-            if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
-                obj.backgroundFrame = uint8(255*obj.backgroundIntensity*ones(obj.numYChecks, obj.numXChecks, 3));
-            else
-                obj.backgroundFrame = uint8(255*obj.backgroundIntensity*ones(obj.numYChecks, obj.numXChecks));
-            end
-            
+            obj.backgroundFrame = uint8(obj.backgroundIntensity*ones(obj.numYChecks, obj.numXChecks));
             
             obj.frameValues = manookinlab.util.getPinkNoiseFrames(obj.numXChecks, obj.numYChecks, numFrames, ...
-                obj.rmsContrast, obj.spatialAmplitude, obj.temporalAmplitude, obj.chromaticClass, obj.seed);
+                obj.rmsContrast, obj.spatialAmplitude, obj.temporalAmplitude, obj.seed);
             
             % Convert to uint8 values for the display.
             obj.frameValues = obj.backgroundIntensity * obj.frameValues + obj.backgroundIntensity;
@@ -97,8 +92,6 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             stimF = floor(obj.stimTime/1000 * 60.2333);
 
             if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
-                imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                    @(state)setChromaticStixels(obj, state.frame - preF, stimF));
             else
                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                     @(state)setAchromaticStixels(obj, state.frame - preF, stimF));
