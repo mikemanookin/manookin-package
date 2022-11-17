@@ -48,8 +48,8 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
             
             % Calculate the number of X/Y checks.
-            obj.numXChecks = ceil(obj.maxWidthPix(1)/obj.stixelSizePix);
-            obj.numYChecks = ceil(obj.maxWidthPix(2)/obj.stixelSizePix);
+            obj.numXChecks = ceil(obj.canvasSize(1)/obj.stixelSizePix);
+            obj.numYChecks = ceil(obj.canvasSize(2)/obj.stixelSizePix);
             % Get the number of frames.
             obj.numFrames = floor(obj.stimTime * 1e-3 * 60.319152);
             
