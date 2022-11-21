@@ -30,7 +30,7 @@ tf(1) = 1;
 
 
 % Generate the Amplitude spectrum
-sf = (x.^2 + y.^2) .^ -spatialAmplitude/2;
+sf = (x.^2 + y.^2) .^ -(spatialAmplitude/2);
 sf = sf';
 
 % Set any infinities to zero
