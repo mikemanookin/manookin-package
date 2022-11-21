@@ -54,7 +54,7 @@ end
 phi = noiseStream.rand(size(st_f));
 
 % Generate the noise sequence.
-frameValues = ifftn(st_f.^0.5 .* (cos(2*pi*phi)+1i*sin(2*pi*phi)));
+frameValues = ifftn(st_f .* (cos(2*pi*phi)+1i*sin(2*pi*phi)));
 frameValues = real(frameValues);
 
 if strcmpi(chromaticClass,'BY')
