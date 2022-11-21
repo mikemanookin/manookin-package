@@ -13,16 +13,19 @@ function frameValues = getPinkNoiseFrames(numXChecks, numYChecks, numFrames, noi
 noiseStream = RandStream('mt19937ar','Seed',seed);
 
 x = [(0:floor(numXChecks/2)) -(ceil(numXChecks/2)-1:-1:1)]'/numXChecks;
+x = abs(x);
 % Reproduce these frequencies along ever row
 x = repmat(x,1,numYChecks);
 % v is the set of frequencies along the second dimension.  For a square
 % region it will be the transpose of u
 y = [(0:floor(numYChecks/2)) -(ceil(numYChecks/2)-1:-1:1)]/numXChecks;
+y = abs(y);
 % Reproduce these frequencies along ever column
 y = repmat(y,numXChecks,1);
 
 % Get the temporal frequencies.
 t = [(0:floor(numFrames/2)) -(ceil(numFrames/2)-1:-1:1)]'/numFrames;
+t = abs(t);
 tf = t .^ -temporalAmplitude;
 tf(tf == inf) = 0;
 tf = tf * 0.5;
