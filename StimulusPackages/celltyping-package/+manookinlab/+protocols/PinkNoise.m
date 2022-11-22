@@ -3,23 +3,22 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
         amp                             % Output amplifier
         preTime = 250                   % Noise leading duration (ms)
         stimTime = 21000                % Noise duration (ms)
-        tailTime = 500                  % Noise trailing duration (ms)
+        tailTime = 250                  % Noise trailing duration (ms)
         stixelSize = 30                 % Edge length of stixel (microns)
-        rmsContrast = 0.3 
-        spatialAmplitude = 1.0
-        temporalAmplitude = 0.5
+        rmsContrast = 0.35              % RMS contrast
+        spatialAmplitude = 1.0          % Amplitude of spatial correlations
+        temporalAmplitude = 0.25        % Amplitude of temporal correlations
+        preGenerateFrames = false       % Boolean (pre-generate frames?)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        frameDwell = uint16(1)          % Frame dwell.
         randsPerRep = -1                % Number of random seeds between repeats
-        chromaticClass = 'achromatic'   % Chromatic type
-        onlineAnalysis = 'extracellular'
+        chromaticClass = 'BY'           % Chromatic type
+        onlineAnalysis = 'none'
         numberOfAverages = uint16(105)  % Number of epochs
     end
 
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
-        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','BY','RGB'})
         numXChecks
         numYChecks
@@ -27,6 +26,7 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
         numFrames
         stixelSizePix
         imageMatrix
+        frameBuffer
     end
     
     properties (Dependent, SetAccess = private)
@@ -56,15 +56,10 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             if strcmp(obj.onlineAnalysis,'extracellular')
                 obj.showFigure('manookinlab.figures.AutocorrelationFigure', obj.rig.getDevice(obj.amp));
             end
-
-%             if ~strcmp(obj.onlineAnalysis, 'none')
-%                 obj.showFigure('manookinlab.figures.JitteredNoiseFigure', ...
-%                     obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis,... 
-%                     'stixelSize', obj.stixelSize, 'stepsPerStixel', double(obj.stepsPerStixel),...
-%                     'numXChecks', obj.numXChecks, 'numYChecks', obj.numYChecks,...
-%                     'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
-%                     'frameRate', obj.frameRate, 'numFrames', obj.numFrames);
-%             end
+            
+            if ~obj.preGenerateFrames
+                obj.frameBuffer = [];
+            end
             
             if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
                 obj.setColorWeights();
