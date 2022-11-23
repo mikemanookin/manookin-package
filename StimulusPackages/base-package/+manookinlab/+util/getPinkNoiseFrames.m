@@ -24,12 +24,16 @@ y = abs(y);
 y = repmat(y,numXChecks,1);
 
 % Get the temporal frequencies.
-t = [(0:floor(numFrames/2)) -(ceil(numFrames/2)-1:-1:1)]'/numFrames;
-t = abs(t);
-tf = t .^ -temporalAmplitude;
-tf(tf == inf) = 0;
-tf = tf / max(tf);
-tf(1) = 1;
+if temporalAmplitude > 0
+    t = [(0:floor(numFrames/2)) -(ceil(numFrames/2)-1:-1:1)]'/numFrames;
+    t = abs(t);
+    tf = t .^ -temporalAmplitude;
+    tf(tf == inf) = 0;
+    tf = tf / max(tf);
+    tf(1) = 1;
+else
+    tf = ones(numFrames,1);
+end
 
 
 % Generate the Amplitude spectrum

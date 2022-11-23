@@ -27,6 +27,8 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
         stixelSizePix
         imageMatrix
         frameBuffer
+        noiseStream
+        space_filter
     end
     
     properties (Dependent, SetAccess = private)
@@ -64,6 +66,22 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
                 obj.setColorWeights();
             end
+        end
+        
+        function get_spatial_filter(obj)
+            x = [(0:floor(obj.numXChecks/2)) -(ceil(obj.numXChecks/2)-1:-1:1)]'/obj.numXChecks;
+            x = abs(x);
+            % Reproduce these frequencies along ever row
+            x = repmat(x,1,obj.numYChecks);
+            % v is the set of frequencies along the second dimension.  For a square
+            % region it will be the transpose of u
+            y = [(0:floor(obj.numYChecks/2)) -(ceil(obj.numYChecks/2)-1:-1:1)]/obj.numXChecks;
+            y = abs(y);
+            % Reproduce these frequencies along ever column
+            y = repmat(y,obj.numXChecks,1);
+            obj.space_filter = (x.^2 + y.^2) .^ -(obj.spatialAmplitude/2);
+            obj.space_filter = obj.space_filter';
+            obj.space_filter(obj.space_filter == inf) = 0;
         end
 
  
