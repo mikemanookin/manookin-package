@@ -56,9 +56,14 @@ elseif strcmpi(chromaticClass,'BY')
 end
 
 phi = noiseStream.rand(size(st_f));
+% Convert to radians.
+phi = 2*pi*phi;
+
+p = cos(phi)+1i*sin(phi);
+p = st_f .* p;
 
 % Generate the noise sequence.
-frameValues = ifftn(st_f .* (cos(2*pi*phi)+1i*sin(2*pi*phi)));
+frameValues = ifftn( p );
 frameValues = real(frameValues);
 
 if strcmpi(chromaticClass,'BY')
