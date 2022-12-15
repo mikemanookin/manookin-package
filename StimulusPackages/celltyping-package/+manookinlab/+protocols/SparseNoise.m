@@ -5,7 +5,7 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 30000                % Noise duration (ms)
         tailTime = 250                  % Noise trailing duration (ms)
         contrast = 1
-        stixelSize = 120                 % Edge length of stixel (microns)
+        stixelSize = 90                 % Edge length of stixel (microns)
         stepsPerStixel = 2              % Size of underling grid
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         frameDwell = uint16(18)         % Frame dwell.

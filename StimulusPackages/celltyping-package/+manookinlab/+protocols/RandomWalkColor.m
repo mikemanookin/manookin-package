@@ -72,7 +72,7 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             end
         end
         
-        function m = computeMeans(obj)
+        function [m,d] = computeMeans(obj)
             % Flux with no manipulation.
             flux = sum(obj.quantalCatch(:,1:3),1);
             flux = flux / max(flux);
@@ -92,7 +92,7 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Get the RGB modulations.
-            
+            d = ones(size(m));
             
             % Match the L/M cone contrast to the requsted contrast value.
 %             whitePt = [1, 0.875, 0.385]*0.5;
