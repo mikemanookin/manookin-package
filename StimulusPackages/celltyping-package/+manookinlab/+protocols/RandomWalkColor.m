@@ -2,17 +2,17 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 200                   % Stimulus leading duration (ms)
-        moveTime = 30000                 % Stimulus duration (ms)
+        moveTime = 30000                % Stimulus duration (ms)
         tailTime = 200                  % Stimulus trailing duration (ms)
         waitTime = 1000                 % Stimulus wait duration (ms)
-        stimulusClass = 'bar'
-        stimulusDiameter = 200              % Spot diameter in microns
-        contrasts = [-0.5,0.5]      % Spot contrasts
-        stimulusSpeed = 500 % Spot speed (std) in microns/second
+        stimulusClass = 'bar'           % Stimulus class ('bar' or 'spot')
+        stimulusDiameter = 200          % Spot diameter in microns
+        contrasts = [-0.5,0.5]          % Spot contrasts
+        stimulusSpeed = 500             % Spot speed (std) in microns/second
         chromaticClass = 'achromatic'
         backgroundIntensity = 0.5
         repeatingSeed = false
-        onlineAnalysis = 'none'% Type of online analysis
+        onlineAnalysis = 'none'         % Type of online analysis
         numberOfAverages = uint16(48)   % Number of epochs
     end
     
@@ -34,6 +34,8 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         backgroundConditions
         backgroundCondition
         seed
+        bgMeans
+        rgbContrasts
     end
     
     methods
@@ -68,6 +70,41 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             else
                 obj.backgroundConditions = {'stationary','motion-natural','motion-natural'};
             end
+        end
+        
+        function m = computeMeans(obj)
+            % Flux with no manipulation.
+            flux = sum(obj.quantalCatch(:,1:3),1);
+            flux = flux / max(flux);
+            backgrounds = [
+                0.9046, 1, 0.7563; % Blue sky (3.17 more at 450nm than 600nm)
+                1, 0.875, 0.385; % White
+                1, 1, 0.1; % Green/Yellow
+                ];
+            
+            m = zeros(size(backgrounds,1),3);
+            for jj = 1 : size(backgrounds,1)
+                cone_delta = backgrounds(jj,:) - flux;
+                deltaRGB = (obj.quantalCatch(:,1:3)')' \ cone_delta(:);
+                deltaRGB = deltaRGB / max(abs(deltaRGB));
+                m(jj,:) = (1 + deltaRGB)/4;
+                m(jj,:) = m(jj,:) / max(m(jj,:))*0.5;
+            end
+            
+            % Get the RGB modulations.
+            
+            
+            % Match the L/M cone contrast to the requsted contrast value.
+%             whitePt = [1, 0.875, 0.385]*0.5;
+%             meanFlux = (deltaRGB(:)*ones(1,3)) .* obj.quantalCatch(:,1:3);
+        end
+        
+        function cWeber = getConeContrasts(obj, gunMeans, deltaRGB)
+            meanFlux = (gunMeans(:)*ones(1,3)) .* obj.quantalCatch(:,1:3);
+
+            iDelta = sum((deltaRGB(:)*ones(1,3)) .* meanFlux);
+            % Calculate the max contrast of each cone type. (Weber contrast)
+            cWeber = iDelta ./ sum(meanFlux,1);
         end
         
         function p = createPresentation(obj)
