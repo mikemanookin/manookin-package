@@ -163,8 +163,8 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
 
         end
         
-        function stimTime = getStimTime(obj)
-            stimTime = (obj.preTime + obj.flashTime + obj.tailTime) * 1e-3;
+        function stimTime = get.stimTime(obj)
+            stimTime = (obj.preTime + obj.flashTime + obj.tailTime);
         end
         
         function tf = shouldContinuePreparingEpochs(obj)

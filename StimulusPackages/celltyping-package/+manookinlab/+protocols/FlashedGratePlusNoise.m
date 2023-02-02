@@ -1,8 +1,8 @@
-classdef FlashedGratePlusNoise < edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol
+classdef FlashedImageDiscrimination < edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol
 
     properties
         preTime = 200 % ms
-        stimTime = 200 % ms
+        flashTime = 200 % ms
         tailTime = 200 % ms
         maskDiameter = 0;
         apertureDiameter = 200 % um
@@ -15,6 +15,10 @@ classdef FlashedGratePlusNoise < edu.washington.riekelab.turner.protocols.Natura
         WeberConstant = 2000;
         maxIntensity = 25000;
         numberOfAverages = uint16(180) % number of epochs to queue
+    end
+    
+    properties (Dependent)
+        stimTime
     end
     
     properties (Hidden)
@@ -59,7 +63,7 @@ classdef FlashedGratePlusNoise < edu.washington.riekelab.turner.protocols.Natura
         function prepareEpoch(obj, epoch)
             prepareEpoch@edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol(obj, epoch);
             device = obj.rig.getDevice(obj.amp);
-            duration = (obj.preTime + obj.stimTime + obj.tailTime) * obj.numNoiseRepeats / 1e3;
+            duration = (obj.preTime + obj.flashTime + obj.tailTime) * obj.numNoiseRepeats / 1e3;
             epoch.addDirectCurrentStimulus(device, device.background, duration, obj.sampleRate);
             epoch.addResponse(device);
             
@@ -146,7 +150,7 @@ classdef FlashedGratePlusNoise < edu.washington.riekelab.turner.protocols.Natura
         end
         
         function p = createPresentation(obj)            
-            p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * obj.numNoiseRepeats * 1e-3); %create presentation of specified duration
+            p = stage.core.Presentation((obj.preTime + obj.flashTime + obj.tailTime) * obj.numNoiseRepeats * 1e-3); %create presentation of specified duration
             p.setBackgroundColor(obj.backgroundIntensity); % Set background intensity
             
             canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
@@ -168,7 +172,7 @@ classdef FlashedGratePlusNoise < edu.washington.riekelab.turner.protocols.Natura
             board.setMagFunction(GL.NEAREST);
             p.addStimulus(board);
             preFrames = round(60 * (obj.preTime/1e3));
-            flashDurFrames = round(60 * ((obj.preTime + obj.stimTime + obj.tailTime))/1e3);
+            flashDurFrames = round(60 * ((obj.preTime + obj.flashTime + obj.tailTime))/1e3);
             imageController = stage.builtin.controllers.PropertyController(board, 'imageMatrix',...
                 @(state)getNewImage(obj, state.frame, preFrames, flashDurFrames, Indices));
             p.addController(imageController); %add the controller
@@ -212,6 +216,10 @@ classdef FlashedGratePlusNoise < edu.washington.riekelab.turner.protocols.Natura
                 [xx, yy] = meshgrid(-xsize/2:1:xsize/2, -ysize/2:1:ysize/2);
                 m = sqrt((xx*stixelSize).^2 + (yy*stixelSize).^2);
             end
+        end
+        
+        function stimTime = get.stimTime(obj)
+            stimTime = (obj.preTime + obj.flashTime + obj.tailTime) * double(obj.numNoiseRepeats) - obj.preTime - obj.tailTime;
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
