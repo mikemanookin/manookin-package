@@ -4,12 +4,12 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 200                   % Stimulus leading duration (ms)
         moveTime = 30000                % Stimulus duration (ms)
         tailTime = 200                  % Stimulus trailing duration (ms)
-        waitTime = 1000                 % Stimulus wait duration (ms)
+        waitTime = 3000                 % Stimulus wait duration (ms)
         stimulusClass = 'bar'           % Stimulus class ('bar' or 'spot')
         stimulusDiameter = 200          % Spot diameter in microns
-        contrasts = [-0.5,0.5]          % Spot contrasts
+        contrasts = [-0.2,0.2]          % Spot contrasts
         stimulusSpeed = 500             % Spot speed (std) in microns/second
-        chromaticClass = 'achromatic'
+        chromaticClass = 'chromatic'
         backgroundIntensity = 0.5
         repeatingSeed = false
         onlineAnalysis = 'none'         % Type of online analysis
@@ -24,7 +24,7 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         contrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
-        chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','blue','yellow'})
+        chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','chromatic'})
         stimulusIndicesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'bar','spot'})
         spotRadiusPix
@@ -36,6 +36,8 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         seed
         bgMeans
         rgbContrasts
+        backgroundMean
+        rgb_contrast
     end
     
     methods
@@ -65,31 +67,45 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             
             obj.seed = 1;
             
+            % Compute the background means.
+            [m, delta_rgb] = obj.computeMeans();
+            
             if strcmp(obj.chromaticClass, 'achromatic')
-                obj.backgroundConditions = {'stationary','motion-gaussian','motion-gaussian'};
+                obj.backgroundConditions = {'achromatic'};
+                obj.bgMeans = m(2,:);
+                obj.rgbContrasts = delta_rgb(2,:);
             else
-                obj.backgroundConditions = {'stationary','motion-natural','motion-natural'};
+                obj.backgroundConditions = {'blue','achromatic','yellow'};
+                obj.bgMeans = m;
+                obj.rgbContrasts = delta_rgb;
             end
+            obj.bgMeans
         end
         
         function [m,d] = computeMeans(obj)
             % Flux with no manipulation.
-            flux = sum(obj.quantalCatch(:,1:3),1);
-            flux = flux / max(flux);
-            backgrounds = [
-                0.9046, 1, 0.7563; % Blue sky (3.17 more at 450nm than 600nm)
-                1, 0.875, 0.385; % White
-                1, 1, 0.1; % Green/Yellow
+%             flux = sum(obj.quantalCatch(:,1:3),1);
+%             flux = flux / max(flux);
+%             backgrounds = [
+%                 0.9046, 1, 0.7563; % Blue sky (3.17 more at 450nm than 600nm)
+%                 1, 0.875, 0.385; % White
+%                 1, 1, 0.1; % Green/Yellow
+%                 ];
+            
+            m = [
+                0.17, 0.57, 0.75;
+                0.4, 0.5, 0.7;
+                0.55, 0.5, 0.15;
                 ];
             
-            m = zeros(size(backgrounds,1),3);
-            for jj = 1 : size(backgrounds,1)
-                cone_delta = backgrounds(jj,:) - flux;
-                deltaRGB = (obj.quantalCatch(:,1:3)')' \ cone_delta(:);
-                deltaRGB = deltaRGB / max(abs(deltaRGB));
-                m(jj,:) = (1 + deltaRGB)/4;
-                m(jj,:) = m(jj,:) / max(m(jj,:))*0.5;
-            end
+%             m = zeros(size(backgrounds,1),3);
+%             for jj = 1 : size(backgrounds,1)
+%                 cone_delta = backgrounds(jj,:) - flux;
+%                 deltaRGB = (obj.quantalCatch(:,1:3)')' \ cone_delta(:);
+%                 deltaRGB = deltaRGB / max(abs(deltaRGB));
+%                 m(jj,:) = (1 + deltaRGB)/4;
+%                 m(jj,:) = m(jj,:) / max(m(jj,:))*0.5;
+%             end
             
             % Get the RGB modulations.
             d = ones(size(m));
@@ -109,21 +125,22 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         
         function p = createPresentation(obj)
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
-            p.setBackgroundColor(obj.backgroundIntensity);
+            p.setBackgroundColor(obj.backgroundMean);
             
+            ct = obj.contrast * obj.rgb_contrast .* obj.backgroundMean + obj.backgroundMean;
             if strcmp(obj.stimulusClass,'bar')
                 spot = stage.builtin.stimuli.Rectangle();
                 spot.size = [obj.canvasSize(1), obj.spotRadiusPix*2];
                 spot.position = obj.canvasSize/2;
                 spot.orientation = 0;
-                spot.color = obj.backgroundIntensity*obj.contrast + obj.backgroundIntensity; 
+                spot.color = ct; 
             else
                 % Add the spots.
                 spot = stage.builtin.stimuli.Ellipse();
                 spot.radiusX = obj.spotRadiusPix;
                 spot.radiusY = obj.spotRadiusPix;
                 spot.position = obj.canvasSize/2;
-                spot.color = obj.backgroundIntensity*obj.contrast + obj.backgroundIntensity; 
+                spot.color = ct; 
             end
             
             % Add the stimulus to the presentation.
@@ -163,7 +180,10 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
-            obj.backgroundCondition = obj.backgroundConditions{mod(obj.numEpochsCompleted,length(obj.backgroundConditions))+1};
+            bg_idx = mod(obj.numEpochsCompleted,length(obj.backgroundConditions))+1;
+            obj.backgroundCondition = obj.backgroundConditions{bg_idx};
+            obj.backgroundMean = obj.bgMeans(bg_idx,:);
+            obj.rgb_contrast = obj.rgbContrasts(bg_idx,:);
             
             if obj.repeatingSeed
                 obj.seed = 1;
