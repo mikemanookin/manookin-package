@@ -134,7 +134,7 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             if obj.chromaticStimulus
                 ct = obj.contrast * obj.rgb_contrast .* obj.backgroundMean + obj.backgroundMean;
             else
-                ct = obj.contrast*ones(1,3) * obj.backgroundIntensity + obj.backgroundIntensity;
+                ct = obj.contrast * [0.4, 0.5, 0.7] + [0.4, 0.5, 0.7];
             end
             if strcmp(obj.stimulusClass,'bar')
                 spot = stage.builtin.stimuli.Rectangle();
