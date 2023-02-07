@@ -197,7 +197,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
                 persistent xy;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        xy = round(obj.stixelShiftPix*(obj.stepsPerStixel-1)*(obj.positionStream.rand(1,2)>0.5)) ...
+                        xy = round(obj.stixelShiftPix*(obj.stepsPerStixel-1)*(obj.positionStream.rand(1,2))) ...
                             + obj.canvasSize / 2;
                     end
                 else
