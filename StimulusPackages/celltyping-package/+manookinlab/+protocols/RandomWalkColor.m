@@ -10,7 +10,7 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         contrasts = [-0.2,0.2]          % Spot contrasts
         stimulusSpeed = 500             % Spot speed (std) in microns/second
         chromaticClass = 'chromatic'    % The chromatic class of the background
-        chromaticStimulus = true        % Whether the spot/bar is the same color as the background
+        chromaticStimulus = false       % Whether the spot/bar is the same color as the background
         backgroundIntensity = 0.5
         repeatingSeed = false
         onlineAnalysis = 'none'         % Type of online analysis
