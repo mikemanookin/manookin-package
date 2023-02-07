@@ -60,10 +60,10 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
         function prepareEpoch(obj, epoch)
             prepareEpoch@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj, epoch);
             device = obj.rig.getDevice(obj.amp);
-            duration = (obj.preTime + obj.flashTime + obj.tailTime) / 1e3;
+            duration = (obj.preTime + obj.flashTime + obj.tailTime) * 1e-3;
             epoch.addDirectCurrentStimulus(device, device.background, duration, obj.sampleRate);
             epoch.addResponse(device);
-                              
+                        
             index = mod(obj.numEpochsCompleted, 2*length(obj.testContrastSequence));
             % Randomize the bar width sequence order at the beginning of each sequence.
             if index == 0 && obj.randomizeOrder
@@ -106,7 +106,7 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
             canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
             p = stage.core.Presentation((obj.preTime + obj.flashTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
-            
+
             %convert from microns to pixels...
             apertureDiameterPix = obj.rig.getDevice('Stage').um2pix(obj.apertureDiameter);
             grateBarSizePix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
