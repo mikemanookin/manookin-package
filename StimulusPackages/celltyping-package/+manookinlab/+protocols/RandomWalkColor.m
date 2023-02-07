@@ -2,18 +2,19 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 200                   % Stimulus leading duration (ms)
-        moveTime = 30000                % Stimulus duration (ms)
+        moveTime = 180000               % Stimulus duration (ms)
         tailTime = 200                  % Stimulus trailing duration (ms)
         waitTime = 3000                 % Stimulus wait duration (ms)
         stimulusClass = 'bar'           % Stimulus class ('bar' or 'spot')
         stimulusDiameter = 200          % Spot diameter in microns
         contrasts = [-0.2,0.2]          % Spot contrasts
         stimulusSpeed = 500             % Spot speed (std) in microns/second
-        chromaticClass = 'chromatic'
+        chromaticClass = 'chromatic'    % The chromatic class of the background
+        chromaticStimulus = true        % Whether the spot/bar is the same color as the background
         backgroundIntensity = 0.5
         repeatingSeed = false
         onlineAnalysis = 'none'         % Type of online analysis
-        numberOfAverages = uint16(48)   % Number of epochs
+        numberOfAverages = uint16(10)   % Number of epochs
     end
     
     properties (Dependent) 
@@ -79,7 +80,6 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
                 obj.bgMeans = m;
                 obj.rgbContrasts = delta_rgb;
             end
-            obj.bgMeans
         end
         
         function [m,d] = computeMeans(obj)
@@ -108,7 +108,11 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
 %             end
             
             % Get the RGB modulations.
-            d = ones(size(m));
+            if obj.chromaticStimulus
+                d = ones(size(m));
+            else
+                d = ones(size(m));
+            end
             
             % Match the L/M cone contrast to the requsted contrast value.
 %             whitePt = [1, 0.875, 0.385]*0.5;
@@ -127,7 +131,11 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundMean);
             
-            ct = obj.contrast * obj.rgb_contrast .* obj.backgroundMean + obj.backgroundMean;
+            if obj.chromaticStimulus
+                ct = obj.contrast * obj.rgb_contrast .* obj.backgroundMean + obj.backgroundMean;
+            else
+                ct = obj.contrast*ones(1,3) * obj.backgroundIntensity + obj.backgroundIntensity;
+            end
             if strcmp(obj.stimulusClass,'bar')
                 spot = stage.builtin.stimuli.Rectangle();
                 spot.size = [obj.canvasSize(1), obj.spotRadiusPix*2];
