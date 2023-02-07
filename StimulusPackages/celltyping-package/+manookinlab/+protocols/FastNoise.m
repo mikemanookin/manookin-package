@@ -106,6 +106,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the filter.
             if obj.gaussianFilter
+                checkerboard.color = 5/3*ones(1,3);
                 kernel = fspecial('gaussian',[3,3],obj.filterSdStixels);
 %                 kernel = [0.0751    0.1238    0.0751
 %                         0.1238    0.2042    0.1238
