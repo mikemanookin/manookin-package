@@ -7,6 +7,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
         contrast = 1
         stixelSize = 60                 % Edge length of stixel (microns)
         stepsPerStixel = 2              % Size of underling grid
+        gaussianFilter = true           % Whether to use a Gaussian filter
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         frameDwell = uint16(1)          % Frame dwell.
         randsPerRep = -1                % Number of random seeds between repeats
@@ -101,6 +102,17 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             % stixels.
             checkerboard.setMinFunction(GL.NEAREST);
             checkerboard.setMagFunction(GL.NEAREST);
+            
+            % Get the filter.
+            if obj.gaussianFilter
+                kernel = [0.0751    0.1238    0.0751
+                        0.1238    0.2042    0.1238
+                        0.0751    0.1238    0.0751];
+                filter = stage.core.Filter(kernel);
+                checkerboard.setFilter(filter);
+                checkerboard.setWrapModeS(GL.MIRRORED_REPEAT);
+                checkerboard.setWrapModeT(GL.MIRRORED_REPEAT);
+            end
             
             % Add the stimulus to the presentation.
             p.addStimulus(checkerboard);
