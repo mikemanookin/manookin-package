@@ -8,6 +8,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
         stixelSize = 60                 % Edge length of stixel (microns)
         stepsPerStixel = 2              % Size of underling grid
         gaussianFilter = true           % Whether to use a Gaussian filter
+        filterSdStixels = 1.0           % Gaussian filter standard dev in stixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         frameDwell = uint16(1)          % Frame dwell.
         randsPerRep = -1                % Number of random seeds between repeats
@@ -105,9 +106,10 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the filter.
             if obj.gaussianFilter
-                kernel = [0.0751    0.1238    0.0751
-                        0.1238    0.2042    0.1238
-                        0.0751    0.1238    0.0751];
+                kernel = fspecial('gaussian',[3,3],obj.filterSdStixels);
+%                 kernel = [0.0751    0.1238    0.0751
+%                         0.1238    0.2042    0.1238
+%                         0.0751    0.1238    0.0751];
                 filter = stage.core.Filter(kernel);
                 checkerboard.setFilter(filter);
                 checkerboard.setWrapModeS(GL.MIRRORED_REPEAT);
