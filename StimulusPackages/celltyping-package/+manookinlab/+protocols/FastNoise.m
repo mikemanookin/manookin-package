@@ -7,7 +7,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
         contrast = 1
         stixelSize = 60                 % Edge length of stixel (microns)
         stepsPerStixel = 2              % Size of underling grid
-        gaussianFilter = true           % Whether to use a Gaussian filter
+        gaussianFilter = false          % Whether to use a Gaussian filter
         filterSdStixels = 1.0           % Gaussian filter standard dev in stixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         frameDwell = uint16(1)          % Frame dwell.
@@ -87,6 +87,26 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
 %                 obj.setColorWeights();
 %             end
         end
+        
+        % Create a Gaussian filter for the stimulus.
+        function h = get_gaussian_filter(obj)
+%             kernel = fspecial('gaussian',[3,3],obj.filterSdStixels);
+            
+            p2 = (2*ceil(2*obj.filterSdStixels)+1) * ones(1,2);
+            siz   = (p2-1)/2;
+            std   = obj.filterSdStixels;
+
+            [x,y] = meshgrid(-siz(2):siz(2),-siz(1):siz(1));
+            arg   = -(x.*x + y.*y)/(2*std*std);
+
+            h     = exp(arg);
+            h(h<eps*max(h(:))) = 0;
+
+            sumh = sum(h(:));
+            if sumh ~= 0
+                h  = h/sumh;
+            end
+        end
 
  
         function p = createPresentation(obj)
@@ -107,10 +127,8 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Get the filter.
             if obj.gaussianFilter
                 checkerboard.color = 5/3*ones(1,3);
-                kernel = fspecial('gaussian',[3,3],obj.filterSdStixels);
-%                 kernel = [0.0751    0.1238    0.0751
-%                         0.1238    0.2042    0.1238
-%                         0.0751    0.1238    0.0751];
+                kernel = obj.get_gaussian_filter(); %fspecial('gaussian',[3,3],obj.filterSdStixels);
+
                 filter = stage.core.Filter(kernel);
                 checkerboard.setFilter(filter);
                 checkerboard.setWrapModeS(GL.MIRRORED_REPEAT);

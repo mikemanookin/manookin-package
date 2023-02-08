@@ -1,18 +1,19 @@
-classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
+classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Noise leading duration (ms)
         stimTime = 30000                % Noise duration (ms)
-        tailTime = 250                  % Noise trailing duration (ms)
+        tailTime = 500                  % Noise trailing duration (ms)
         contrast = 1
-        stixelSize = 90                 % Edge length of stixel (microns)
+        stixelSize = 60                 % Edge length of stixel (microns)
         stepsPerStixel = 2              % Size of underling grid
+        gaussianFilter = false          % Whether to use a Gaussian filter
+        filterSdStixels = 1.0           % Gaussian filter standard dev in stixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        frameDwell = uint16(18)         % Frame dwell.
-        pixelDensity = 0.01             % Fraction of pixels that are not gray on a frame.
+        frameDwell = uint16(1)          % Frame dwell.
         randsPerRep = -1                % Number of random seeds between repeats
         maxWidth = 0                    % Maximum width of the stimulus in microns.
-        chromaticClass = 'BY'           % Chromatic type
+        chromaticClass = 'achromatic'   % Chromatic type
         onlineAnalysis = 'none'
         numberOfAverages = uint16(105)  % Number of epochs
     end
@@ -21,7 +22,7 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
-        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY','S-LM'})
+        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY'})
         numXStixels
         numYStixels
         numXChecks
@@ -69,9 +70,25 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Get the number of frames.
             obj.numFrames = floor(obj.stimTime * 1e-3 * obj.frameRate)+15;
             
-            if strcmp(obj.chromaticClass,'S-LM')
-            end
+%             if strcmp(obj.onlineAnalysis,'extracellular')
+%                 obj.showFigure('manookinlab.figures.AutocorrelationFigure', obj.rig.getDevice(obj.amp));
+%             end
+% 
+%             if ~strcmp(obj.onlineAnalysis, 'none')
+%                 obj.showFigure('manookinlab.figures.JitteredNoiseFigure', ...
+%                     obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis,... 
+%                     'stixelSize', obj.stixelSize, 'stepsPerStixel', double(obj.stepsPerStixel),...
+%                     'numXChecks', obj.numXChecks, 'numYChecks', obj.numYChecks,...
+%                     'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
+%                     'frameRate', obj.frameRate, 'numFrames', obj.numFrames);
+%             end
+            
+%             if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+%                 obj.setColorWeights();
+%             end
         end
+        
+        function get
 
  
         function p = createPresentation(obj)
@@ -88,6 +105,19 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
             % stixels.
             checkerboard.setMinFunction(GL.NEAREST);
             checkerboard.setMagFunction(GL.NEAREST);
+            
+            % Get the filter.
+            if obj.gaussianFilter
+                checkerboard.color = 5/3*ones(1,3);
+                kernel = fspecial('gaussian',[3,3],obj.filterSdStixels);
+%                 kernel = [0.0751    0.1238    0.0751
+%                         0.1238    0.2042    0.1238
+%                         0.0751    0.1238    0.0751];
+                filter = stage.core.Filter(kernel);
+                checkerboard.setFilter(filter);
+                checkerboard.setWrapModeS(GL.MIRRORED_REPEAT);
+                checkerboard.setWrapModeT(GL.MIRRORED_REPEAT);
+            end
             
             % Add the stimulus to the presentation.
             p.addStimulus(checkerboard);
@@ -126,11 +156,8 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        M = obj.noiseStream.rand(obj.numYStixels,obj.numXStixels);
-                        M(M < 1-obj.pixelDensity/2 & (M > obj.pixelDensity/2)) = 0.5;
-                        M(M > 0.5) = 1;
-                        M(M < 0.5) = 0;
-                        M = 2*obj.backgroundIntensity * M;
+                        M = 2*obj.backgroundIntensity * ...
+                            (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5);
                     end
                 else
                     M = obj.imageMatrix;
@@ -143,11 +170,8 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        M = obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3);
-                        M(M < 1-obj.pixelDensity/2 & (M > obj.pixelDensity/2)) = 0.5;
-                        M(M > 0.5) = 1;
-                        M(M < 0.5) = 0;
-                        M = 2*obj.backgroundIntensity * M;
+                        M = 2*obj.backgroundIntensity * ...
+                            (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5);
                     end
                 else
                     M = obj.imageMatrix;
@@ -161,11 +185,8 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
                         M = zeros(obj.numYStixels,obj.numXStixels,3);
-                        tmpM = obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2);
-                        tmpM(tmpM < 1-obj.pixelDensity/2 & (tmpM > obj.pixelDensity/2)) = 0.5;
-                        tmpM(tmpM > 0.5) = 1;
-                        tmpM(tmpM < 0.5) = 0;
-                        tmpM = 2*obj.backgroundIntensity * tmpM;
+                        tmpM = 2*obj.backgroundIntensity * ...
+                            (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5);
                         M(:,:,1:2) = repmat(tmpM(:,:,1),[1,1,2]);
                         M(:,:,3) = tmpM(:,:,2);
                     end
@@ -179,7 +200,7 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
                 persistent xy;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        xy = round(obj.stixelShiftPix*(obj.stepsPerStixel-1)*(obj.positionStream.rand(1,2)>0.5)) ...
+                        xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStream.rand(1,2))) ...
                             + obj.canvasSize / 2;
                     end
                 else
@@ -187,6 +208,22 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
                 end
                 p = xy;
             end
+
+%             function s = setStixels(obj, frame, stimFrames)
+%                 if frame > 0 && frame <= stimFrames
+%                     s = squeeze(obj.imageMatrix(:,:,frame));
+%                 else
+%                     s = squeeze(obj.imageMatrix(:,:,1));
+%                 end
+%             end
+            
+%             function s = setColorStixels(obj, frame, stimFrames)
+%                 if frame > 0 && frame <= stimFrames
+%                     s = squeeze(obj.imageMatrix(:,:,frame,:));
+%                 else
+%                     s = squeeze(obj.imageMatrix(:,:,1,:));
+%                 end
+%             end
         end
 
         function prepareEpoch(obj, epoch)
@@ -215,25 +252,33 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             obj.positionStream = RandStream('mt19937ar', 'Seed', obj.seed);
             
+%             obj.imageMatrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed, obj.frameDwell);
+%             if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+%                 tmp = repmat(obj.imageMatrix,[1,1,1,3]);
+%                 for k = 1 : 3
+%                     tmp(:,:,:,k) = obj.colorWeights(k)*tmp(:,:,:,k);
+%                 end
+%                 
+%                 switch obj.chromaticClass
+%                     case 'yellow'
+%                         tmp(:,:,:,3) = -1;
+%                     case 'blue'
+%                         tmp(:,:,:,1:2) = -1;
+%                 end
+%                 
+%                 obj.imageMatrix = tmp;
+%             end
+            
+%             % Multiply by the contrast and convert to uint8.
+%             obj.imageMatrix = obj.contrast * obj.imageMatrix;
+%             obj.imageMatrix = uint8(255*(obj.backgroundIntensity*obj.imageMatrix + obj.backgroundIntensity));
+%             
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('numXChecks', obj.numXChecks);
             epoch.addParameter('numYChecks', obj.numYChecks);
             epoch.addParameter('numFrames', obj.numFrames);
             epoch.addParameter('numXStixels', obj.numXStixels);
             epoch.addParameter('numYStixels', obj.numYStixels);
-        end
-        
-        function deltaRGB = getDeltaRGB(obj, gunMeans, isoM)
-            deltaRGB = 2*(obj.quantalCatch(:,1:3).*(ones(3,1)*gunMeans(:)')')' \ isoM;
-            deltaRGB = deltaRGB / max(abs(deltaRGB));
-        end
-
-        function cWeber = getConeContrasts(obj, gunMeans, deltaRGB)
-            meanFlux = (gunMeans(:)*ones(1,3)) .* obj.quantalCatch(:,1:3);
-
-            iDelta = sum((deltaRGB(:)*ones(1,3)) .* meanFlux);
-            % Calculate the max contrast of each cone type. (Weber contrast)
-            cWeber = iDelta ./ sum(meanFlux,1);
         end
         
         function a = get.amp2(obj)
