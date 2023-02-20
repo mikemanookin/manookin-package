@@ -27,14 +27,19 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
         currentTestContrast
         currentGrateContrast
         gratePolarity
+        testPolarity
         grateMatrix
         testType
     end
-    
+
     properties (Dependent)
         stimTime
     end
 
+    properties (Dependent, SetAccess = private)
+        amp2                            % Secondary amplifier
+    end
+    
     methods
         
         function didSetRig(obj)
@@ -60,33 +65,56 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
         function prepareEpoch(obj, epoch)
             prepareEpoch@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj, epoch);
             device = obj.rig.getDevice(obj.amp);
-            duration = (obj.preTime + obj.flashTime + obj.tailTime) * 1e-3;
+            duration = (obj.preTime + obj.flashTime + obj.tailTime) / 1e3;
             epoch.addDirectCurrentStimulus(device, device.background, duration, obj.sampleRate);
             epoch.addResponse(device);
-                        
-            index = mod(obj.numEpochsCompleted, 2*length(obj.testContrastSequence));
+                              
+            index = mod(obj.numEpochsCompleted, 9*length(obj.testContrastSequence));
             % Randomize the bar width sequence order at the beginning of each sequence.
             if index == 0 && obj.randomizeOrder
                 obj.testContrastSequence = randsample(obj.testContrastSequence, length(obj.testContrastSequence));
             end
-            obj.currentTestContrast = obj.testContrastSequence(floor(index/2)+1);
-            if (rem(index, 2) == 0)
-                obj.testType = 'orig';
-            else
-                obj.testType = 'modified';
-            end
+            obj.currentTestContrast = obj.testContrastSequence(floor(index/9)+1);
             
-            if (rem(floor(obj.numEpochsCompleted / (2*length(obj.testContrastSequence))), 3) == 0)
-                obj.gratePolarity = 1;
-                obj.currentGrateContrast = obj.gratingContrast;
-            end
-            if (rem(floor(obj.numEpochsCompleted / (2*length(obj.testContrastSequence))), 3) == 1)
-                obj.gratePolarity = -1;
-                obj.currentGrateContrast = obj.gratingContrast;
-            end
-            if (rem(floor(obj.numEpochsCompleted / (2*length(obj.testContrastSequence))), 3) == 2)
-                obj.gratePolarity = 1;
-                obj.currentGrateContrast = 0;
+            stimIndex = rem(obj.numEpochsCompleted, 9);
+            
+            switch stimIndex
+                case 0
+                    obj.gratePolarity = 1;
+                    obj.testPolarity = 0;
+                    obj.currentGrateContrast = obj.gratingContrast;
+                case 1
+                    obj.gratePolarity = 1;
+                    obj.testPolarity = 1;
+                    obj.currentGrateContrast = obj.gratingContrast;
+                case 2
+                    obj.gratePolarity = 1;
+                    obj.testPolarity = -1;
+                    obj.currentGrateContrast = obj.gratingContrast;
+                case 3
+                    obj.gratePolarity = -1;
+                    obj.testPolarity = 0;
+                    obj.currentGrateContrast = obj.gratingContrast;
+                case 4
+                    obj.gratePolarity = -1;
+                    obj.testPolarity = 1;
+                    obj.currentGrateContrast = obj.gratingContrast;
+                case 5
+                    obj.gratePolarity = -1;
+                    obj.testPolarity = -1;
+                    obj.currentGrateContrast = obj.gratingContrast;
+                case 6
+                    obj.gratePolarity = 1;
+                    obj.testPolarity = 0;
+                    obj.currentGrateContrast = 0; % no grate
+                case 7
+                    obj.gratePolarity = 1;
+                    obj.testPolarity = 1;
+                    obj.currentGrateContrast = 0; % no grate
+                case 8
+                    obj.gratePolarity = 1;
+                    obj.testPolarity = -1;
+                    obj.currentGrateContrast = 0; % no grate
             end
             
             % bar greater than 1/2 aperture size -> just split field grating.
@@ -98,7 +126,7 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
             epoch.addParameter('currentTestContrast', obj.currentTestContrast);
             epoch.addParameter('currentGrateContrast', obj.currentGrateContrast);
             epoch.addParameter('gratePolarity', obj.gratePolarity);
-            epoch.addParameter('testType', obj.testType);     
+            epoch.addParameter('testPolarity', obj.testPolarity);     
             
         end
         
@@ -106,22 +134,21 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
             canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
             p = stage.core.Presentation((obj.preTime + obj.flashTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
-
+            
             %convert from microns to pixels...
             apertureDiameterPix = obj.rig.getDevice('Stage').um2pix(obj.apertureDiameter);
             grateBarSizePix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
             
             grateSize = canvasSize(2);
             grateX = sign(obj.gratePolarity * sin(2*pi*(-grateSize/2:grateSize/2-1) / grateBarSizePix));
-            grateMatrix = repmat(grateX, canvasSize(1), 1);
-            obj.grateMatrix = obj.backgroundIntensity + grateMatrix * obj.backgroundIntensity * obj.currentGrateContrast;
+            obj.grateMatrix = repmat(grateX, canvasSize(1), 1);
             board = stage.builtin.stimuli.Image(uint8(255*obj.grateMatrix));
             board.size = canvasSize;
             board.position = canvasSize/2;
             board.setMinFunction(GL.NEAREST); %don't interpolate to scale up board
             board.setMagFunction(GL.NEAREST);
             p.addStimulus(board);
-                                                    
+                        
             if (obj.apertureDiameter > 0) %% Create aperture
                 aperture = stage.builtin.stimuli.Rectangle();
                 aperture.position = canvasSize/2;
@@ -141,19 +168,22 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
             function i = getNewImage(obj, frame, preFrames, flashFrames)
                 persistent boardMatrix;
                 if (frame == 0)
-                    boardMatrix = obj.grateMatrix; 
+                    boardMatrix = obj.backgroundIntensity + obj.grateMatrix * obj.backgroundIntensity * obj.currentGrateContrast; 
                 end
                 if (frame == preFrames)
                     testMatrix = ones(size(obj.grateMatrix)) * obj.currentTestContrast * obj.backgroundIntensity;
-                    if (strcmp(obj.testType, 'modified'))
-                        coneGain = 1 ./ (1 + ((double(obj.grateMatrix)) * obj.maxIntensity) / obj.WeberConstant);
-                        coneGain = coneGain / mean(coneGain(:));
-                        testMatrix = testMatrix ./ coneGain;
+                    if (obj.testPolarity ~= 0)
+                        RFWeights = (obj.backgroundIntensity + obj.grateMatrix * obj.backgroundIntensity * obj.gratingContrast) / obj.backgroundIntensity;
+                        if (obj.testPolarity == 1)
+                            testMatrix = testMatrix .* RFWeights;
+                        else
+                            testMatrix = testMatrix ./ RFWeights;
+                        end
                     end
-                    boardMatrix = obj.grateMatrix + testMatrix;
+                    boardMatrix = obj.backgroundIntensity + obj.grateMatrix * obj.backgroundIntensity * obj.currentGrateContrast + testMatrix;
                 end
                 if (frame == preFrames + flashFrames)
-                    boardMatrix = obj.grateMatrix; 
+                    boardMatrix = obj.backgroundIntensity + obj.grateMatrix * obj.backgroundIntensity * obj.currentGrateContrast;
                 end
                 if (max(boardMatrix(:))> 1 | min(boardMatrix < 0))
                     display(['out of range' num2str(rand(1,1))]);
@@ -163,8 +193,8 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
 
         end
         
-        function stimTime = get.stimTime(obj)
-            stimTime = (obj.preTime + obj.flashTime + obj.tailTime);
+        function stimTime = getStimTime(obj)
+            stimTime = (obj.preTime + obj.flashTime + obj.tailTime) * 1e-3;
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
@@ -173,6 +203,20 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
         
         function tf = shouldContinueRun(obj)
             tf = obj.numEpochsCompleted < obj.numberOfAverages;
+        end
+
+        function stimTime = get.stimTime(obj)
+            stimTime = (obj.preTime + obj.flashTime + obj.tailTime);
+        end
+
+        function a = get.amp2(obj)
+            amps = obj.rig.getDeviceNames('Amp');
+            if numel(amps) < 2
+                a = '(None)';
+            else
+                i = find(~ismember(amps, obj.amp), 1);
+                a = amps{i};
+            end
         end
 
     end
