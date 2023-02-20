@@ -87,6 +87,9 @@ classdef SimulatedStage < symphonyui.core.descriptions.RigDescription
             end
             microdisplay.addResource('quantalCatch', qCatch);
             
+            ramps = containers.Map();
+            ramps('high')    = 65535 * importdata(manookinlab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_high_gamma_ramp.txt'));
+            
             
             obj.addDevice(microdisplay);
             

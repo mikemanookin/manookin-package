@@ -90,6 +90,10 @@ classdef LcrVideoDevice < symphonyui.core.Device
             r = obj.getConfigurationSetting('monitorRefreshRate');
         end
         
+        function [r, g, b] = getMonitorGammaRamp(obj)
+            [r, g, b] = obj.stageClient.getMonitorGammaRamp();
+        end
+        
         function setMonitorGammaRamp(obj, r, g, b)
             obj.stageClient.setMonitorGammaRamp(r, g, b);
         end
