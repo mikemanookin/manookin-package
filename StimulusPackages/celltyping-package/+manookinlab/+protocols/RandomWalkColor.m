@@ -210,8 +210,8 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('contrast',obj.contrast);
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('backgroundCondition',obj.backgroundCondition)
-            epoch.addParameter('spotX',obj.spotPositions(:,1)');
-            epoch.addParameter('spotY',obj.spotPositions(:,2)');
+            %epoch.addParameter('spotX',obj.spotPositions(:,1)');
+            %epoch.addParameter('spotY',obj.spotPositions(:,2)');
         end
         
         function stimTime = get.stimTime(obj)
