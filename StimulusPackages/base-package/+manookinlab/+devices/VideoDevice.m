@@ -10,6 +10,10 @@ classdef VideoDevice < symphonyui.core.Device
             ip.addParameter('host', 'localhost', @ischar);
             ip.addParameter('port', 5678, @isnumeric);
             ip.addParameter('micronsPerPixel', @isnumeric);
+            ip.addParameter('gammaRamps', containers.Map( ...
+                {'red', 'green', 'blue'}, ...
+                {linspace(0, 65535, 256), linspace(0, 65535, 256), linspace(0, 65535, 256)}), ...
+                @(r)isa(r, 'containers.Map'));
             ip.parse(varargin{:});
             
             cobj = Symphony.Core.UnitConvertingExternalDevice(['SimulatedStage.Stage@' ip.Results.host], 'Unspecified', Symphony.Core.Measurement(0, symphonyui.core.Measurement.UNITLESS));
@@ -19,6 +23,13 @@ classdef VideoDevice < symphonyui.core.Device
             obj.stageClient = stage.core.network.StageClient();
             obj.stageClient.connect(ip.Results.host, ip.Results.port);
             canvasSize = obj.stageClient.getCanvasSize();
+            
+            obj.stageClient.setMonitorGamma(1);
+            
+            obj.stageClient.setMonitorGammaRamp(...
+                ip.Results.gammaRamps('red'),...
+                ip.Results.gammaRamps('green'), ...
+                ip.Results.gammaRamps('blue'));
             
             obj.addConfigurationSetting('canvasSize', canvasSize, 'isReadOnly', true);
             obj.addConfigurationSetting('monitorRefreshRate', obj.stageClient.getMonitorRefreshRate(), 'isReadOnly', true);
@@ -51,6 +62,14 @@ classdef VideoDevice < symphonyui.core.Device
         
         function r = getMonitorRefreshRate(obj)
             r = obj.getConfigurationSetting('monitorRefreshRate');
+        end
+        
+        function [r, g, b] = getMonitorGammaRamp(obj)
+            [r, g, b] = obj.stageClient.getMonitorGammaRamp();
+        end
+        
+        function setMonitorGammaRamp(obj, r, g, b)
+            obj.stageClient.setMonitorGammaRamp(r, g, b);
         end
         
         function play(obj, presentation, prerender)

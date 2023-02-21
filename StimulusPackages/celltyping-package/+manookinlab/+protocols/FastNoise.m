@@ -7,7 +7,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
         contrast = 1
         stixelSize = 60                 % Edge length of stixel (microns)
         stepsPerStixel = 2              % Size of underling grid
-        gaussianFilter = true           % Whether to use a Gaussian filter
+        gaussianFilter = false          % Whether to use a Gaussian filter
         filterSdStixels = 1.0           % Gaussian filter standard dev in stixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         frameDwell = uint16(1)          % Frame dwell.
@@ -35,6 +35,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
         maxWidthPix
         noiseStream
         positionStream
+        monitor_gamma
     end
     
     properties (Dependent, SetAccess = private)
@@ -70,22 +71,36 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Get the number of frames.
             obj.numFrames = floor(obj.stimTime * 1e-3 * obj.frameRate)+15;
             
-%             if strcmp(obj.onlineAnalysis,'extracellular')
-%                 obj.showFigure('manookinlab.figures.AutocorrelationFigure', obj.rig.getDevice(obj.amp));
-%             end
-% 
-%             if ~strcmp(obj.onlineAnalysis, 'none')
-%                 obj.showFigure('manookinlab.figures.JitteredNoiseFigure', ...
-%                     obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis,... 
-%                     'stixelSize', obj.stixelSize, 'stepsPerStixel', double(obj.stepsPerStixel),...
-%                     'numXChecks', obj.numXChecks, 'numYChecks', obj.numYChecks,...
-%                     'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
-%                     'frameRate', obj.frameRate, 'numFrames', obj.numFrames);
-%             end
+            if obj.gaussianFilter
+                % Get the gamma ramps.
+                [r,g,b] = obj.rig.getDevice('Stage').getMonitorGammaRamp();
+                obj.monitor_gamma = [r;g;b];
+                gamma_scale = 0.5/(0.5539*exp(-0.8589*obj.filterSdStixels)+0.05732);
+                new_gamma = 65535*(0.5*gamma_scale*linspace(-1,1,256)+0.5);
+                new_gamma(new_gamma < 0) = 0;
+                new_gamma(new_gamma > 65535) = 65535;
+                obj.rig.getDevice('Stage').setMonitorGammaRamp(new_gamma, new_gamma, new_gamma);
+            end            
+        end
+        
+        % Create a Gaussian filter for the stimulus.
+        function h = get_gaussian_filter(obj)
+%             kernel = fspecial('gaussian',[3,3],obj.filterSdStixels);
             
-%             if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
-%                 obj.setColorWeights();
-%             end
+            p2 = (2*ceil(2*obj.filterSdStixels)+1) * ones(1,2);
+            siz   = (p2-1)/2;
+            std   = obj.filterSdStixels;
+
+            [x,y] = meshgrid(-siz(2):siz(2),-siz(1):siz(1));
+            arg   = -(x.*x + y.*y)/(2*std*std);
+
+            h     = exp(arg);
+            h(h<eps*max(h(:))) = 0;
+
+            sumh = sum(h(:));
+            if sumh ~= 0
+                h  = h/sumh;
+            end
         end
 
  
@@ -106,11 +121,9 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the filter.
             if obj.gaussianFilter
-                checkerboard.color = 5/3*ones(1,3);
-                kernel = fspecial('gaussian',[3,3],obj.filterSdStixels);
-%                 kernel = [0.0751    0.1238    0.0751
-%                         0.1238    0.2042    0.1238
-%                         0.0751    0.1238    0.0751];
+%                 checkerboard.color = 5/3*ones(1,3);
+                kernel = obj.get_gaussian_filter(); %fspecial('gaussian',[3,3],obj.filterSdStixels);
+
                 filter = stage.core.Filter(kernel);
                 checkerboard.setFilter(filter);
                 checkerboard.setWrapModeS(GL.MIRRORED_REPEAT);
@@ -138,8 +151,6 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             else
                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                     @(state)setStixels(obj, state.frame - preF));
-%                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-%                     @(state)setStixels(obj, state.frame - preF, stimF));
             end
             p.addController(imgController);
             
@@ -183,15 +194,16 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
                         M = zeros(obj.numYStixels,obj.numXStixels,3);
-                        tmpM = 2*obj.backgroundIntensity * ...
-                            (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5);
+                        tmpM = obj.contrast*2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1;
+                        tmpM = tmpM*obj.backgroundIntensity + obj.backgroundIntensity;
                         M(:,:,1:2) = repmat(tmpM(:,:,1),[1,1,2]);
                         M(:,:,3) = tmpM(:,:,2);
                     end
                 else
                     M = obj.imageMatrix;
                 end
-                s = uint8(255*M);
+                s = single(M);
+%                 s = uint8(255*M);
             end
             
             function p = setJitter(obj, frame)
@@ -206,22 +218,6 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
                 end
                 p = xy;
             end
-
-%             function s = setStixels(obj, frame, stimFrames)
-%                 if frame > 0 && frame <= stimFrames
-%                     s = squeeze(obj.imageMatrix(:,:,frame));
-%                 else
-%                     s = squeeze(obj.imageMatrix(:,:,1));
-%                 end
-%             end
-            
-%             function s = setColorStixels(obj, frame, stimFrames)
-%                 if frame > 0 && frame <= stimFrames
-%                     s = squeeze(obj.imageMatrix(:,:,frame,:));
-%                 else
-%                     s = squeeze(obj.imageMatrix(:,:,1,:));
-%                 end
-%             end
         end
 
         function prepareEpoch(obj, epoch)
@@ -249,28 +245,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Seed the generator
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             obj.positionStream = RandStream('mt19937ar', 'Seed', obj.seed);
-            
-%             obj.imageMatrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed, obj.frameDwell);
-%             if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
-%                 tmp = repmat(obj.imageMatrix,[1,1,1,3]);
-%                 for k = 1 : 3
-%                     tmp(:,:,:,k) = obj.colorWeights(k)*tmp(:,:,:,k);
-%                 end
-%                 
-%                 switch obj.chromaticClass
-%                     case 'yellow'
-%                         tmp(:,:,:,3) = -1;
-%                     case 'blue'
-%                         tmp(:,:,:,1:2) = -1;
-%                 end
-%                 
-%                 obj.imageMatrix = tmp;
-%             end
-            
-%             % Multiply by the contrast and convert to uint8.
-%             obj.imageMatrix = obj.contrast * obj.imageMatrix;
-%             obj.imageMatrix = uint8(255*(obj.backgroundIntensity*obj.imageMatrix + obj.backgroundIntensity));
-%             
+             
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('numXChecks', obj.numXChecks);
             epoch.addParameter('numYChecks', obj.numYChecks);
@@ -295,6 +270,14 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
 
         function tf = shouldContinueRun(obj)
             tf = obj.numEpochsCompleted < obj.numberOfAverages;
+        end
+        
+        function completeRun(obj)
+            completeRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
+            % Reset the Gamma back to the original.
+            if obj.gaussianFilter
+                obj.rig.getDevice('Stage').setMonitorGammaRamp(obj.monitor_gamma(1,:), obj.monitor_gamma(2,:), obj.monitor_gamma(3,:));
+            end
         end
     end
 end

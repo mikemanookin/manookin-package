@@ -21,7 +21,7 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
-        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY'})
+        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY','S-LM'})
         numXStixels
         numYStixels
         numXChecks
@@ -68,6 +68,9 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.numYChecks = ceil(obj.maxWidthPix(2)/(obj.stixelSizePix/double(obj.stepsPerStixel)));
             % Get the number of frames.
             obj.numFrames = floor(obj.stimTime * 1e-3 * obj.frameRate)+15;
+            
+            if strcmp(obj.chromaticClass,'S-LM')
+            end
         end
 
  
@@ -218,6 +221,19 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('numFrames', obj.numFrames);
             epoch.addParameter('numXStixels', obj.numXStixels);
             epoch.addParameter('numYStixels', obj.numYStixels);
+        end
+        
+        function deltaRGB = getDeltaRGB(obj, gunMeans, isoM)
+            deltaRGB = 2*(obj.quantalCatch(:,1:3).*(ones(3,1)*gunMeans(:)')')' \ isoM;
+            deltaRGB = deltaRGB / max(abs(deltaRGB));
+        end
+
+        function cWeber = getConeContrasts(obj, gunMeans, deltaRGB)
+            meanFlux = (gunMeans(:)*ones(1,3)) .* obj.quantalCatch(:,1:3);
+
+            iDelta = sum((deltaRGB(:)*ones(1,3)) .* meanFlux);
+            % Calculate the max contrast of each cone type. (Weber contrast)
+            cWeber = iDelta ./ sum(meanFlux,1);
         end
         
         function a = get.amp2(obj)
