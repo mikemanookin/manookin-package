@@ -127,12 +127,10 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
             epoch.addParameter('currentGrateContrast', obj.currentGrateContrast);
             epoch.addParameter('gratePolarity', obj.gratePolarity);
             epoch.addParameter('testPolarity', obj.testPolarity);     
-            fprintf(1, 'done prepare\n');
             
         end
         
         function p = createPresentation(obj)            
-                        fprintf(1, 'start  create 0\n');
             canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
             p = stage.core.Presentation((obj.preTime + obj.flashTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
@@ -141,7 +139,6 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
             apertureDiameterPix = obj.rig.getDevice('Stage').um2pix(obj.apertureDiameter);
             grateBarSizePix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
 
-                        fprintf(1, 'mid  create 0\n');
 
             grateSize = canvasSize(2);
             grateX = sign(obj.gratePolarity * sin(2*pi*(-grateSize/2:grateSize/2-1) / grateBarSizePix));
@@ -152,8 +149,7 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
             board.setMinFunction(GL.NEAREST); %don't interpolate to scale up board
             board.setMagFunction(GL.NEAREST);
             p.addStimulus(board);
-                        fprintf(1, 'mid create\n');
-                        
+                         
             if (obj.apertureDiameter > 0) %% Create aperture
                 aperture = stage.builtin.stimuli.Rectangle();
                 aperture.position = canvasSize/2;
@@ -163,15 +159,12 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
                 aperture.setMask(mask);
                 p.addStimulus(aperture); %add aperture
             end
-                            fprintf(1, 'mid create 2\n');
-        
             preFrames = round(60 * (obj.preTime/1e3));
             flashFrames = round(60 * (obj.flashTime/1e3));
             imageController = stage.builtin.controllers.PropertyController(board, 'imageMatrix',...
                 @(state)getNewImage(obj, state.frame, preFrames, flashFrames));
             p.addController(imageController); %add the controller
 
-            fprintf(1, 'done create\n');
             function i = getNewImage(obj, frame, preFrames, flashFrames)
                 persistent boardMatrix;
                 if (frame == 0)
@@ -209,7 +202,7 @@ classdef FlashedGratingDiscrimination < edu.washington.riekelab.protocols.RiekeL
         end
 
         function stimTime = get.stimTime(obj)
-            stimTime = (obj.preTime + obj.flashTime + obj.tailTime);
+            stimTime = obj.flashTime; %(obj.preTime + obj.flashTime + obj.tailTime);
         end
         
         function a = get.amp2(obj)
