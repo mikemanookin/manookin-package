@@ -23,6 +23,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY'})
+        stixelSizesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         stixelSize
         stepsPerStixel
         numXStixels
@@ -113,7 +114,6 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the filter.
             if obj.gaussianFilter
-%                 checkerboard.color = 5/3*ones(1,3);
                 kernel = obj.get_gaussian_filter(); %fspecial('gaussian',[3,3],obj.filterSdStixels);
 
                 filter = stage.core.Filter(kernel);
@@ -238,10 +238,11 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             
-            obj.stepsPerStixel = round(obj.stixelSize / obj.gridSize);
+            obj.stepsPerStixel = max(round(obj.stixelSize / obj.gridSize), 1);
             
-            obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
             gridSizePix = obj.rig.getDevice('Stage').um2pix(obj.gridSize);
+            %obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
+            obj.stixelSizePix = gridSizePix * obj.stepsPerStixel;
             obj.stixelShiftPix = obj.stixelSizePix / obj.stepsPerStixel;
             
             % Calculate the number of X/Y checks.
@@ -260,6 +261,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('numFrames', obj.numFrames);
             epoch.addParameter('numXStixels', obj.numXStixels);
             epoch.addParameter('numYStixels', obj.numYStixels);
+            epoch.addParameter('stixelSize', obj.gridSize*obj.stepsPerStixel);
         end
         
         function a = get.amp2(obj)
