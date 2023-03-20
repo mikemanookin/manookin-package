@@ -262,6 +262,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('numXStixels', obj.numXStixels);
             epoch.addParameter('numYStixels', obj.numYStixels);
             epoch.addParameter('stixelSize', obj.gridSize*obj.stepsPerStixel);
+            epoch.addParameter('stepsPerStixel', obj.stepsPerStixel);
         end
         
         function a = get.amp2(obj)
