@@ -1,25 +1,36 @@
-classdef NaturalImageFlash < edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol
+classdef NaturalImageFlashPlusNoise < edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol
 
     properties
         preTime = 200 % ms
         flashTime = 200 % ms
         tailTime = 200 % ms
-
+        maskDiameter = 0;
         apertureDiameter = 200 % um
-
+        grateBarSize = 60;
+        noiseFilterSD = 2 % pixels
+        noiseContrast = 1;
+        numNoiseRepeats = 20;
+        linearizeCones = false;
+        WeberConstant = 2000;
+        maxIntensity = 25000;
         numberOfAverages = uint16(180) % number of epochs to queue
+    end
+    
+    properties (Dependent)
+        stimTime
     end
     
     properties (Hidden)
         %saved out to each epoch...
+        stimulusTag
         imagePatchIndex
         currentPatchLocation
+        temporalMask
+        noiseSeed
+        noiseStream
+        currentNoiseContrast
     end
-
-    properties (Dependent)
-        stimTime
-    end
-
+    
     properties (Dependent, SetAccess = private)
         amp2                            % Secondary amplifier
     end
@@ -44,66 +55,139 @@ classdef NaturalImageFlash < edu.washington.riekelab.turner.protocols.NaturalIma
                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis);
             obj.showFigure('edu.washington.riekelab.turner.figures.FrameTimingFigure',...
                 obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));
+            % Show the progress bar.
+            obj.showFigure('manookinlab.figures.ProgressFigure', obj.numberOfAverages);
+        
         end
         
         function prepareEpoch(obj, epoch)
             prepareEpoch@edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol(obj, epoch);
             device = obj.rig.getDevice(obj.amp);
-            duration = (obj.preTime + obj.flashTime + obj.tailTime) / 1e3;
+            duration = (obj.preTime + obj.flashTime + obj.tailTime) * obj.numNoiseRepeats / 1e3;
             epoch.addDirectCurrentStimulus(device, device.background, duration, obj.sampleRate);
             epoch.addResponse(device);
 
             if numel(obj.rig.getDeviceNames('Amp')) >= 2
                 epoch.addResponse(obj.rig.getDevice(obj.amp2));
             end
-            
+            canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
+            grateBarSizePix = obj.rig.getDevice('Stage').um2pix(obj.grateBarSize) / 3.3; % VH pixels
+                       
             %pull patch location:
-            obj.imagePatchIndex = mod(obj.numEpochsCompleted,obj.noPatches) + 1;
-            obj.currentPatchLocation(1) = obj.patchLocations(1,obj.imagePatchIndex); %in VH pixels
-            obj.currentPatchLocation(2) = obj.patchLocations(2,obj.imagePatchIndex);
+            obj.imagePatchIndex = mod(floor(obj.numEpochsCompleted),obj.noPatches+2) + 1;
+            if (obj.imagePatchIndex <= obj.noPatches)
+                obj.currentPatchLocation(1) = obj.patchLocations(1,obj.imagePatchIndex); %in VH pixels
+                obj.currentPatchLocation(2) = obj.patchLocations(2,obj.imagePatchIndex);
+            end
             
             obj.imagePatchMatrix = ...
                 edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol.getImagePatchMatrix(...
                 obj, obj.currentPatchLocation);
+            
+            if (obj.imagePatchIndex == obj.noPatches+1)
+                grateSize = size(obj.imagePatchMatrix, 2);
+                grateX = sign(sin(2*pi*(-grateSize/2:grateSize/2-1) / grateBarSizePix));
+                grateMatrix = repmat(grateX, size(obj.imagePatchMatrix, 1), 1);
+                obj.imagePatchMatrix = uint8(255 * (obj.backgroundIntensity + grateMatrix * obj.backgroundIntensity * 0.9));
+            end
+            if (obj.imagePatchIndex == obj.noPatches+2)
+                obj.imagePatchMatrix(:) = uint8(obj.backgroundIntensity * 255);              
+            end
+            
+            imageMatrixStixelSize = canvasSize(1) / size(obj.imagePatchMatrix, 1);
+            maskDiameterPix = obj.rig.getDevice('Stage').um2pix(obj.maskDiameter);
+            apertureDiameterPix = obj.rig.getDevice('Stage').um2pix(obj.apertureDiameter);
+            
+            distanceMatrix = createDistanceMatrix(size(obj.imagePatchMatrix, 2)-1, size(obj.imagePatchMatrix, 1)-1, imageMatrixStixelSize);
+            
+            if (obj.maskDiameter > 0)
+                Indices = find(distanceMatrix(:) < maskDiameterPix);
+                obj.imagePatchMatrix(Indices) = uint8(obj.backgroundIntensity * 255);
+            end
+            
+            if (obj.apertureDiameter > 0)
+                Indices = find(distanceMatrix(:) > apertureDiameterPix);
+                obj.imagePatchMatrix(Indices) = uint8(obj.backgroundIntensity * 255);              
+            end
+            
+            obj.noiseSeed = RandStream.shuffleSeed;
+            
+            %at start of epoch, set random stream
+            obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.noiseSeed);
 
+            obj.currentNoiseContrast = obj.noiseContrast;
+
+            
+            if (obj.imagePatchIndex <= obj.noPatches)
+                epoch.addParameter('imageType', 'patch');
+            end
+            if (obj.imagePatchIndex == obj.noPatches+1)
+                epoch.addParameter('imageType', 'grate');
+%                obj.currentNoiseContrast = 0;
+            end
+            if (obj.imagePatchIndex == obj.noPatches+2)
+                epoch.addParameter('imageType', 'none');
+            end
+            epoch.addParameter('noiseSeed', obj.noiseSeed);
             epoch.addParameter('imagePatchIndex', obj.imagePatchIndex);
             epoch.addParameter('currentPatchLocation', obj.currentPatchLocation);
+            epoch.addParameter('currentNoiseContrast', obj.currentNoiseContrast);
+            
+            function m = createDistanceMatrix(xsize, ysize, stixelSize)
+                [xx, yy] = meshgrid(-xsize/2:1:xsize/2, -ysize/2:1:ysize/2);
+                m = sqrt((xx*stixelSize).^2 + (yy*stixelSize).^2);
+            end
+
         end
         
         function p = createPresentation(obj)            
-            canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
-            p = stage.core.Presentation((obj.preTime + obj.flashTime + obj.tailTime) * 1e-3);
-            p.setBackgroundColor(obj.backgroundIntensity);
+            p = stage.core.Presentation((obj.preTime + obj.flashTime + obj.tailTime) * obj.numNoiseRepeats * 1e-3); %create presentation of specified duration
+            p.setBackgroundColor(obj.backgroundIntensity); % Set background intensity
             
+            canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
             apertureDiameterPix = obj.rig.getDevice('Stage').um2pix(obj.apertureDiameter);
             
-            %make image stim:
-            scene = stage.builtin.stimuli.Image(obj.imagePatchMatrix);
-            scene.size = canvasSize; %scale up to canvas size
-            scene.position = canvasSize/2;
-            % Use linear interpolation when scaling the image.
-            scene.setMinFunction(GL.LINEAR);
-            scene.setMagFunction(GL.LINEAR);
-            p.addStimulus(scene);
-            sceneVisible = stage.builtin.controllers.PropertyController(scene, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.flashTime) * 1e-3);
-            p.addController(sceneVisible);
-
-            if (obj.apertureDiameter > 0) %% Create aperture
-                aperture = stage.builtin.stimuli.Rectangle();
-                aperture.position = canvasSize/2;
-                aperture.color = obj.backgroundIntensity;
-                aperture.size = [max(canvasSize) max(canvasSize)];
-                mask = stage.core.Mask.createCircularAperture(apertureDiameterPix/max(canvasSize), 1024); %circular aperture
-                aperture.setMask(mask);
-                p.addStimulus(aperture); %add aperture
+            % Create image
+            initMatrix = uint8(255.*(obj.backgroundIntensity .* ones(size(obj.imagePatchMatrix))));
+            board = stage.builtin.stimuli.Image(initMatrix);
+            board.size = canvasSize;
+            board.position = canvasSize/2;
+            board.setMinFunction(GL.NEAREST); %don't interpolate to scale up board
+            board.setMagFunction(GL.NEAREST);
+            p.addStimulus(board);
+            preFrames = round(60 * (obj.preTime/1e3));
+            flashDurFrames = round(60 * ((obj.preTime + obj.flashTime + obj.tailTime))/1e3);
+            imageController = stage.builtin.controllers.PropertyController(board, 'imageMatrix',...
+                @(state)getNewImage(obj, state.frame, preFrames, flashDurFrames));
+            p.addController(imageController); %add the controller
+                        
+            function i = getNewImage(obj, frame, preFrames, flashDurFrames)
+                persistent boardMatrix;
+                curFrame = rem(frame, flashDurFrames);
+                if curFrame == preFrames
+                    noiseMatrix = imgaussfilt(obj.noiseStream.randn(size(obj.imagePatchMatrix)), obj.noiseFilterSD);
+                    noiseMatrix = noiseMatrix / std(noiseMatrix(:));
+                    if (obj.linearizeCones)
+                        coneGain = 1 ./ (1 + ((double(obj.imagePatchMatrix)) * obj.maxIntensity/255) / obj.WeberConstant);
+                        noiseMatrix = noiseMatrix ./ coneGain;
+                    end
+                    boardMatrix = obj.imagePatchMatrix - 255*obj.backgroundIntensity + uint8(255 * noiseMatrix * obj.backgroundIntensity * obj.currentNoiseContrast + 255*obj.backgroundIntensity);
+                end
+                if curFrame == 0
+                    boardMatrix = 255 * obj.backgroundIntensity .* ones(size(obj.imagePatchMatrix));
+                end
+                if curFrame == (flashDurFrames-1)
+                    boardMatrix = 255 * obj.backgroundIntensity .* ones(size(obj.imagePatchMatrix));
+                end
+                i = uint8(boardMatrix);
             end
+            
         end
         
         function stimTime = get.stimTime(obj)
-            stimTime = (obj.preTime + obj.flashTime + obj.tailTime);
+            stimTime = (obj.preTime + obj.flashTime + obj.tailTime) * double(obj.numNoiseRepeats) - obj.preTime - obj.tailTime;
         end
-
+        
         function tf = shouldContinuePreparingEpochs(obj)
             tf = obj.numEpochsPrepared < obj.numberOfAverages;
         end
