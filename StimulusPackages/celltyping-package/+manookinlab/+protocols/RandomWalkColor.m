@@ -205,7 +205,8 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             if strcmp(obj.correlationClass, 'OU')
-                obj.spotPositions = obj.getOUTrajectory(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.stimulusSpeed);
+%                 obj.spotPositions = obj.getOUTrajectory(obj.stimTime*1e-3+2, 'motionSpeed', obj.stimulusSpeed);
+                obj.spotPositions = manookinlab.util.getOUTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.stimulusSpeed);
             else
                 obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.stimulusSpeed);
             end
@@ -220,7 +221,7 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             %epoch.addParameter('spotY',obj.spotPositions(:,2)');
         end
         
-        function positions = getOUTrajectory(duration, seed, varargin)
+        function positions = getOUTrajectory(obj, duration, seed, varargin)
             ip = inputParser();
             ip.addParameter('correlationTime', 20, @(x)isfloat(x));
             ip.addParameter('frameRate', 60.0, @(x)isfloat(x));

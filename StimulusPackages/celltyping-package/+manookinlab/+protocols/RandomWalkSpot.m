@@ -10,8 +10,10 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
         spotSpeed = 500 % Spot speed (std) in microns/second
         backgroundSpeed = 500
         stimulusIndices = [2 6 12 15 18 24]         % Stimulus number (1:161)
+        stimulusClass = 'spot'           % Stimulus class ('bar' or 'spot')
         backgroundMotionClass = 'gaussian'
         chromaticClass = 'achromatic'
+        correlationClass = 'HMM'
         repeatingSeed = false
         onlineAnalysis = 'none'% Type of online analysis
         numberOfAverages = uint16(48)   % Number of epochs
@@ -28,6 +30,8 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
         backgroundMotionClassType = symphonyui.core.PropertyType('char', 'row', {'natural','gaussian'})
         chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','blue','yellow'})
         stimulusIndicesType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        correlationClassType = symphonyui.core.PropertyType('char', 'row', {'HMM','OU'})
+        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'bar','spot'})
         imageMatrix
         backgroundIntensity
         xTraj
@@ -213,12 +217,26 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
                 @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
             p.addController(sceneVisible);
             
-            % Add the spots.
-            spot = stage.builtin.stimuli.Ellipse();
-            spot.radiusX = obj.spotRadiusPix;
-            spot.radiusY = obj.spotRadiusPix;
-            spot.position = obj.canvasSize/2;
-            spot.color = obj.backgroundIntensity*obj.spotContrast + obj.backgroundIntensity; 
+            % Add the spot.
+            if strcmp(obj.stimulusClass,'bar')
+                spot = stage.builtin.stimuli.Rectangle();
+                spot.size = [obj.canvasSize(1), obj.spotRadiusPix*2];
+                spot.position = obj.canvasSize/2;
+                spot.orientation = 0;
+                spot.color = obj.backgroundIntensity*obj.spotContrast + obj.backgroundIntensity; 
+            else
+                % Add the spots.
+                spot = stage.builtin.stimuli.Ellipse();
+                spot.radiusX = obj.spotRadiusPix;
+                spot.radiusY = obj.spotRadiusPix;
+                spot.position = obj.canvasSize/2;
+                spot.color = obj.backgroundIntensity*obj.spotContrast + obj.backgroundIntensity; 
+            end
+%             spot = stage.builtin.stimuli.Ellipse();
+%             spot.radiusX = obj.spotRadiusPix;
+%             spot.radiusY = obj.spotRadiusPix;
+%             spot.position = obj.canvasSize/2;
+%             spot.color = obj.backgroundIntensity*obj.spotContrast + obj.backgroundIntensity; 
             
             % Add the stimulus to the presentation.
             p.addStimulus(spot);
@@ -230,9 +248,26 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
             
 %             spotPosition = stage.builtin.controllers.PropertyController(spot,...
 %                 'position', @(state)getSpotPosition(obj, state.time - (obj.preTime+obj.waitTime)/1e3));
-            spotPosition = stage.builtin.controllers.PropertyController(spot,...
-                'position', @(state)getSpotPosition(obj, state.frame - ceil((obj.preTime+obj.waitTime)/1e3*60)));
+%             spotPosition = stage.builtin.controllers.PropertyController(spot,...
+%                 'position', @(state)getSpotPosition(obj, state.frame - ceil((obj.preTime+obj.waitTime)/1e3*60)));
+%             p.addController(spotPosition);
+            
+            if strcmp(obj.stimulusClass,'bar')
+                spotPosition = stage.builtin.controllers.PropertyController(spot,...
+                    'position', @(state)getBarPosition(obj, state.frame - ceil((obj.preTime+obj.waitTime)/1e3*60)));
+            else
+                spotPosition = stage.builtin.controllers.PropertyController(spot,...
+                    'position', @(state)getSpotPosition(obj, state.frame - ceil((obj.preTime+obj.waitTime)/1e3*60)));
+            end
             p.addController(spotPosition);
+            
+            function p = getBarPosition(obj, frame)
+                if frame > 0 
+                    p = [0,obj.spotPositions(frame,2)]+obj.canvasSize/2;
+                else
+                    p = obj.canvasSize/2;
+                end
+            end
             
             function p = getSpotPosition(obj, frame)
                 if frame > 0 
@@ -306,8 +341,12 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
                 end
             end
             
-%             obj.spotRng = RandStream('mt19937ar', 'Seed', obj.seed);
-            obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed);
+            if strcmp(obj.correlationClass, 'OU')
+                obj.spotPositions = manookinlab.util.getOUTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed);
+            else
+                obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed);
+            end
+%             obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed);
             obj.backgroundRng = RandStream('mt19937ar', 'Seed', obj.seed+10);
             
             % Adjust the position if the spot and background are correlated
@@ -331,8 +370,8 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('spotContrast',obj.spotContrast);
             epoch.addParameter('seed', obj.seed);
             epoch.addParameter('backgroundCondition',obj.backgroundCondition)
-            epoch.addParameter('spotX',obj.spotPositions(:,1)');
-            epoch.addParameter('spotY',obj.spotPositions(:,2)');
+%             epoch.addParameter('spotX',obj.spotPositions(:,1)');
+%             epoch.addParameter('spotY',obj.spotPositions(:,2)');
         end
         
         function stimTime = get.stimTime(obj)
