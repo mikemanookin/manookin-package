@@ -12,6 +12,7 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         chromaticClass = 'chromatic'    % The chromatic class of the background
         chromaticStimulus = false       % Whether the spot/bar is the same color as the background
         correlationClass = 'HMM'
+        correlationDecayTau = 20        % Correlation decay time constant in msec
         backgroundIntensity = 0.5
         repeatingSeed = false
         onlineAnalysis = 'none'         % Type of online analysis
@@ -205,9 +206,9 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             if strcmp(obj.correlationClass, 'OU')
-                obj.spotPositions = manookinlab.util.getOUTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.stimulusSpeed);
+                obj.spotPositions = manookinlab.util.getOUTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.stimulusSpeed, 'correlationDecayTau', obj.correlationDecayTau);
             else
-                obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.stimulusSpeed);
+                obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.stimulusSpeed, 'correlationDecayTau', obj.correlationDecayTau);
             end
             % Get the spot contrast.
             obj.contrast = obj.contrasts(mod(floor(obj.numEpochsCompleted/length(obj.backgroundConditions)),length(obj.contrasts))+1);

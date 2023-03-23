@@ -1,7 +1,7 @@
 function positions = getOUTrajectory2d(duration, seed, varargin)
 
 ip = inputParser();
-ip.addParameter('correlationTime', 20, @(x)isfloat(x));
+ip.addParameter('correlationDecayTau', 20, @(x)isfloat(x));
 ip.addParameter('frameRate', 60.0, @(x)isfloat(x));
 ip.addParameter('motionSpeed', 700.0, @(x)isfloat(x)); % Motion speed in pixels / sec
 
@@ -32,7 +32,7 @@ v_noise = positionStream.randn(length(T), 2);
 % Update the velocities and positions on each time step according to the
 % OU algorithm.
 for t = 1 : length(T)-1
-    positions(t+1,:) = (1-dt*params.correlationTime/(2.12)^2)*positions(t,:)+sqrt(dt*D_OU) * v_noise(t,:);
+    positions(t+1,:) = (1-dt*params.correlationDecayTau/(2.12)^2)*positions(t,:)+sqrt(dt*D_OU) * v_noise(t,:);
 end
 
 speed = sqrt(sum(diff(positions).^2,2));

@@ -14,6 +14,7 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
         backgroundMotionClass = 'gaussian'
         chromaticClass = 'achromatic'
         correlationClass = 'HMM'
+        correlationDecayTau = 20        % Correlation decay time constant in msec
         repeatingSeed = false
         onlineAnalysis = 'none'% Type of online analysis
         numberOfAverages = uint16(48)   % Number of epochs
@@ -342,9 +343,9 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             if strcmp(obj.correlationClass, 'OU')
-                obj.spotPositions = manookinlab.util.getOUTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed);
+                obj.spotPositions = manookinlab.util.getOUTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed, 'correlationDecayTau', obj.correlationDecayTau);
             else
-                obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed);
+                obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed, 'correlationDecayTau', obj.correlationDecayTau);
             end
 %             obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed);
             obj.backgroundRng = RandStream('mt19937ar', 'Seed', obj.seed+10);

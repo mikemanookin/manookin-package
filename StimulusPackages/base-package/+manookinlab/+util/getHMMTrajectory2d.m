@@ -1,7 +1,7 @@
 function positions = getHMMTrajectory2d(duration, seed, varargin)
 
 ip = inputParser();
-ip.addParameter('correlationTime', 20, @(x)isfloat(x));
+ip.addParameter('correlationDecayTau', 20, @(x)isfloat(x));
 ip.addParameter('frameRate', 60.0, @(x)isfloat(x));
 ip.addParameter('motionSpeed', 700.0, @(x)isfloat(x)); % Motion speed in pixels / sec
 
@@ -22,7 +22,7 @@ T = 0 : dt : (duration+40)-dt;
 positionStream = RandStream('mt19937ar', 'Seed', seed);
 
 D_HMM = 2.7e6; %dynamical range
-omega = params.correlationTime/2.12;   % omega = G/(2w)=1.06; follow Bielak's overdamped dynamics/ 2015PNAS
+omega = params.correlationDecayTau/2.12;   % omega = G/(2w)=1.06; follow Bielak's overdamped dynamics/ 2015PNAS
 
 % Get your position vector (x,y).
 positions = zeros(length(T), 2);
@@ -34,7 +34,7 @@ v_noise = positionStream.randn(length(T), 2);
 % HMM algorithm.
 for t = 1 : length(T)-1
     positions(t+1,:) = positions(t,:) + V(t,:)*dt;
-    V(t+1,:) = (1-params.correlationTime*dt)*V(t,:) - omega^2*positions(t,:)*dt + sqrt(dt*D_HMM)*v_noise(t,:);
+    V(t+1,:) = (1-params.correlationDecayTau*dt)*V(t,:) - omega^2*positions(t,:)*dt + sqrt(dt*D_HMM)*v_noise(t,:);
 end
 
 speed = sqrt(sum(diff(positions).^2,2));
