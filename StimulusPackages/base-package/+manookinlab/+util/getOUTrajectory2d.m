@@ -22,7 +22,6 @@ T = 0 : dt : (duration+40)-dt;
 positionStream = RandStream('mt19937ar', 'Seed', seed);
 
 D_OU = 2.7e6; %dynamical range
-omega = params.correlationTime/2.12;   % omega = G/(2w)=1.06; follow Bielak's overdamped dynamics/ 2015PNAS
 
 % Get your position vector (x,y).
 positions = zeros(length(T), 2);
