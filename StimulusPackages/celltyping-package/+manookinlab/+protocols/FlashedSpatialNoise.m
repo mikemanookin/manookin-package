@@ -2,7 +2,7 @@ classdef FlashedSpatialNoise < edu.washington.riekelab.turner.protocols.NaturalI
 
     properties
         preTime = 200 % ms
-        stimTime = 200 % ms
+        flashTime = 200 % ms
         tailTime = 200 % ms
         occluderWidth = [0 50 100 200];
         noiseFilterSD = 2 % pixels
@@ -18,6 +18,7 @@ classdef FlashedSpatialNoise < edu.washington.riekelab.turner.protocols.NaturalI
         noiseStream
         currentOccluderWidth
         stimType
+        stimTime
     end
     
     properties (Dependent, SetAccess = private)
@@ -50,7 +51,7 @@ classdef FlashedSpatialNoise < edu.washington.riekelab.turner.protocols.NaturalI
         function prepareEpoch(obj, epoch)
             prepareEpoch@edu.washington.riekelab.turner.protocols.NaturalImageFlashProtocol(obj, epoch);
             device = obj.rig.getDevice(obj.amp);
-            duration = (obj.preTime + obj.stimTime + obj.tailTime) / 1e3;
+            duration = (obj.preTime + obj.flashTime + obj.tailTime) / 1e3;
             epoch.addDirectCurrentStimulus(device, device.background, duration, obj.sampleRate);
             epoch.addResponse(device);
             
@@ -89,7 +90,7 @@ classdef FlashedSpatialNoise < edu.washington.riekelab.turner.protocols.NaturalI
         end
         
         function p = createPresentation(obj)            
-            p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3); %create presentation of specified duration
+            p = stage.core.Presentation((obj.preTime + obj.flashTime + obj.tailTime) * 1e-3); %create presentation of specified duration
             p.setBackgroundColor(obj.backgroundIntensity); % Set background intensity
             
             canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
@@ -118,7 +119,7 @@ classdef FlashedSpatialNoise < edu.washington.riekelab.turner.protocols.NaturalI
             p.addStimulus(board);
 
             imageController = stage.builtin.controllers.PropertyController(board, 'visible', ...
-                    @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                    @(state)state.time >= (obj.preTime * 1e-3) && state.time < (obj.preTime + obj.flashTime) * 1e-3);
             p.addController(imageController);
                         
         end
@@ -130,7 +131,11 @@ classdef FlashedSpatialNoise < edu.washington.riekelab.turner.protocols.NaturalI
         function tf = shouldContinueRun(obj)
             tf = obj.numEpochsCompleted < obj.numberOfAverages;
         end
-        
+
+        function stimTime = get.stimTime(obj)
+            stimTime = obj.flashTime; %(obj.preTime + obj.flashTime + obj.tailTime);
+        end
+
         function a = get.amp2(obj)
             amps = obj.rig.getDeviceNames('Amp');
             if numel(amps) < 2
