@@ -1,4 +1,4 @@
-function positions = getHMMTrajectory2d(duration, seed, varargin)
+function positions = getOUTrajectory2d(duration, seed, varargin)
 
 ip = inputParser();
 ip.addParameter('correlationDecayTau', 20, @(x)isfloat(x));
@@ -21,8 +21,7 @@ dt = 1 / params.frameRate;
 T = 0 : dt : (duration+40)-dt;
 positionStream = RandStream('mt19937ar', 'Seed', seed);
 
-D_HMM = 2.7e6; %dynamical range
-omega = params.correlationDecayTau/2.12;   % omega = G/(2w)=1.06; follow Bielak's overdamped dynamics/ 2015PNAS
+D_OU = 2.7e6; %dynamical range
 
 % Get your position vector (x,y).
 positions = zeros(length(T), 2);
@@ -31,10 +30,9 @@ V = zeros(length(T), 2);
 v_noise = positionStream.randn(length(T), 2);
 
 % Update the velocities and positions on each time step according to the
-% HMM algorithm.
+% OU algorithm.
 for t = 1 : length(T)-1
-    positions(t+1,:) = positions(t,:) + V(t,:)*dt;
-    V(t+1,:) = (1-params.correlationDecayTau*dt)*V(t,:) - omega^2*positions(t,:)*dt + sqrt(dt*D_HMM)*v_noise(t,:);
+    positions(t+1,:) = (1-dt*params.correlationDecayTau/(2.12)^2)*positions(t,:)+sqrt(dt*D_OU) * v_noise(t,:);
 end
 
 speed = sqrt(sum(diff(positions).^2,2));
