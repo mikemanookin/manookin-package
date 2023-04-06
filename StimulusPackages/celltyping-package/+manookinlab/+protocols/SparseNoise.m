@@ -5,10 +5,10 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 30000                % Noise duration (ms)
         tailTime = 250                  % Noise trailing duration (ms)
         contrast = 1
-        stixelSize = 90                 % Edge length of stixel (microns)
-        stepsPerStixel = 2              % Size of underling grid
+        stixelSizes = [90,120]           % Edge length of stixel (microns)
+        gridSize = 30                   % Size of underling grid
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        frameDwell = uint16(18)         % Frame dwell.
+        frameDwell = uint16(12)         % Frame dwell.
         pixelDensity = 0.01             % Fraction of pixels that are not gray on a frame.
         randsPerRep = -1                % Number of random seeds between repeats
         maxWidth = 0                    % Maximum width of the stimulus in microns.
@@ -22,6 +22,9 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY','S-LM'})
+        stixelSizesType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        stixelSize
+        stepsPerStixel
         numXStixels
         numYStixels
         numXChecks
@@ -52,8 +55,8 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
 
 %             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
 
-            obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
-            obj.stixelShiftPix = obj.stixelSizePix / obj.stepsPerStixel;
+%             obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
+%             obj.stixelShiftPix = obj.stixelSizePix / obj.stepsPerStixel;
             
             if obj.maxWidth > 0
                 obj.maxWidthPix = obj.rig.getDevice('Stage').um2pix(obj.maxWidth)*ones(1,2);
@@ -62,10 +65,10 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Calculate the number of X/Y checks.
-            obj.numXStixels = ceil(obj.maxWidthPix(1)/obj.stixelSizePix) + 1;
-            obj.numYStixels = ceil(obj.maxWidthPix(2)/obj.stixelSizePix) + 1;
-            obj.numXChecks = ceil(obj.maxWidthPix(1)/(obj.stixelSizePix/double(obj.stepsPerStixel)));
-            obj.numYChecks = ceil(obj.maxWidthPix(2)/(obj.stixelSizePix/double(obj.stepsPerStixel)));
+%             obj.numXStixels = ceil(obj.maxWidthPix(1)/obj.stixelSizePix) + 1;
+%             obj.numYStixels = ceil(obj.maxWidthPix(2)/obj.stixelSizePix) + 1;
+%             obj.numXChecks = ceil(obj.maxWidthPix(1)/(obj.stixelSizePix/double(obj.stepsPerStixel)));
+%             obj.numYChecks = ceil(obj.maxWidthPix(2)/(obj.stixelSizePix/double(obj.stepsPerStixel)));
             % Get the number of frames.
             obj.numFrames = floor(obj.stimTime * 1e-3 * obj.frameRate)+15;
             
@@ -192,6 +195,22 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
+            % Get the current stixel size.
+            obj.stixelSize = obj.stixelSizes(mod(obj.numEpochsCompleted, length(obj.stixelSizes))+1);
+            
+            obj.stepsPerStixel = max(round(obj.stixelSize / obj.gridSize), 1);
+            
+            gridSizePix = obj.rig.getDevice('Stage').um2pix(obj.gridSize);
+            %obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
+            obj.stixelSizePix = gridSizePix * obj.stepsPerStixel;
+            obj.stixelShiftPix = obj.stixelSizePix / obj.stepsPerStixel;
+            
+            % Calculate the number of X/Y checks.
+            obj.numXStixels = ceil(obj.maxWidthPix(1)/obj.stixelSizePix) + 1;
+            obj.numYStixels = ceil(obj.maxWidthPix(2)/obj.stixelSizePix) + 1;
+            obj.numXChecks = ceil(obj.maxWidthPix(1)/gridSizePix);
+            obj.numYChecks = ceil(obj.maxWidthPix(2)/gridSizePix);
+            
             % Deal with the seed.
             if obj.randsPerRep == 0 
                 obj.seed = 1;
@@ -221,6 +240,9 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('numFrames', obj.numFrames);
             epoch.addParameter('numXStixels', obj.numXStixels);
             epoch.addParameter('numYStixels', obj.numYStixels);
+            
+            epoch.addParameter('stixelSize', obj.gridSize*obj.stepsPerStixel);
+            epoch.addParameter('stepsPerStixel', obj.stepsPerStixel);
         end
         
         function deltaRGB = getDeltaRGB(obj, gunMeans, isoM)
