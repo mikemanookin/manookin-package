@@ -11,7 +11,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
         frameDwell = uint16(1)          % Frame dwell.
         randsPerRep = -1                % Number of random seeds between repeats
         maxWidth = 0                    % Maximum width of the stimulus in microns.
-        chromaticClass = 'achromatic'   % Chromatic type
+        chromaticClass = 'BY'   % Chromatic type
         onlineAnalysis = 'extracellular'
         numberOfAverages = uint16(105)  % Number of epochs
     end
@@ -20,7 +20,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
-        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','S-iso','LM-iso','blue','yellow'})
+        chromaticClassType = symphonyui.core.PropertyType('char','row',{'BY','achromatic','S-iso','LM-iso','blue','yellow'})
         numXStixels
         numYStixels
         numXChecks
@@ -148,8 +148,17 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
                 obj.seed = RandStream.shuffleSeed;
             end
             
-            obj.imageMatrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed, obj.frameDwell);
+            
             if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+                if strcmp(obj.chromaticClass,'BY')
+                    yellow_matrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed, obj.frameDwell);
+                    blue_matrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed+1, obj.frameDwell);
+                    obj.imageMatrix = zeros(size(yellow_matrix,1),size(yellow_matrix,2),size(yellow_matrix,3),3);
+                    obj.imageMatrix(:,:,:,1) = yellow_matrix;
+                    obj.imageMatrix(:,:,:,2) = yellow_matrix;
+                    obj.imageMatrix(:,:,:,3) = blue_matrix;
+                else
+                obj.imageMatrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed, obj.frameDwell);
                 tmp = repmat(obj.imageMatrix,[1,1,1,3]);
                 for k = 1 : 3
                     tmp(:,:,:,k) = obj.colorWeights(k)*tmp(:,:,:,k);
@@ -163,6 +172,9 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
                 end
                 
                 obj.imageMatrix = tmp;
+                end
+            else
+                obj.imageMatrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed, obj.frameDwell);
             end
             
             % Multiply by the contrast and convert to uint8.
