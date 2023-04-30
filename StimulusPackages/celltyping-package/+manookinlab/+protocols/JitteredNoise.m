@@ -4,7 +4,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
         preTime = 250                   % Noise leading duration (ms)
         stimTime = 21000                % Noise duration (ms)
         tailTime = 500                  % Noise trailing duration (ms)
-        stixelSize = 40                 % Edge length of stixel (microns)
+        stixelSize = 60                 % Edge length of stixel (microns)
         stepsPerStixel = 2              % Size of underling grid
         contrast = 1.0                  % Max light contrast (0-1)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
