@@ -13,6 +13,8 @@ classdef LcrVideoDevice < symphonyui.core.Device
             ip.addParameter('host', 'localhost', @ischar);
             ip.addParameter('port', 5678, @isnumeric);
             ip.addParameter('micronsPerPixel', @isnumeric);
+            ip.addParameter('ledCurrents',[], @isnumeric);
+            ip.addParameter('customLightEngine',false,@islogical);
             ip.addParameter('gammaRamps', containers.Map( ...
                 {'red', 'green', 'blue'}, ...
                 {linspace(0, 65535, 256), linspace(0, 65535, 256), linspace(0, 65535, 256)}), ...
@@ -43,11 +45,17 @@ classdef LcrVideoDevice < symphonyui.core.Device
             obj.lightCrafter.setMode('video');
             obj.lightCrafter.setLedEnables(true, false, false, false);
             [auto, red, green, blue] = obj.lightCrafter.getLedEnables();
+            if ~isempty(ip.Results.ledCurrents)
+                obj.lightCrafter.setLedCurrents(ip.Results.ledCurrents);
+            end
+            % Get the LED currents.
+            [red_current, green_current, blue_current] = obj.lightCrafter.getLedCurrents();
             
             refreshRate = obj.stageClient.getMonitorRefreshRate();
             
             obj.addConfigurationSetting('canvasSize', canvasSize, 'isReadOnly', true);
             obj.addConfigurationSetting('trueCanvasSize', trueCanvasSize, 'isReadOnly', true);
+            obj.addConfigurationSetting('lightCrafterLedCurrents',[red_current, green_current, blue_current],'isReadOnly',true);
             obj.addConfigurationSetting('centerOffset', [0 0], 'isReadOnly', true);
             obj.addConfigurationSetting('monitorRefreshRate', refreshRate, 'isReadOnly', true);
             obj.addConfigurationSetting('prerender', false, 'isReadOnly', true);
