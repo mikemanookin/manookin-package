@@ -152,6 +152,14 @@ classdef LcrVideoDevice < symphonyui.core.Device
             [auto, red, green, blue] = obj.lightCrafter.getLedEnables();
         end
         
+        function [red, green, blue] = getLedCurrents(obj) %#ok<MANU>
+            [red, green, blue] = obj.lightCrafter.getLedCurrents();
+        end
+
+        function setLedCurrents(obj, red, green, blue)
+            obj.lightCrafter.setLedCurrents(red, green, blue);
+        end
+        
         function r = availablePatternRates(obj)
             r = {'60'};
         end
