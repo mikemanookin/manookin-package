@@ -166,6 +166,7 @@ classdef LcrVideoDevice < symphonyui.core.Device
 
         function setLedCurrents(obj, red, green, blue)
             obj.lightCrafter.setLedCurrents(red, green, blue);
+            obj.setReadOnlyConfigurationSetting('lightCrafterLedCurrents', [red, green, blue]);
         end
         
         function r = availablePatternRates(obj)
