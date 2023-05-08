@@ -18,7 +18,9 @@ classdef RigA_TwoAmp_Lcr < manookinlab.rigs.RigA
             obj.addDevice(amp2);
             
             % Add the LightCrafter
-            lightCrafter = edu.washington.riekelab.devices.LightCrafterDevice('micronsPerPixel', 0.8, 'host', 'ELMATADOR-PC');
+            lightCrafter = edu.washington.riekelab.devices.LightCrafterDevice('micronsPerPixel', 0.8, 'host', 'ELMATADOR-PC', ...
+                'ledCurrents',[10,21,24],...
+                'customLightEngine',true);
             
             % Binding the lightCrafter to an unused stream only so its configuration settings are written to each epoch.
             daq = obj.daqController;

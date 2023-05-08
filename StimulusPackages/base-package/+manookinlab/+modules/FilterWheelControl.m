@@ -1,6 +1,8 @@
 classdef FilterWheelControl < symphonyui.ui.Module
     
     properties (Access = private)
+        log
+        settings
         stage
         filterWheel
         ndf
@@ -18,6 +20,11 @@ classdef FilterWheelControl < symphonyui.ui.Module
     end
     
     methods
+        
+        function obj = FilterWheelControl()
+            obj.log = log4m.LogManager.getLogger(class(obj));
+            obj.settings = edu.washington.riekelab.modules.settings.FilterWheelControlSettings();
+        end
         
         function createUi(obj, figureHandle)
             import appbox.*;
@@ -120,6 +127,20 @@ classdef FilterWheelControl < symphonyui.ui.Module
             % Load up the quantal catch struct.
             obj.loadQuantalCatch();
             obj.setQuantalCatch();
+            
+            try
+                obj.loadSettings();
+            catch x
+                obj.log.debug(['Failed to load settings: ' x.message], x);
+            end
+        end
+        
+        function willStop(obj)
+            try
+                obj.saveSettings();
+            catch x
+                obj.log.debug(['Failed to save settings: ' x.message], x);
+            end
         end
         
     end
@@ -212,6 +233,19 @@ classdef FilterWheelControl < symphonyui.ui.Module
             set(obj.maxMText, 'String', [obj.formatNumbers(m(2)), ' R*/sec']);
             set(obj.maxSText, 'String', [obj.formatNumbers(m(3)), ' R*/sec']);
             set(obj.maxRodText, 'String', [obj.formatNumbers(m(4)), ' R*/sec']);
+        end
+        
+        function loadSettings(obj)
+            if ~isempty(obj.settings.viewPosition)
+                p1 = obj.view.position;
+                p2 = obj.settings.viewPosition;
+                obj.view.position = [p2(1) p2(2) p1(3) p1(4)];
+            end
+        end
+
+        function saveSettings(obj)
+            obj.settings.viewPosition = obj.view.position;
+            obj.settings.save();
         end
         
     end

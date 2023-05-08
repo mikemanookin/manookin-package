@@ -6,6 +6,10 @@ classdef LcrVideoDevice < symphonyui.core.Device
         patternRatesToAttributes
     end
     
+    properties (Access = private)
+        max_led_current
+    end
+    
     methods
         
         function obj = LcrVideoDevice(varargin)
@@ -14,7 +18,7 @@ classdef LcrVideoDevice < symphonyui.core.Device
             ip.addParameter('port', 5678, @isnumeric);
             ip.addParameter('micronsPerPixel', @isnumeric);
             ip.addParameter('ledCurrents',[], @isnumeric);
-            ip.addParameter('customLightEngine',false,@islogical);
+            ip.addParameter('customLightEngine', false, @islogical);
             ip.addParameter('gammaRamps', containers.Map( ...
                 {'red', 'green', 'blue'}, ...
                 {linspace(0, 65535, 256), linspace(0, 65535, 256), linspace(0, 65535, 256)}), ...
@@ -45,8 +49,15 @@ classdef LcrVideoDevice < symphonyui.core.Device
             obj.lightCrafter.setMode('video');
             obj.lightCrafter.setLedEnables(true, false, false, false);
             [auto, red, green, blue] = obj.lightCrafter.getLedEnables();
+            
+            if ip.Results.customLightEngine
+                obj.max_led_current = 50;
+            else
+                obj.max_led_current = 255;
+            end
             if ~isempty(ip.Results.ledCurrents)
-                obj.lightCrafter.setLedCurrents(ip.Results.ledCurrents);
+                led_currents = ip.Results.ledCurrents;
+                obj.lightCrafter.setLedCurrents(min(led_currents(1),obj.max_led_current), min(led_currents(2),obj.max_led_current), min(led_currents(3),obj.max_led_current));
             end
             % Get the LED currents.
             [red_current, green_current, blue_current] = obj.lightCrafter.getLedCurrents();
@@ -160,11 +171,14 @@ classdef LcrVideoDevice < symphonyui.core.Device
             [auto, red, green, blue] = obj.lightCrafter.getLedEnables();
         end
         
-        function [red, green, blue] = getLedCurrents(obj) %#ok<MANU>
+        function [red, green, blue] = getLedCurrents(obj)
             [red, green, blue] = obj.lightCrafter.getLedCurrents();
         end
 
         function setLedCurrents(obj, red, green, blue)
+            red = min(red, obj.max_led_current);
+            green = min(green, obj.max_led_current);
+            blue = min(blue,obj.max_led_current);
             obj.lightCrafter.setLedCurrents(red, green, blue);
             obj.setReadOnlyConfigurationSetting('lightCrafterLedCurrents', [red, green, blue]);
         end
