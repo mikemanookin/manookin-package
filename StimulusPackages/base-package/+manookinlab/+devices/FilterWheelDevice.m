@@ -19,7 +19,7 @@ classdef FilterWheelDevice < symphonyui.core.Device
             ip.addParameter('comPort', 'COM13', @ischar);
             ip.addParameter('NDF', 4.0, @isnumeric);
             ip.addParameter('objectiveMag', 60, @isnumeric);
-            ip.addParameter('greenLEDName', '505nm', @ischar);
+            ip.addParameter('greenLEDName', 'Green_570nm', @ischar);
             ip.parse(varargin{:});
             
             cobj = Symphony.Core.UnitConvertingExternalDevice('FilterWheel', 'ThorLabs', Symphony.Core.Measurement(0, symphonyui.core.Measurement.UNITLESS));
