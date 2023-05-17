@@ -5,12 +5,12 @@ classdef NoiseSizeModulation < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 30000                % Noise duration (ms)
         tailTime = 500                  % Noise trailing duration (ms)
         contrast = 1
-        stixelSize = 60                 % Edge length of stixel (microns)
-        stepsPerStixel = 2              % Size of underling grid
+        stixelSizes = [60,90]           % Edge length of stixel (microns)
+        gridSize = 30                   % Size of underling grid
         gaussianFilter = false          % Whether to use a Gaussian filter
         filterSdStixels = 1.0           % Gaussian filter standard dev in stixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        frameDwell = uint16(1)          % Frame dwell.
+        frameDwells = uint16([1,1])     % Frame dwell.
         randsPerRep = -1                % Number of random seeds between repeats
         maxWidth = 0                    % Maximum width of the stimulus in microns.
         chromaticClass = 'achromatic'   % Chromatic type
@@ -23,6 +23,10 @@ classdef NoiseSizeModulation < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY'})
+        stixelSizesType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        frameDwellsType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        stixelSize
+        stepsPerStixel
         numXStixels
         numYStixels
         numXChecks
@@ -36,6 +40,7 @@ classdef NoiseSizeModulation < manookinlab.protocols.ManookinLabStageProtocol
         noiseStream
         positionStream
         monitor_gamma
+        frameDwell
     end
     
     properties (Dependent, SetAccess = private)
@@ -51,23 +56,13 @@ classdef NoiseSizeModulation < manookinlab.protocols.ManookinLabStageProtocol
 
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
-
-%             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-
-            obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
-            obj.stixelShiftPix = obj.stixelSizePix / obj.stepsPerStixel;
             
             if obj.maxWidth > 0
                 obj.maxWidthPix = obj.rig.getDevice('Stage').um2pix(obj.maxWidth)*ones(1,2);
             else
                 obj.maxWidthPix = obj.canvasSize; %min(obj.canvasSize);
-            end
+            end       
             
-            % Calculate the number of X/Y checks.
-            obj.numXStixels = ceil(obj.maxWidthPix(1)/obj.stixelSizePix) + 1;
-            obj.numYStixels = ceil(obj.maxWidthPix(2)/obj.stixelSizePix) + 1;
-            obj.numXChecks = ceil(obj.maxWidthPix(1)/(obj.stixelSizePix/double(obj.stepsPerStixel)));
-            obj.numYChecks = ceil(obj.maxWidthPix(2)/(obj.stixelSizePix/double(obj.stepsPerStixel)));
             % Get the number of frames.
             obj.numFrames = floor(obj.stimTime * 1e-3 * obj.frameRate)+15;
             
@@ -222,6 +217,10 @@ classdef NoiseSizeModulation < manookinlab.protocols.ManookinLabStageProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
+            % Get the current stixel size.
+            obj.stixelSize = obj.stixelSizes(mod(obj.numEpochsCompleted, length(obj.stixelSizes))+1);
+            obj.frameDwell = obj.frameDwells(mod(obj.numEpochsCompleted, length(obj.frameDwells))+1);
+            
             % Deal with the seed.
             if obj.randsPerRep == 0 
                 obj.seed = 1;
@@ -241,6 +240,20 @@ classdef NoiseSizeModulation < manookinlab.protocols.ManookinLabStageProtocol
                 end
             end
             
+            
+            obj.stepsPerStixel = max(round(obj.stixelSize / obj.gridSize), 1);
+            
+            gridSizePix = obj.rig.getDevice('Stage').um2pix(obj.gridSize);
+            %obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
+            obj.stixelSizePix = gridSizePix * obj.stepsPerStixel;
+            obj.stixelShiftPix = obj.stixelSizePix / obj.stepsPerStixel;
+            
+            % Calculate the number of X/Y checks.
+            obj.numXStixels = ceil(obj.maxWidthPix(1)/obj.stixelSizePix) + 1;
+            obj.numYStixels = ceil(obj.maxWidthPix(2)/obj.stixelSizePix) + 1;
+            obj.numXChecks = ceil(obj.maxWidthPix(1)/gridSizePix);
+            obj.numYChecks = ceil(obj.maxWidthPix(2)/gridSizePix);
+            
             % Seed the generator
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             obj.positionStream = RandStream('mt19937ar', 'Seed', obj.seed);
@@ -251,6 +264,9 @@ classdef NoiseSizeModulation < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('numFrames', obj.numFrames);
             epoch.addParameter('numXStixels', obj.numXStixels);
             epoch.addParameter('numYStixels', obj.numYStixels);
+            epoch.addParameter('stixelSize', obj.gridSize*obj.stepsPerStixel);
+            epoch.addParameter('stepsPerStixel', obj.stepsPerStixel);
+            epoch.addParameter('frameDwell', obj.frameDwell);
         end
         
         function a = get.amp2(obj)
