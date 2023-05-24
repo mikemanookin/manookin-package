@@ -44,6 +44,13 @@ for k = 1 : stimFrames
     % Make sure they don't go off of the screen.
     positions(positions(:,1) < 1, 1) = -positions(positions(:,1) < 1, 1);
     positions(positions(:,2) < 1, 2) = -positions(positions(:,2) < 1, 2);
+
+    % Randomly shift dots occupying the same positions.
+    [~, uniqueIdx] = unique(positions,'rows');
+    if size(positions,1) > length(uniqueIdx)
+        duplicateLocations = setdiff( 1:size(positions,1), uniqueIdx );
+        positions(duplicateLocations,:) = round(4*rand(length(duplicateLocations),2)-2);
+    end
     
     positions(positions(:,1) > screenSize(1),1) = screenSize(1) - (positions(positions(:,1) > screenSize(1),1) - screenSize(1));
     positions(positions(:,2) > screenSize(2),2) = screenSize(2) - (positions(positions(:,2) > screenSize(2),2) - screenSize(2));
