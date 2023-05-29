@@ -231,7 +231,7 @@ classdef MovingBarColorAdapt < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the bar contrast.
             obj.contrast = obj.contrasts(mod(floor(obj.numEpochsCompleted/length(obj.orientations)), length(obj.contrasts))+1);
-            obj.backgroundColor = obj.backgroundColors(mod(floor(obj.numEpochsCompleted/length(obj.contrasts)), length(obj.backgroundColors))+1);
+            obj.backgroundColor = obj.backgroundColors{mod(floor(obj.numEpochsCompleted/length(obj.contrasts)), length(obj.backgroundColors))+1};
             obj.barColor = obj.barColors(mod(floor(obj.numEpochsCompleted/length(obj.contrasts)), length(obj.barColors))+1);
             
             % Set the bar and background contrasts.

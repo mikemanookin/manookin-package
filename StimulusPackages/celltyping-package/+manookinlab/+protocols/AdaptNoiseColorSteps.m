@@ -197,8 +197,8 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             
             % Save the seed.
             epoch.addParameter('seed', obj.seed);
-            epoch.addParameter('contrasts', obj.contrasts);
-            epoch.addParameter('durations', obj.durations);
+%             epoch.addParameter('contrasts', obj.contrasts);
+%             epoch.addParameter('durations', obj.durations);
             epoch.addParameter('backgroundColors',backgroundColors);
 %             epoch.addParameter('background_mean_idx',background_mean_idx);
             epoch.addParameter('background_rgb',background_rgb);
