@@ -8,6 +8,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         stepDuration = 2000             % Duration series (ms)
         maxContrast = 0.5
         minContrast = 0.3
+        frameDwell = uint16(1)
         randsPerRep = 6                 % Number of random seeds per repeat
         radius = 100                    % Inner radius in pixels.
         apertureRadius = 100            % Aperture/blank radius in pixels.
