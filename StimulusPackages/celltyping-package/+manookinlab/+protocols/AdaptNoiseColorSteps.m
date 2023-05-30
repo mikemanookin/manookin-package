@@ -14,9 +14,9 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian
         stimulusClass = 'full-field'    % Stimulus class
-        chromaticClass = 'achromatic'   % Chromatic class
+        chromaticClass = 'chromatic'   % Chromatic class
         onlineAnalysis = 'none'% Online analysis type.
-        numberOfAverages = uint16(50)   % Number of epochs
+        numberOfAverages = uint16(5)   % Number of epochs
     end
     
     properties (Hidden)
