@@ -6,32 +6,42 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 180000               % Stim duration (ms)
         tailTime = 250                  % Stim trailing 	 (ms)
         stepDuration = 2000             % Duration series (ms)
+        stixelSizes = [60,90]           % Edge length of stixel (microns)
+        gridSize = 30                   % Size of underling grid
         maxContrast = 0.5
         minContrast = 0.3
         frameDwell = uint16(1)
         randsPerRep = 6                 % Number of random seeds per repeat
-        radius = 100                    % Inner radius in pixels.
-        apertureRadius = 100            % Aperture/blank radius in pixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian
         stimulusClass = 'full-field'    % Stimulus class
         chromaticClass = 'chromatic'   % Chromatic class
-        onlineAnalysis = 'none'% Online analysis type.
+        onlineAnalysis = 'none'         % Online analysis type.
         numberOfAverages = uint16(5)   % Number of epochs
     end
     
     properties (Hidden)
         ampType
-        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian','binary-gaussian'})
+        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
-        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'center-const-surround', 'center-full', 'annulus', 'full-field', 'center-surround'})
+        stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'full-field','spatial'})
         seed
         bkg
         noiseStream
         frameSeq
-        frameSeqSurround
         contrasts
         durations
+        stixelSize
+        stepsPerStixel
+        numXStixels
+        numYStixels
+        numXChecks
+        numYChecks
+        numFrames
+        stixelSizePix
+        stixelShiftPix
+        imageMatrix
+        positionStream
     end
     
     methods
@@ -64,86 +74,97 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             if sum(obj.durations) > obj.stimTime
                 obj.durations(end) = obj.durations(end) - (sum(obj.durations)-obj.stimTime);
             end
+            
+            % Get the number of frames.
+            obj.numFrames = floor(obj.stimTime * 1e-3 * obj.frameRate)+15;
         end
         
         function p = createPresentation(obj)
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
             
-            if strcmp(obj.stimulusClass, 'center-full') || strcmp(obj.stimulusClass, 'center-surround') || strcmp(obj.stimulusClass,'center-const-surround')
-                surround = stage.builtin.stimuli.Rectangle();
-                surround.color = obj.backgroundIntensity;
-                surround.orientation = 0;
-                if strcmp(obj.stimulusClass, 'center-surround') || strcmp(obj.stimulusClass,'center-const-surround')
-                    surround.size = max(obj.canvasSize) * ones(1,2);
-                    surround.position = obj.canvasSize/2;
-                    sc = (obj.apertureRadius)*2 / max(surround.size);
-                    m = stage.core.Mask.createCircularAperture(sc);
-                    surround.setMask(m);
-                else
-                    surround.size = obj.canvasSize;
-                    surround.position = obj.canvasSize/2;
-                end
-                p.addStimulus(surround);
-                
-                % Control when the spot is visible.
-                surroundVisible = stage.builtin.controllers.PropertyController(surround, 'visible', ...
-                    @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
-                p.addController(surroundVisible);
+            if strcmp(obj.stimulusClass, 'spatial')
+            obj.imageMatrix = obj.backgroundIntensity * ones(obj.numYStixels,obj.numXStixels);
+            checkerboard = stage.builtin.stimuli.Image(uint8(obj.imageMatrix));
+            checkerboard.position = obj.canvasSize / 2;
+            checkerboard.size = [obj.numXStixels, obj.numYStixels] * obj.stixelSizePix;
 
-                % Control the spot color.
-                surroundController = stage.builtin.controllers.PropertyController(surround, 'color', ...
-                    @(state)getAnnulusAchromatic(obj, state.time - obj.preTime * 1e-3));
-                p.addController(surroundController);
-            end
+            % Set the minifying and magnifying functions to form discrete
+            % stixels.
+            checkerboard.setMinFunction(GL.NEAREST);
+            checkerboard.setMagFunction(GL.NEAREST);
             
-            if strcmp(obj.stimulusClass, 'spot') || strcmp(obj.stimulusClass, 'center-full') || strcmp(obj.stimulusClass, 'center-surround') || strcmp(obj.stimulusClass,'center-const-surround')
-                spot = stage.builtin.stimuli.Ellipse();
-                spot.radiusX = obj.radius;
-                spot.radiusY = obj.radius; 
-                spot.position = obj.canvasSize/2;
+            % Add the stimulus to the presentation.
+            p.addStimulus(checkerboard);
+            
+            gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
+                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+            p.addController(gridVisible);
+            
+            % Calculate preFrames and stimFrames
+            preF = floor(obj.preTime/1000 * 60);
+            
+            imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+                @(state)setStixels(obj, state.frame - preF));
+            p.addController(imgController);
+            
+            % Position controller
+            if obj.stepsPerStixel > 1
+                xyController = stage.builtin.controllers.PropertyController(checkerboard, 'position',...
+                    @(state)setJitter(obj, state.frame - preF));
+                p.addController(xyController);
+            end
             else
                 spot = stage.builtin.stimuli.Rectangle();
                 spot.size = obj.canvasSize;
                 spot.position = obj.canvasSize/2;
                 spot.orientation = 0;
+                spot.color = obj.bkg;
+            
+                % Add the stimulus to the presentation.
+                p.addStimulus(spot);
+                
+                % Control the spot color.
+                colorController = stage.builtin.controllers.PropertyController(spot, 'color', ...
+                    @(state)getSpotAchromatic(obj, state.time - obj.preTime * 1e-3));
+                p.addController(colorController);
+                
+                % Control when the spot is visible.
+                spotVisible = stage.builtin.controllers.PropertyController(spot, 'visible', ...
+                    @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                p.addController(spotVisible); 
             end
-            spot.color = obj.bkg;
             
-            % Add the stimulus to the presentation.
-            p.addStimulus(spot);
-            
-            % Add a center mask if it's an annulus.
-            if strcmp(obj.stimulusClass, 'annulus')
-                mask = stage.builtin.stimuli.Ellipse();
-                mask.radiusX = obj.apertureRadius;
-                mask.radiusY = obj.apertureRadius;
-                mask.position = obj.canvasSize/2;
-                mask.color = obj.backgroundIntensity; 
-                p.addStimulus(mask);
+            function s = setStixels(obj, frame)
+                persistent M;
+                if frame > 0
+                    if mod(frame, obj.frameDwell) == 0
+                        M = 2*obj.backgroundIntensity * ...
+                            (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5);
+                        M = M * obj.frameSeq(frame,:);
+                    end
+                else
+                    M = obj.imageMatrix;
+                end
+                s = uint8(255*M);
             end
             
-            % Control when the spot is visible.
-            spotVisible = stage.builtin.controllers.PropertyController(spot, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
-            p.addController(spotVisible);
-            
-            % Control the spot color.
-            colorController = stage.builtin.controllers.PropertyController(spot, 'color', ...
-                @(state)getSpotAchromatic(obj, state.time - obj.preTime * 1e-3));
-            p.addController(colorController);
+            function p = setJitter(obj, frame)
+                persistent xy;
+                if frame > 0
+                    if mod(frame, obj.frameDwell) == 0
+                        xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStream.rand(1,2))) ...
+                            + obj.canvasSize / 2;
+                    end
+                else
+                    xy = obj.canvasSize / 2;
+                end
+                p = xy;
+            end
             
             function c = getSpotAchromatic(obj, time)
                 if time > 0 && time <= obj.stimTime*1e-3
                     c = obj.frameSeq(floor(time*obj.frameRate)+1,:);
-                else
-                    c = obj.bkg;
-                end
-            end
-            
-            function c = getAnnulusAchromatic(obj, time)
-                if time > 0 && time <= obj.stimTime*1e-3
-                    c = obj.frameSeqSurround(floor(time*obj.frameRate)+1);
                 else
                     c = obj.bkg;
                 end
@@ -196,21 +217,45 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                 obj.frameSeq(sFrames(jj):eFrames(jj),:) = fvals(:)*bg + ones(length(fvals),1)*bg;
             end
             
+            if strcmp(obj.stimulusClass, 'spatial')
+                % Get the current stixel size.
+                obj.stixelSize = obj.stixelSizes(mod(obj.numEpochsCompleted, length(obj.stixelSizes))+1);
+                obj.stepsPerStixel = max(round(obj.stixelSize / obj.gridSize), 1);
+
+                gridSizePix = obj.rig.getDevice('Stage').um2pix(obj.gridSize);
+                obj.stixelSizePix = gridSizePix * obj.stepsPerStixel;
+                obj.stixelShiftPix = obj.stixelSizePix / obj.stepsPerStixel;
+
+                % Calculate the number of X/Y checks.
+                obj.numXStixels = ceil(obj.maxWidthPix(1)/obj.stixelSizePix) + 1;
+                obj.numYStixels = ceil(obj.maxWidthPix(2)/obj.stixelSizePix) + 1;
+                obj.numXChecks = ceil(obj.maxWidthPix(1)/gridSizePix);
+                obj.numYChecks = ceil(obj.maxWidthPix(2)/gridSizePix);
+
+                % Seed the generator
+                obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
+                obj.positionStream = RandStream('mt19937ar', 'Seed', obj.seed);
+                epoch.addParameter('numXChecks', obj.numXChecks);
+                epoch.addParameter('numYChecks', obj.numYChecks);
+                epoch.addParameter('numFrames', obj.numFrames);
+                epoch.addParameter('numXStixels', obj.numXStixels);
+                epoch.addParameter('numYStixels', obj.numYStixels);
+                epoch.addParameter('stixelSize', obj.gridSize*obj.stepsPerStixel);
+                epoch.addParameter('stepsPerStixel', obj.stepsPerStixel);
+            end
+            
             % Save the seed.
             epoch.addParameter('seed', obj.seed);
-%             epoch.addParameter('contrasts', obj.contrasts);
-%             epoch.addParameter('durations', obj.durations);
             epoch.addParameter('backgroundColors',backgroundColors);
-%             epoch.addParameter('background_mean_idx',background_mean_idx);
-            epoch.addParameter('background_rgb',background_rgb);
-%             epoch.addParameter('frameSeq', obj.frameSeq);
-            
-            % Convert to LED contrast.
-%             obj.frameSeq = obj.bkg*obj.frameSeq + obj.bkg;
-
-            % Add the radius to the epoch.
-            if strcmp(obj.stimulusClass, 'annulus')
-                epoch.addParameter('outerRadius', min(obj.canvasSize/2));
+        end
+        
+        function a = get.amp2(obj)
+            amps = obj.rig.getDeviceNames('Amp');
+            if numel(amps) < 2
+                a = '(None)';
+            else
+                i = find(~ismember(amps, obj.amp), 1);
+                a = amps{i};
             end
         end
         
