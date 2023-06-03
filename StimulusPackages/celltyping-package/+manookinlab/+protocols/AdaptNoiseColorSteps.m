@@ -6,16 +6,17 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 180000               % Stim duration (ms)
         tailTime = 250                  % Stim trailing 	 (ms)
         stepDuration = 2000             % Duration series (ms)
-        stixelSizes = [60,90]           % Edge length of stixel (microns)
+        stixelSizes = [90,120]           % Edge length of stixel (microns)
         gridSize = 30                   % Size of underling grid
         maxContrast = 0.5
         minContrast = 0.3
         frameDwell = uint16(1)
-        randsPerRep = 6                 % Number of random seeds per repeat
+        randsPerRep = -1                % Number of random seeds per repeat
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian
         stimulusClass = 'full-field'    % Stimulus class
-        chromaticClass = 'chromatic'   % Chromatic class
+        chromaticClass = 'BY'           % Chromatic class
+        backgroundClass = 'chromatic'   % Background class
         onlineAnalysis = 'none'         % Online analysis type.
         numberOfAverages = uint16(5)   % Number of epochs
     end
@@ -29,6 +30,8 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'full-field','spatial'})
+        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY'})
+        backgroundClassType = symphonyui.core.PropertyType('char','row',{'chromatic','RGB','BY'})
         seed
         bkg
         noiseStream
@@ -154,8 +157,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        M = 2*obj.backgroundIntensity * ...
-                            (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5);
+                        M = (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5);
                         M = obj.contrast_seq(frame)*(2*M-1);
                         M = repmat(M,[1,1,3]);
                         for jj = 1 : 3
@@ -174,8 +176,8 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
                         M = zeros(obj.numYStixels,obj.numXStixels,3);
-                        tmpM = obj.contrast*2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1;
-                        tmpM = tmpM*obj.backgroundIntensity + obj.backgroundIntensity;
+                        tmpM = (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5);
+%                         tmpM = tmpM*obj.backgroundIntensity + obj.backgroundIntensity;
                         M(:,:,1:2) = repmat(tmpM(:,:,1),[1,1,2]);
                         M(:,:,3) = tmpM(:,:,2);
                         M = obj.contrast_seq(frame)*(2*M-1);
@@ -186,7 +188,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                 else
                     M = obj.imageMatrix;
                 end
-                s = single(M);
+                s = uint8(255*M);
             end
             
             % RGB noise
@@ -194,8 +196,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        M = 2*obj.backgroundIntensity * ...
-                            (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5);
+                        M = (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5);
                         M = obj.contrast_seq(frame)*(2*M-1);
                         for jj = 1 : 3
                             M(:,:,jj) = obj.bg_seq(frame,jj)*M(:,:,jj)+obj.bg_seq(frame,jj);
@@ -247,7 +248,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             
             backgroundColors = {'gray','blue-gray','yellow-gray'};
             num_steps = ceil(obj.stimTime/obj.stepDuration);
-            background_rgb = [0.5*ones(1,3);[0.25,0.25,0.5];[0.5,0.5,0.25]];
+            background_rgb = [0.5*ones(1,3);0.25,0.25,0.5;0.5,0.5,0.25];
             
             background_mean_idx = round(obj.noiseStream.rand(1,num_steps)*(length(backgroundColors)-1)+1);
             
@@ -278,10 +279,10 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                 obj.stixelShiftPix = obj.stixelSizePix / obj.stepsPerStixel;
 
                 % Calculate the number of X/Y checks.
-                obj.numXStixels = ceil(obj.maxWidthPix(1)/obj.stixelSizePix) + 1;
-                obj.numYStixels = ceil(obj.maxWidthPix(2)/obj.stixelSizePix) + 1;
-                obj.numXChecks = ceil(obj.maxWidthPix(1)/gridSizePix);
-                obj.numYChecks = ceil(obj.maxWidthPix(2)/gridSizePix);
+                obj.numXStixels = ceil(obj.canvasSize(1)/obj.stixelSizePix) + 1;
+                obj.numYStixels = ceil(obj.canvasSize(2)/obj.stixelSizePix) + 1;
+                obj.numXChecks = ceil(obj.canvasSize(1)/gridSizePix);
+                obj.numYChecks = ceil(obj.canvasSize(2)/gridSizePix);
 
                 % Seed the generator
                 obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
@@ -294,7 +295,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                 epoch.addParameter('stixelSize', obj.gridSize*obj.stepsPerStixel);
                 epoch.addParameter('stepsPerStixel', obj.stepsPerStixel);
             else
-                [fseq, obj.frameSeqSurround,obj.contrasts] = manookinlab.util.getAdaptNoiseStepFrames(...
+                [fseq, ~,obj.contrasts] = manookinlab.util.getAdaptNoiseStepFrames(...
                     nframes, obj.durations, sFrames, eFrames, obj.seed,...
                     'maxContrast', obj.maxContrast, ...
                     'minContrast', obj.minContrast, ...
