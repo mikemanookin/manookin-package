@@ -42,6 +42,8 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         stixelShiftPix
         imageMatrix
         positionStream
+        bg_seq
+        contrast_seq
     end
     
     methods
@@ -84,36 +86,45 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.backgroundIntensity);
             
             if strcmp(obj.stimulusClass, 'spatial')
-            obj.imageMatrix = obj.backgroundIntensity * ones(obj.numYStixels,obj.numXStixels);
-            checkerboard = stage.builtin.stimuli.Image(uint8(obj.imageMatrix));
-            checkerboard.position = obj.canvasSize / 2;
-            checkerboard.size = [obj.numXStixels, obj.numYStixels] * obj.stixelSizePix;
+                obj.imageMatrix = obj.backgroundIntensity * ones(obj.numYStixels,obj.numXStixels);
+                checkerboard = stage.builtin.stimuli.Image(uint8(obj.imageMatrix));
+                checkerboard.position = obj.canvasSize / 2;
+                checkerboard.size = [obj.numXStixels, obj.numYStixels] * obj.stixelSizePix;
 
-            % Set the minifying and magnifying functions to form discrete
-            % stixels.
-            checkerboard.setMinFunction(GL.NEAREST);
-            checkerboard.setMagFunction(GL.NEAREST);
-            
-            % Add the stimulus to the presentation.
-            p.addStimulus(checkerboard);
-            
-            gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
-            p.addController(gridVisible);
-            
-            % Calculate preFrames and stimFrames
-            preF = floor(obj.preTime/1000 * 60);
-            
-            imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                @(state)setStixels(obj, state.frame - preF));
-            p.addController(imgController);
-            
-            % Position controller
-            if obj.stepsPerStixel > 1
-                xyController = stage.builtin.controllers.PropertyController(checkerboard, 'position',...
-                    @(state)setJitter(obj, state.frame - preF));
-                p.addController(xyController);
-            end
+                % Set the minifying and magnifying functions to form discrete stixels.
+                checkerboard.setMinFunction(GL.NEAREST);
+                checkerboard.setMagFunction(GL.NEAREST);
+
+                % Add the stimulus to the presentation.
+                p.addStimulus(checkerboard);
+
+                gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
+                    @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                p.addController(gridVisible);
+
+                % Calculate preFrames and stimFrames
+                preF = floor(obj.preTime/1000 * 60);
+
+                if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+                    if strcmp(obj.chromaticClass,'BY')
+                        imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+                            @(state)setBYStixels(obj, state.frame - preF));
+                    else
+                        imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+                            @(state)setRGBStixels(obj, state.frame - preF));
+                    end
+                else
+                    imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+                        @(state)setStixels(obj, state.frame - preF));
+                end
+                p.addController(imgController);
+
+                % Position controller
+                if obj.stepsPerStixel > 1
+                    xyController = stage.builtin.controllers.PropertyController(checkerboard, 'position',...
+                        @(state)setJitter(obj, state.frame - preF));
+                    p.addController(xyController);
+                end
             else
                 spot = stage.builtin.stimuli.Rectangle();
                 spot.size = obj.canvasSize;
@@ -141,7 +152,50 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                     if mod(frame, obj.frameDwell) == 0
                         M = 2*obj.backgroundIntensity * ...
                             (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5);
-                        M = M * obj.frameSeq(frame,:);
+                        M = obj.contrast_seq(frame)*(2*M-1);
+                        M = repmat(M,[1,1,3]);
+                        for jj = 1 : 3
+                            M(:,:,jj) = obj.bg_seq(frame,jj)*M(:,:,jj)+obj.bg_seq(frame,jj);
+                        end
+                    end
+                else
+                    M = obj.imageMatrix;
+                end
+                s = uint8(255*M);
+            end
+            
+            % Blue-Yellow noise
+            function s = setBYStixels(obj, frame)
+                persistent M;
+                if frame > 0
+                    if mod(frame, obj.frameDwell) == 0
+                        M = zeros(obj.numYStixels,obj.numXStixels,3);
+                        tmpM = obj.contrast*2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1;
+                        tmpM = tmpM*obj.backgroundIntensity + obj.backgroundIntensity;
+                        M(:,:,1:2) = repmat(tmpM(:,:,1),[1,1,2]);
+                        M(:,:,3) = tmpM(:,:,2);
+                        M = obj.contrast_seq(frame)*(2*M-1);
+                        for jj = 1 : 3
+                            M(:,:,jj) = obj.bg_seq(frame,jj)*M(:,:,jj)+obj.bg_seq(frame,jj);
+                        end
+                    end
+                else
+                    M = obj.imageMatrix;
+                end
+                s = single(M);
+            end
+            
+            % RGB noise
+            function s = setRGBStixels(obj, frame)
+                persistent M;
+                if frame > 0
+                    if mod(frame, obj.frameDwell) == 0
+                        M = 2*obj.backgroundIntensity * ...
+                            (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5);
+                        M = obj.contrast_seq(frame)*(2*M-1);
+                        for jj = 1 : 3
+                            M(:,:,jj) = obj.bg_seq(frame,jj)*M(:,:,jj)+obj.bg_seq(frame,jj);
+                        end
                     end
                 else
                     M = obj.imageMatrix;
@@ -187,7 +241,6 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             % Get the contrast series. [0.05 to 0.35 RMS contrast]
             obj.contrasts = (obj.maxContrast-obj.minContrast)*obj.noiseStream.rand(1, length(obj.durations)) + obj.minContrast;
             
-            
             backgroundColors = {'gray','blue-gray','yellow-gray'};
             num_steps = ceil(obj.stimTime/obj.stepDuration);
             background_rgb = [0.5*ones(1,3);[0.25,0.25,0.5];[0.5,0.5,0.25]];
@@ -203,21 +256,15 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             sFrames = [0 eFrames(1:end-1)]+1;
             eFrames(end) = nframes;
             
-            [fseq, obj.frameSeqSurround,obj.contrasts] = manookinlab.util.getAdaptNoiseStepFrames(...
-                nframes, obj.durations, sFrames, eFrames, obj.seed,...
-                'maxContrast', obj.maxContrast, ...
-                'minContrast', obj.minContrast, ...
-                'noiseClass', obj.noiseClass, ...
-                'stimulusClass',obj.stimulusClass);
-            
-            obj.frameSeq = zeros(length(fseq),3);
-            for jj = 1 : length(sFrames)
-                bg = background_rgb(background_mean_idx(jj),:);
-                fvals = fseq(sFrames(jj):eFrames(jj));
-                obj.frameSeq(sFrames(jj):eFrames(jj),:) = fvals(:)*bg + ones(length(fvals),1)*bg;
-            end
-            
             if strcmp(obj.stimulusClass, 'spatial')
+                obj.bg_seq = zeros(nframes,3);
+                obj.contrast_seq = zeros(nframes,1);
+                for jj = 1 : length(sFrames)
+                    bg = background_rgb(background_mean_idx(jj),:);
+                    obj.bg_seq(sFrames(jj):eFrames(jj),:) = ones(length(sFrames(jj):eFrames(jj)),1)*bg;
+                    obj.contrast_seq(sFrames(jj):eFrames(jj)) = obj.contrasts(jj);
+                end
+                
                 % Get the current stixel size.
                 obj.stixelSize = obj.stixelSizes(mod(obj.numEpochsCompleted, length(obj.stixelSizes))+1);
                 obj.stepsPerStixel = max(round(obj.stixelSize / obj.gridSize), 1);
@@ -242,6 +289,20 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                 epoch.addParameter('numYStixels', obj.numYStixels);
                 epoch.addParameter('stixelSize', obj.gridSize*obj.stepsPerStixel);
                 epoch.addParameter('stepsPerStixel', obj.stepsPerStixel);
+            else
+                [fseq, obj.frameSeqSurround,obj.contrasts] = manookinlab.util.getAdaptNoiseStepFrames(...
+                    nframes, obj.durations, sFrames, eFrames, obj.seed,...
+                    'maxContrast', obj.maxContrast, ...
+                    'minContrast', obj.minContrast, ...
+                    'noiseClass', obj.noiseClass, ...
+                    'stimulusClass',obj.stimulusClass);
+
+                obj.frameSeq = zeros(length(fseq),3);
+                for jj = 1 : length(sFrames)
+                    bg = background_rgb(background_mean_idx(jj),:);
+                    fvals = fseq(sFrames(jj):eFrames(jj));
+                    obj.frameSeq(sFrames(jj):eFrames(jj),:) = fvals(:)*bg + ones(length(fvals),1)*bg;
+                end
             end
             
             % Save the seed.
