@@ -16,7 +16,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian
         stimulusClass = 'full-field'    % Stimulus class
         chromaticClass = 'BY'           % Chromatic class
-        backgroundClass = 'chromatic'   % Background class
+        backgroundClass = 'equal_catch' % Background class
         onlineAnalysis = 'none'         % Online analysis type.
         numberOfAverages = uint16(5)   % Number of epochs
     end
@@ -31,7 +31,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'full-field','spatial'})
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY'})
-        backgroundClassType = symphonyui.core.PropertyType('char','row',{'chromatic','RGB','BY'})
+        backgroundClassType = symphonyui.core.PropertyType('char','row',{'chromatic','equal_catch','equal_luminance'})
         seed
         bkg
         noiseStream
@@ -248,7 +248,14 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             
             backgroundColors = {'gray','blue-gray','yellow-gray'};
             num_steps = ceil(obj.stimTime/obj.stepDuration);
-            background_rgb = [0.5*ones(1,3);0.25,0.25,0.5;0.5,0.5,0.25];
+            switch obj.chromaticClass
+                case 'equal_catch'
+                    background_rgb = [0.137*ones(1,3);0.25,0,0.5;0.175,0.175,0];
+                case 'equal_luminance'
+                    background_rgb = [0.123*ones(1,3);0.25,0,0.5;0.15,0.15,0];
+                otherwise
+                    background_rgb = [0.5*ones(1,3);0.25,0.25,0.5;0.5,0.5,0.25];
+            end
             
             background_mean_idx = round(obj.noiseStream.rand(1,num_steps)*(length(backgroundColors)-1)+1);
             
