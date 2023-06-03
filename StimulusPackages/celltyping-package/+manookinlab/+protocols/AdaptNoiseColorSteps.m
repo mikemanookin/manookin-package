@@ -20,6 +20,10 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         numberOfAverages = uint16(5)   % Number of epochs
     end
     
+    properties (Dependent, SetAccess = private)
+        amp2                            % Secondary amplifier
+    end
+    
     properties (Hidden)
         ampType
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian'})
