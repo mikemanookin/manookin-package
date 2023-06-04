@@ -51,6 +51,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         positionStream
         bg_seq
         contrast_seq
+        background_means
     end
     
     methods
@@ -90,7 +91,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         
         function p = createPresentation(obj)
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
-            p.setBackgroundColor(obj.backgroundIntensity);
+            p.setBackgroundColor(obj.background_means);
             
             if strcmp(obj.stimulusClass, 'spatial')
                 obj.imageMatrix = obj.backgroundIntensity * ones(obj.numYStixels,obj.numXStixels);
@@ -256,6 +257,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                 otherwise
                     background_rgb = [0.5*ones(1,3);0.25,0.25,0.5;0.5,0.5,0.25];
             end
+            obj.background_means = background_rgb(1,:);
             
             background_mean_idx = round(obj.noiseStream.rand(1,num_steps)*(length(backgroundColors)-1)+1);
             
