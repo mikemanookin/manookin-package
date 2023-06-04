@@ -94,8 +94,8 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(obj.background_means);
             
             if strcmp(obj.stimulusClass, 'spatial')
-                obj.imageMatrix = obj.backgroundIntensity * ones(obj.numYStixels,obj.numXStixels);
-                checkerboard = stage.builtin.stimuli.Image(uint8(obj.imageMatrix));
+                obj.imageMatrix = obj.background_means(1)*ones(obj.numYStixels,obj.numXStixels);
+                checkerboard = stage.builtin.stimuli.Image(uint8(obj.imageMatrix*255));
                 checkerboard.position = obj.canvasSize / 2;
                 checkerboard.size = [obj.numXStixels, obj.numYStixels] * obj.stixelSizePix;
 
