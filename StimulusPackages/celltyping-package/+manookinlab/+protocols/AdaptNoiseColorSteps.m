@@ -249,7 +249,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             
             backgroundColors = {'gray','blue-gray','yellow-gray'};
             num_steps = ceil(obj.stimTime/obj.stepDuration);
-            switch obj.chromaticClass
+            switch obj.backgroundClass
                 case 'equal_catch'
                     background_rgb = [0.137*ones(1,3);0.25,0,0.5;0.175,0.175,0];
                 case 'equal_luminance'
