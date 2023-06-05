@@ -259,7 +259,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             end
             obj.background_means = background_rgb(1,:);
             
-            background_mean_idx = round(obj.noiseStream.rand(1,num_steps)*(length(backgroundColors)-1)+1);
+            background_mean_idx = floor(obj.noiseStream.rand(1,num_steps)*(length(backgroundColors)-eps)+1);
             
             % Re-seed the random number generator.
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
