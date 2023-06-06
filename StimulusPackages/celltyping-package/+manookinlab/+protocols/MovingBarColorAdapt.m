@@ -37,6 +37,7 @@ classdef MovingBarColorAdapt < manookinlab.protocols.ManookinLabStageProtocol
         contrast
         barRGB
         backgroundRGB
+        bg_gray
     end
     
     methods
@@ -109,7 +110,7 @@ classdef MovingBarColorAdapt < manookinlab.protocols.ManookinLabStageProtocol
  
         end
         
-        function rgb = getRGB(~,colorName)
+        function rgb = getRGB(obj,colorName)
             bgColors = {'gray','blue-gray','yellow-gray'};
             switch obj.chromaticClass
                 case 'equal_catch'
@@ -120,6 +121,7 @@ classdef MovingBarColorAdapt < manookinlab.protocols.ManookinLabStageProtocol
                     background_rgb = [0.5*ones(1,3);0.25,0.25,0.5;0.5,0.5,0.25];
             end
             rgb = background_rgb(strcmp(bgColors,colorName),:);
+            obj.bg_gray = background_rgb(1,:);
         end
         
         function organizeParameters(obj)
@@ -142,7 +144,7 @@ classdef MovingBarColorAdapt < manookinlab.protocols.ManookinLabStageProtocol
         function p = createPresentation(obj)
 
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
-            p.setBackgroundColor(obj.backgroundIntensity*ones(1,3));
+            p.setBackgroundColor(obj.bg_gray);
             
             % Set the background rectangle.
             bg_rect = stage.builtin.stimuli.Rectangle();
@@ -159,8 +161,7 @@ classdef MovingBarColorAdapt < manookinlab.protocols.ManookinLabStageProtocol
             
             
             % Set the bar color.
-            colorTmp = obj.contrast*obj.barRGB*obj.backgroundIntensity+obj.backgroundIntensity;
-            colorTmp(obj.barRGB == 0) = 0;
+            colorTmp = obj.contrast*obj.barRGB + obj.barRGB;
             
             rect = stage.builtin.stimuli.Rectangle();
             rect.size = obj.barSizePix;
@@ -231,7 +232,7 @@ classdef MovingBarColorAdapt < manookinlab.protocols.ManookinLabStageProtocol
             else
                 obj.barRGB = obj.getRGB('gray');
             end
-            obj.backgroundRGB = (obj.getRGB(obj.backgroundColor)-1)*obj.backgroundIntensity+obj.backgroundIntensity;
+            obj.backgroundRGB = obj.getRGB(obj.backgroundColor); %(obj.getRGB(obj.backgroundColor)-1)*obj.backgroundIntensity+obj.backgroundIntensity;
             
             % Get the current bar orientation.
             obj.orientation = obj.sequence(obj.numEpochsCompleted+1);
