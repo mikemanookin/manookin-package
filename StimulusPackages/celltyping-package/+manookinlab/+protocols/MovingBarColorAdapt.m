@@ -55,8 +55,10 @@ classdef MovingBarColorAdapt < manookinlab.protocols.ManookinLabStageProtocol
             obj.outerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.outerMaskRadius);
             obj.speedPix = obj.rig.getDevice('Stage').um2pix(obj.speed);
             
-            obj.backgroundColors = {'gray','blue-gray','yellow-gray','blue-gray','yellow-gray'};
-            obj.barColors = {'matched','matched','matched','gray','gray'};
+%             obj.backgroundColors = {'gray','blue-gray','yellow-gray','blue-gray','yellow-gray'};
+%             obj.barColors = {'matched','matched','matched','gray','gray'};
+            obj.backgroundColors = {'gray','blue-gray','yellow-gray'};
+            obj.barColors = {'matched','matched','matched'};
             
             if length(obj.orientations) > 1
                 colors = pmkmp(length(obj.orientations),'CubicYF');
