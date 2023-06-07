@@ -57,11 +57,12 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             
             num_reps = ceil(double(obj.numberOfAverages)/size(obj.imagePaths,1));
             obj.sequence = (1:size(obj.imagePaths,1))' * ones(1,num_reps);
+            obj.sequence = obj.sequence(:);
             
             if obj.randomize == true
                 obj.sequence = obj.sequence(randperm(length(obj.sequence)));
             end
-            obj.sequence = obj.sequence(:);
+            
         end
 
         
