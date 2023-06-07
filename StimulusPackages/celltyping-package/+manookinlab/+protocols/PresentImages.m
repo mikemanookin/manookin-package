@@ -35,7 +35,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
 
         function prepareRun(obj)
 
-            prepareRun@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj);
+            prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
 
 %             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
 %             obj.showFigure('edu.washington.riekelab.freedland.figures.MeanResponseFigure',...
