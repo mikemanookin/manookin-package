@@ -10,7 +10,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
         gaussianFilter = false          % Whether to use a Gaussian filter
         filterSdStixels = 1.0           % Gaussian filter standard dev in stixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        frameDwell = uint16(1)          % Frame dwell.
+        frameDwells = uint16([1,1])     % Frame dwell.
         randsPerRep = -1                % Number of random seeds between repeats
         maxWidth = 0                    % Maximum width of the stimulus in microns.
         chromaticClass = 'achromatic'   % Chromatic type
@@ -24,6 +24,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY'})
         stixelSizesType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        frameDwellsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         stixelSize
         stepsPerStixel
         numXStixels
@@ -39,6 +40,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
         noiseStream
         positionStream
         monitor_gamma
+        frameDwell
     end
     
     properties (Dependent, SetAccess = private)
@@ -217,6 +219,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the current stixel size.
             obj.stixelSize = obj.stixelSizes(mod(obj.numEpochsCompleted, length(obj.stixelSizes))+1);
+            obj.frameDwell = obj.frameDwells(mod(obj.numEpochsCompleted, length(obj.frameDwells))+1);
             
             % Deal with the seed.
             if obj.randsPerRep == 0 
@@ -263,6 +266,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('numYStixels', obj.numYStixels);
             epoch.addParameter('stixelSize', obj.gridSize*obj.stepsPerStixel);
             epoch.addParameter('stepsPerStixel', obj.stepsPerStixel);
+            epoch.addParameter('frameDwell', obj.frameDwell);
         end
         
         function a = get.amp2(obj)

@@ -24,6 +24,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         directory
         totalRuns
         image_name
+        seed
     end
 
     methods
@@ -37,11 +38,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
 
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
 
-%             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-%             obj.showFigure('edu.washington.riekelab.freedland.figures.MeanResponseFigure',...
-%                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,'splitEpoch',1);
-%             obj.showFigure('edu.washington.riekelab.freedland.figures.FrameTimingFigure',...
-%                 obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));
+            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             
             % General directory
             obj.directory = strcat('C:\Users\Public\Documents\GitRepos\Symphony2\flashed_images\',obj.fileFolder); % General folder
@@ -59,8 +56,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.sequence = (1:size(obj.imagePaths,1))' * ones(1,num_reps);
             obj.sequence = obj.sequence(:);
             
-            if obj.randomize == true
-                obj.sequence = obj.sequence(randperm(length(obj.sequence)));
+            if obj.randomize
+                obj.seed = RandStream.shuffleSeed;
+                noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
+                obj.sequence = obj.sequence(noiseStream.randperm(length(obj.sequence)));
             end
             
         end
@@ -100,6 +99,9 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             
             epoch.addParameter('imageName',obj.imagePaths{img_name,1});
             epoch.addParameter('folder',obj.directory);
+            if obj.randomize
+                epoch.addParameter('seed',obj.seed);
+            end
         end
 
         function tf = shouldContinuePreparingEpochs(obj)
