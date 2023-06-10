@@ -4,6 +4,7 @@ ip = inputParser();
 ip.addParameter('correlationDecayTau', 20, @(x)isfloat(x));
 ip.addParameter('frameRate', 60.0, @(x)isfloat(x));
 ip.addParameter('motionSpeed', 700.0, @(x)isfloat(x)); % Motion speed in pixels / sec
+ip.addParameter('noiseClass','gaussian',@(x)ischar(x));
 
 % Parse the inputs.
 ip.parse(varargin{:});
@@ -19,7 +20,6 @@ end
 
 dt = 1 / params.frameRate;
 T = 0 : dt : (duration+40)-dt;
-positionStream = RandStream('mt19937ar', 'Seed', seed);
 
 D_OU = 2.7e6; %dynamical range
 
@@ -27,7 +27,14 @@ D_OU = 2.7e6; %dynamical range
 positions = zeros(length(T), 2);
 % Velocity vectors (x,y)
 V = zeros(length(T), 2);
-v_noise = positionStream.randn(length(T), 2);
+
+if strcmpi(params.noiseClass,'gaussian_randn')
+    rng(seed,'twister');
+    v_noise = manookinlab.util.gaussian_randn(length(T), 2);
+else
+    positionStream = RandStream('mt19937ar', 'Seed', seed);
+    v_noise = positionStream.randn(length(T), 2);
+end
 
 % Update the velocities and positions on each time step according to the
 % OU algorithm.
