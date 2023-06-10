@@ -33,6 +33,9 @@ noiseStream = RandStream('mt19937ar', 'Seed', seed);
 % Generate the raw sequence.
 if strcmp(noiseClass, 'binary')
     frameSeq = 2 * (noiseStream.rand(1,nframes)>0.5) - 1;
+elseif strcmp(noiseClass,'gaussian_randn')
+    rng(seed,'twister');
+    frameSeq = manookinlab.util.gaussian_randn(1,nframes);
 else
     frameSeq = noiseStream.randn(1,nframes);
 end
