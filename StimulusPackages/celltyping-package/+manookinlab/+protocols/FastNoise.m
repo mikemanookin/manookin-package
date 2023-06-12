@@ -254,6 +254,9 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.numXChecks = ceil(obj.maxWidthPix(1)/gridSizePix);
             obj.numYChecks = ceil(obj.maxWidthPix(2)/gridSizePix);
             
+%             disp(['x:',num2str(obj.numXStixels),' y:',num2str(obj.numYStixels)])
+%             disp(['x:',num2str(obj.numXChecks),' y:',num2str(obj.numYChecks)])
+            
             % Seed the generator
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             obj.positionStream = RandStream('mt19937ar', 'Seed', obj.seed);
