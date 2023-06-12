@@ -13,7 +13,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         frameDwell = uint16(1)
         randsPerRep = -1                % Number of random seeds per repeat
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        noiseClass = 'gaussian'         % Noise type (binary or Gaussian
+        noiseClass = 'gaussian_randn'   % Noise type (binary or Gaussian
         stimulusClass = 'full-field'    % Stimulus class
         chromaticClass = 'BY'           % Chromatic class
         backgroundClass = 'equal_catch' % Background class
@@ -27,7 +27,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
     
     properties (Hidden)
         ampType
-        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian'})
+        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary','gaussian','gaussian_randn'})
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'full-field','spatial'})
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY'})
