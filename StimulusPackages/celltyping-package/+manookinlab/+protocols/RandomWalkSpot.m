@@ -11,6 +11,7 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
         backgroundSpeed = 500
         stimulusIndices = [2 6 12 15 18 24]         % Stimulus number (1:161)
         stimulusClass = 'spot'           % Stimulus class ('bar' or 'spot')
+        noiseClass = 'gaussian_randn'
         backgroundMotionClass = 'gaussian'
         chromaticClass = 'achromatic'
         correlationClass = 'HMM'
@@ -33,6 +34,7 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
         stimulusIndicesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         correlationClassType = symphonyui.core.PropertyType('char', 'row', {'HMM','OU'})
         stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'bar','spot'})
+        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'gaussian_randn','gaussian'})
         imageMatrix
         backgroundIntensity
         xTraj
@@ -343,9 +345,9 @@ classdef RandomWalkSpot < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             if strcmp(obj.correlationClass, 'OU')
-                obj.spotPositions = manookinlab.util.getOUTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed, 'correlationDecayTau', obj.correlationDecayTau);
+                obj.spotPositions = manookinlab.util.getOUTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed, 'correlationDecayTau', obj.correlationDecayTau,'noiseClass',obj.noiseClass);
             else
-                obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed, 'correlationDecayTau', obj.correlationDecayTau);
+                obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed, 'correlationDecayTau', obj.correlationDecayTau,'noiseClass',obj.noiseClass);
             end
 %             obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.spotSpeed);
             obj.backgroundRng = RandStream('mt19937ar', 'Seed', obj.seed+10);
