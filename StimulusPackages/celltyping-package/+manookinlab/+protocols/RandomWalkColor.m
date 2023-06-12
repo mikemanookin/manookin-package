@@ -11,6 +11,7 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         stimulusSpeed = 500             % Spot speed (std) in microns/second
         chromaticClass = 'chromatic'    % The chromatic class of the background
         chromaticStimulus = false       % Whether the spot/bar is the same color as the background
+        noiseClass = 'gaussian_randn'
         correlationClass = 'HMM'
         correlationDecayTau = 20        % Correlation decay time constant in msec
         backgroundIntensity = 0.5
@@ -31,6 +32,7 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         stimulusIndicesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'bar','spot'})
         correlationClassType = symphonyui.core.PropertyType('char', 'row', {'HMM','OU'})
+        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'gaussian_randn','gaussian'})
         spotRadiusPix
         contrast
         stimulusSpeedPix
@@ -206,9 +208,9 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             if strcmp(obj.correlationClass, 'OU')
-                obj.spotPositions = manookinlab.util.getOUTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.stimulusSpeed, 'correlationDecayTau', obj.correlationDecayTau);
+                obj.spotPositions = manookinlab.util.getOUTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.stimulusSpeed, 'correlationDecayTau', obj.correlationDecayTau,'noiseClass',obj.noiseClass);
             else
-                obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.stimulusSpeed, 'correlationDecayTau', obj.correlationDecayTau);
+                obj.spotPositions = manookinlab.util.getHMMTrajectory2d(obj.stimTime*1e-3+2, obj.seed, 'motionSpeed', obj.stimulusSpeed, 'correlationDecayTau', obj.correlationDecayTau,'noiseClass',obj.noiseClass);
             end
             % Get the spot contrast.
             obj.contrast = obj.contrasts(mod(floor(obj.numEpochsCompleted/length(obj.backgroundConditions)),length(obj.contrasts))+1);
