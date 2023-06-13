@@ -310,13 +310,34 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                     'minContrast', obj.minContrast, ...
                     'noiseClass', obj.noiseClass, ...
                     'stimulusClass',obj.stimulusClass);
-
+                
                 obj.frameSeq = zeros(length(fseq),3);
-                for jj = 1 : length(sFrames)
-                    bg = background_rgb(background_mean_idx(jj),:);
-                    fvals = fseq(sFrames(jj):eFrames(jj));
-                    obj.frameSeq(sFrames(jj):eFrames(jj),:) = fvals(:)*bg + ones(length(fvals),1)*bg;
+                if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+                    if strcmp(obj.chromaticClass,'BY')
+                        [fseq2, ~,~] = manookinlab.util.getAdaptNoiseStepFrames(...
+                            nframes, obj.durations, sFrames, eFrames, obj.seed+1,...
+                            'maxContrast', obj.maxContrast, ...
+                            'minContrast', obj.minContrast, ...
+                            'noiseClass', obj.noiseClass, ...
+                            'stimulusClass',obj.stimulusClass);
+                        for jj = 1 : length(sFrames)
+                            bg = background_rgb(background_mean_idx(jj),:);
+                            fvals = fseq(sFrames(jj):eFrames(jj));
+                            obj.frameSeq(sFrames(jj):eFrames(jj),1:2) = fvals(:)*bg(1:2) + ones(length(fvals),1)*bg(1:2);
+                            fvals2 = fseq2(sFrames(jj):eFrames(jj));
+                            obj.frameSeq(sFrames(jj):eFrames(jj),3) = fvals2(:)*bg(3) + ones(length(fvals2),1)*bg(3);
+                        end
+                    end
+                else
+                    for jj = 1 : length(sFrames)
+                        bg = background_rgb(background_mean_idx(jj),:);
+                        fvals = fseq(sFrames(jj):eFrames(jj));
+                        obj.frameSeq(sFrames(jj):eFrames(jj),:) = fvals(:)*bg + ones(length(fvals),1)*bg;
+                    end
                 end
+
+                
+                
             end
             
             % Save the seed.
