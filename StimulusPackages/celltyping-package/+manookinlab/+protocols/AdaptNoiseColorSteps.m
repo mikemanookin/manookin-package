@@ -52,6 +52,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         bg_seq
         contrast_seq
         background_means
+        backgroundColors = {'sky','trees','grass'};
     end
     
     methods
@@ -247,19 +248,19 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             % Get the contrast series. [0.05 to 0.35 RMS contrast]
             obj.contrasts = (obj.maxContrast-obj.minContrast)*obj.noiseStream.rand(1, length(obj.durations)) + obj.minContrast;
             
-            backgroundColors = {'gray','blue-gray','yellow-gray'};
+            %obj.backgroundColors = {'sky','trees','grass'}; %{'gray','blue-gray','yellow-gray'};
             num_steps = ceil(obj.stimTime/obj.stepDuration);
             switch obj.backgroundClass
                 case 'equal_catch'
-                    background_rgb = [0.137*ones(1,3);0.25,0,0.5;0.175,0.175,0];
+                    background_rgb = [0.369,0.45,0.5;0.386,0.45,0.48;0.49,0.46,0.39]; %[0.137*ones(1,3);0.25,0,0.5;0.175,0.175,0];
                 case 'equal_luminance'
-                    background_rgb = [0.123*ones(1,3);0.25,0,0.5;0.15,0.15,0];
+                    background_rgb = [0.37,0.45,0.5;0.39,0.45,0.48;0.49,0.46,0.38]; %[0.123*ones(1,3);0.25,0,0.5;0.15,0.15,0];
                 otherwise
-                    background_rgb = [0.5*ones(1,3);0.25,0.25,0.5;0.5,0.5,0.25];
+                    background_rgb = [0.37,0.45,0.5;0.4,0.47,0.5;0.5,0.47,0.39]; %[0.5*ones(1,3);0.25,0.25,0.5;0.5,0.5,0.25];
             end
             obj.background_means = background_rgb(1,:);
             
-            background_mean_idx = floor(obj.noiseStream.rand(1,num_steps)*(length(backgroundColors)-eps)+1);
+            background_mean_idx = floor(obj.noiseStream.rand(1,num_steps)*(length(obj.backgroundColors)-eps)+1);
             
             % Re-seed the random number generator.
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
@@ -335,9 +336,6 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                         obj.frameSeq(sFrames(jj):eFrames(jj),:) = fvals(:)*bg + ones(length(fvals),1)*bg;
                     end
                 end
-
-                
-                
             end
             
             % Save the seed.
