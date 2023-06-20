@@ -113,14 +113,14 @@ classdef MovingBarColorAdapt < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function rgb = getRGB(obj,colorName)
-            bgColors = {'gray','blue-gray','yellow-gray'};
+            bgColors = {'sky','trees','grass'}; %{'gray','blue-gray','yellow-gray'};
             switch obj.chromaticClass
                 case 'equal_catch'
-                    background_rgb = [0.137*ones(1,3);0.25,0,0.5;0.175,0.175,0];
+                    background_rgb = [0.369,0.45,0.5;0.386,0.45,0.48;0.49,0.46,0.39]; %[0.137*ones(1,3);0.25,0,0.5;0.175,0.175,0];
                 case 'equal_luminance'
-                    background_rgb = [0.123*ones(1,3);0.25,0,0.5;0.15,0.15,0];
+                    background_rgb = [0.37,0.45,0.5;0.39,0.45,0.48;0.49,0.46,0.38]; %[0.123*ones(1,3);0.25,0,0.5;0.15,0.15,0];
                 otherwise
-                    background_rgb = [0.5*ones(1,3);0.25,0.25,0.5;0.5,0.5,0.25];
+                    background_rgb = [0.37,0.45,0.5;0.4,0.47,0.5;0.5,0.47,0.39]; %[0.5*ones(1,3);0.25,0.25,0.5;0.5,0.5,0.25];
             end
             rgb = background_rgb(strcmp(bgColors,colorName),:);
             obj.bg_gray = background_rgb(1,:);
