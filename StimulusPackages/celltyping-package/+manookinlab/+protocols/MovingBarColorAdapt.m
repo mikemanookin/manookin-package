@@ -57,7 +57,7 @@ classdef MovingBarColorAdapt < manookinlab.protocols.ManookinLabStageProtocol
             
 %             obj.backgroundColors = {'gray','blue-gray','yellow-gray','blue-gray','yellow-gray'};
 %             obj.barColors = {'matched','matched','matched','gray','gray'};
-            obj.backgroundColors = {'gray','blue-gray','yellow-gray'};
+            obj.backgroundColors = {'sky','trees','grass'}; %{'gray','blue-gray','yellow-gray'};
             obj.barColors = {'matched','matched','matched'};
             
             if length(obj.orientations) > 1
@@ -123,7 +123,7 @@ classdef MovingBarColorAdapt < manookinlab.protocols.ManookinLabStageProtocol
                     background_rgb = [0.37,0.45,0.5;0.4,0.47,0.5;0.5,0.47,0.39]; %[0.5*ones(1,3);0.25,0.25,0.5;0.5,0.5,0.25];
             end
             rgb = background_rgb(strcmp(bgColors,colorName),:);
-            obj.bg_gray = background_rgb(1,:);
+            obj.bg_gray = mean(background_rgb(:))*ones(1,3);
         end
         
         function organizeParameters(obj)
