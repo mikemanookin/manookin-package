@@ -52,7 +52,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         bg_seq
         contrast_seq
         background_means
-        backgroundColors = {'sky','trees','grass'};
+        backgroundColors = {'blue','gray','yellow'};
     end
     
     methods
@@ -252,13 +252,13 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             num_steps = ceil(obj.stimTime/obj.stepDuration);
             switch obj.backgroundClass
                 case 'equal_catch'
-                    background_rgb = [0.369,0.45,0.5;0.386,0.45,0.48;0.49,0.46,0.39]; %[0.137*ones(1,3);0.25,0,0.5;0.175,0.175,0];
+                    background_rgb = [0.249,0.249,0.5;0.196,0.196,0.196;0.296,0.296,0.147]; %[0.137*ones(1,3);0.25,0,0.5;0.175,0.175,0];
                 case 'equal_luminance'
                     background_rgb = [0.37,0.45,0.5;0.39,0.45,0.48;0.49,0.46,0.38]; %[0.123*ones(1,3);0.25,0,0.5;0.15,0.15,0];
                 otherwise
                     background_rgb = [0.37,0.45,0.5;0.4,0.47,0.5;0.5,0.47,0.39]; %[0.5*ones(1,3);0.25,0.25,0.5;0.5,0.5,0.25];
             end
-            obj.background_means = background_rgb(1,:);
+            obj.background_means = background_rgb(2,:);
             
             background_mean_idx = floor(obj.noiseStream.rand(1,num_steps)*(length(obj.backgroundColors)-eps)+1);
             
