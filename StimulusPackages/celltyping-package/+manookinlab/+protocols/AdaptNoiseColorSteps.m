@@ -6,11 +6,11 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 180000               % Stim duration (ms)
         tailTime = 250                  % Stim trailing 	 (ms)
         stepDuration = 2000             % Duration series (ms)
-        stixelSizes = [90,120]           % Edge length of stixel (microns)
+        stixelSizes = [60,90,60,90]     % Edge length of stixel (microns)
         gridSize = 30                   % Size of underling grid
         maxContrast = 0.5
         minContrast = 0.3
-        frameDwell = uint16(1)
+        frameDwells = uint16([2,2,1,1]) % Frame dwell.
         randsPerRep = -1                % Number of random seeds per repeat
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         noiseClass = 'gaussian_randn'   % Noise type (binary or Gaussian
@@ -53,6 +53,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         contrast_seq
         background_means
         backgroundColors = {'blue','gray','yellow'};
+        frameDwell
     end
     
     methods
@@ -235,6 +236,8 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
+            obj.frameDwell = obj.frameDwells(mod(obj.numEpochsCompleted, length(obj.frameDwells))+1);
+            
             % Deal with the seed.
             if obj.randsPerRep > 0 && (mod(obj.numEpochsCompleted+1,obj.randsPerRep+1) == 0)
                 obj.seed = 1;
@@ -340,6 +343,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
             
             % Save the seed.
             epoch.addParameter('seed', obj.seed);
+            epoch.addParameter('frameDwell', obj.frameDwell);
 %             epoch.addParameter('backgroundColors',backgroundColors);
         end
         
