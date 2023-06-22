@@ -59,7 +59,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             if obj.randomize
                 obj.seed = RandStream.shuffleSeed;
                 noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
-                idx=floor(noiseStream.rand(size(obj.sequence))*length(obj.sequence))
+                idx=floor(noiseStream.rand(size(obj.sequence))*length(obj.sequence))+1;
                 obj.sequence = obj.sequence(idx);
             end
             
