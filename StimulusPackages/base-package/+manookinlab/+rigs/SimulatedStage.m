@@ -18,8 +18,7 @@ classdef SimulatedStage < symphonyui.core.descriptions.RigDescription
             obj.addDevice(amp1);
 
             % Add an analog trigger device to simulate the MEA.
-            trigger = riekelab.devices.TriggerDevice('adc_type','ANALOG');
-            trigger.bindStream(daq.getStream('ao1'));
+            trigger = UnitConvertingDevice('ExternalTrigger', 'V').bindStream(daq.getStream('ao1'));
             obj.addDevice(trigger);
             
 %             % Get calibration resources.
@@ -42,13 +41,13 @@ classdef SimulatedStage < symphonyui.core.descriptions.RigDescription
                 'type', PropertyType('char', 'row', {'', 'low', 'medium', 'high'}));
             obj.addDevice(blue);
             
-(*              trigger1 = UnitConvertingDevice('Trigger1', symphonyui.core.Measurement.UNITLESS).bindStream(daq.getStream('doport1'));
-            daq.getStream('doport1').setBitPosition(trigger1, 0);
-            obj.addDevice(trigger1);
-            
-            trigger2 = UnitConvertingDevice('Trigger2', symphonyui.core.Measurement.UNITLESS).bindStream(daq.getStream('doport1'));
-            daq.getStream('doport1').setBitPosition(trigger2, 2);
-            obj.addDevice(trigger2); *)
+%              trigger1 = UnitConvertingDevice('Trigger1', symphonyui.core.Measurement.UNITLESS).bindStream(daq.getStream('doport1'));
+%             daq.getStream('doport1').setBitPosition(trigger1, 0);
+%             obj.addDevice(trigger1);
+%             
+%             trigger2 = UnitConvertingDevice('Trigger2', symphonyui.core.Measurement.UNITLESS).bindStream(daq.getStream('doport1'));
+%             daq.getStream('doport1').setBitPosition(trigger2, 2);
+%             obj.addDevice(trigger2);
             
             frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai7'));
             obj.addDevice(frameMonitor);
