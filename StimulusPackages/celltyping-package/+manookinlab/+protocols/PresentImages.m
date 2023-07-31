@@ -53,14 +53,18 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.imagePaths = obj.imagePaths(~cellfun(@isempty, obj.imagePaths(:,1)), :);
             
             num_reps = ceil(double(obj.numberOfAverages)/size(obj.imagePaths,1));
-            obj.sequence = (1:size(obj.imagePaths,1))' * ones(1,num_reps);
-            obj.sequence = obj.sequence(:);
             
             if obj.randomize
-                obj.seed = RandStream.shuffleSeed;
-                noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
-                idx=floor(noiseStream.rand(size(obj.sequence))*length(obj.sequence))+1;
-                obj.sequence = obj.sequence(idx);
+                obj.sequence = zeros(1,obj.numberOfAverages);
+                seq = (1:size(obj.imagePaths,1));
+                for ii = 1 : num_reps
+                    seq = randperm(size(obj.imagePaths,1));
+                    obj.sequence((ii-1)*length(seq)+(1:length(seq))) = seq;
+                end
+                obj.sequence = obj.sequence(1:obj.numberOfAverages);
+            else
+                obj.sequence = (1:size(obj.imagePaths,1))' * ones(1,num_reps);
+                obj.sequence = obj.sequence(:);
             end
             
         end
