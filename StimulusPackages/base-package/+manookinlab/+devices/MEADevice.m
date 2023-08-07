@@ -113,6 +113,9 @@ classdef MEADevice < symphonyui.core.Device
             end
             obj.stop();
         end
+
+        function file_name = read_litke_header(obj, input)
+        end
         
         function stop(obj)
             % Automatically called when start completes.
