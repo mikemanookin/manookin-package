@@ -8,6 +8,7 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
         stimulusIndices = [2 6 12 18 24 30 40 50]         % Stimulus number (1:161)
         maskDiameter = 0                % Mask diameter in pixels
         apertureDiameter = 2000         % Aperture diameter in pixels.
+        manualMagnification = 0         % Override DOVES magnification by setting this >1
         freezeFEMs = false
         onlineAnalysis = 'extracellular'% Type of online analysis
         numberOfAverages = uint16(48)   % Number of epochs
@@ -109,7 +110,11 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the magnification factor. Exps were done with each pixel
             % = 1 arcmin == 1/60 degree; 200 um/degree...
-            obj.magnificationFactor = round(1/60*200/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel'));
+            if obj.manualMagnification > 1
+                obj.magnificationFactor = obj.manualMagnification;
+            else
+                obj.magnificationFactor = round(1/60*200/obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel'));
+            end
         end
         
         function p = createPresentation(obj)
