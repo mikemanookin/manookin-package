@@ -195,6 +195,7 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
+                        mask_idx = floor(frame/60  / (obj.stepDuration*1e-3))+1;
                         M = zeros(obj.numYStixels,obj.numXStixels,3);
                         tmpM = 2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1;
                         tmpM = tmp .* repmat(obj.contrast_mask(:,:,mask_idx),[1,1,2]);
