@@ -41,6 +41,7 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
         positionStream
         monitor_gamma
         frameDwell
+        contrast_mask
     end
     
     properties (Dependent, SetAccess = private)
@@ -124,6 +125,13 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
                 checkerboard.setWrapModeT(GL.MIRRORED_REPEAT);
             end
             
+            % TEST REGION
+            obj.contrast_mask = ones(obj.numYStixels,obj.numXStixels,1);
+            obj.contrast_mask(1:floor(obj.numYStixels/2),:,:) = 0;
+%             obj.contrast_mask = uint8(obj.contrast_mask*255);
+%             obj.contrast_mask = uint8(178*(rand(obj.numYStixels,obj.numXStixels)>0.95));
+%             checkerboard.setMask(mask);
+            
             % Add the stimulus to the presentation.
             p.addStimulus(checkerboard);
             
@@ -190,8 +198,8 @@ classdef FastNoise < manookinlab.protocols.ManookinLabStageProtocol
                         M = zeros(obj.numYStixels,obj.numXStixels,3);
                         tmpM = obj.contrast*2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1;
                         tmpM = tmpM*obj.backgroundIntensity + obj.backgroundIntensity;
-                        M(:,:,1:2) = repmat(tmpM(:,:,1),[1,1,2]);
-                        M(:,:,3) = tmpM(:,:,2);
+                        M(:,:,1:2) = repmat(tmpM(:,:,1).*obj.contrast_mask,[1,1,2]);
+                        M(:,:,3) = tmpM(:,:,2).*obj.contrast_mask;
                     end
                 else
                     M = obj.imageMatrix;
