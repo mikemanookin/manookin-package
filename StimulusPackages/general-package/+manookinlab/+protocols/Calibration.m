@@ -34,7 +34,7 @@ classdef Calibration < manookinlab.protocols.ManookinLabStageProtocol
         function p = createPresentation(obj)
             
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3); %create presentation of specified duration
-            p.setBackgroundColor(obj.rectColor); % Set background intensity
+            p.setBackgroundColor(0); % Set background intensity
             
             % Create the stimulus.
             rect = stage.builtin.stimuli.Rectangle();
