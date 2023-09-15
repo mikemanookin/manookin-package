@@ -40,7 +40,7 @@ classdef Calibration < manookinlab.protocols.ManookinLabStageProtocol
             rect = stage.builtin.stimuli.Rectangle();
             rect.color = obj.rectColor;
             rect.position = obj.canvasSize / 2;
-            rect.size = obj.canvasSize;
+            rect.size = [500,500]; %obj.canvasSize;
             
             % Add the rectangle.
             p.addStimulus(rect);
