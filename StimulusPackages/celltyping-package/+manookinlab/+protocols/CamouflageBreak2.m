@@ -6,6 +6,7 @@ classdef CamouflageBreak2 < manookinlab.protocols.ManookinLabStageProtocol
         waitTime = 3000                 % Time prior to break/move (ms)
         moveTime = 250                  % Duration of move (ms)
         stopTime = 3000                 % Time following break/move (ms)
+        directions = 'right'             % Object direction(s) to probe.
         backgroundSpeeds = [0,500] % Background speed in microns/sec
         moveSpeeds = [500,1000] % Foreground motion speeds in microns/sec
         barWidth = 50                   % Bar width in microns
@@ -29,6 +30,7 @@ classdef CamouflageBreak2 < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         moveSpeedsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         backgroundSpeedsType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        directionsType = symphonyui.core.PropertyType('char', 'row', {'random', 'both', 'right', 'left'})
         seed
         backgroundPosition
         objectPosition
@@ -39,6 +41,7 @@ classdef CamouflageBreak2 < manookinlab.protocols.ManookinLabStageProtocol
         backgroundSpeedPix
         moveSpeedPix
         backgroundSpeed
+        direction
     end
     
     methods
@@ -199,14 +202,25 @@ classdef CamouflageBreak2 < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate the frame to start moving.
             mvFrame = floor(obj.waitTime * 1e-3 * obj.frameRate)+1;
             mvFrames = (1:length(mvFrame+(1:obj.moveFrames)))*obj.moveSpeedPix/obj.frameRate;
-            if obj.objectPosition(mvFrame) > (obj.canvasSize(1)/2)
+            if strcmp(obj.directions, 'left') || (strcmp(obj.directions, 'both') && (mod(floor(obj.numEpochsCompleted/2)) == 0)
+                obj.direction = 'left';
                 mvFrames = -mvFrames;
+            elseif strcmp(obj.directions, 'random') 
+                if obj.objectPosition(mvFrame) > (obj.canvasSize(1)/2)
+                    obj.direction = 'left';
+                    mvFrames = -mvFrames;
+                else
+                    obj.direction = 'right';
+                end
+            else
+                obj.direction = 'right';
             end
             obj.objectPosition(mvFrame+(1:obj.moveFrames),1) = mvFrames' + obj.objectPosition(mvFrame-1,1);
             obj.objectPosition(mvFrame+obj.moveFrames+1:obj.numFrames,1) = mvFrames(end) + obj.objectPosition(mvFrame+obj.moveFrames+1:obj.numFrames,1);
             
             % Save the seed.
             epoch.addParameter('seed', obj.seed);
+            epoch.addParameter('direction',obj.direction);
         end
         
         % Same presentation each epoch in a run. Replay.
