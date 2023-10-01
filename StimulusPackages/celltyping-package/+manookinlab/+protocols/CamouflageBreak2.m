@@ -202,7 +202,7 @@ classdef CamouflageBreak2 < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate the frame to start moving.
             mvFrame = floor(obj.waitTime * 1e-3 * obj.frameRate)+1;
             mvFrames = (1:length(mvFrame+(1:obj.moveFrames)))*obj.moveSpeedPix/obj.frameRate;
-            if strcmp(obj.directions, 'left') || (strcmp(obj.directions, 'both') && (mod(floor(obj.numEpochsCompleted/2)) == 0)
+            if strcmp(obj.directions, 'left') || (strcmp(obj.directions, 'both') && (mod(floor(obj.numEpochsCompleted/2)) == 0))
                 obj.direction = 'left';
                 mvFrames = -mvFrames;
             elseif strcmp(obj.directions, 'random') 
