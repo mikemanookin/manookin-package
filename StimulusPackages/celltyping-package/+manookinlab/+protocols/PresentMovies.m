@@ -75,8 +75,6 @@ classdef PresentMovies < manookinlab.protocols.ManookinLabStageProtocol
             canvasSize = obj.rig.getDevice('Stage').getCanvasSize();     
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             
-            % Rotate image
-            specificImage = imread(fullfile(obj.directory, obj.movie_name));
             p.setBackgroundColor(obj.backgroundIntensity)   % Set background intensity
             
             % Prep to display image
