@@ -1,9 +1,9 @@
-% Loads movies for MEA
+% Plays movies...
 classdef PresentMovies < manookinlab.protocols.ManookinLabStageProtocol
     
     properties
         amp % Output amplifier
-        preTime     = 250 % in ms
+        preTime     = 0 % in ms
         stimTime    = 15000 % in ms
         tailTime    = 250 % in ms
         fileFolder = 'balloons_v1'; % Folder in freedland-package containing videos
