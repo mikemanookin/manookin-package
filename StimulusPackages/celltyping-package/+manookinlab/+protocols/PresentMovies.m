@@ -20,7 +20,8 @@ classdef PresentMovies < manookinlab.protocols.ManookinLabStageProtocol
         sequence
         imagePaths
         imageMatrix
-        directory
+        local_movie_directory
+        stage_movie_directory
         totalRuns
         movie_name
         seed
@@ -39,9 +40,19 @@ classdef PresentMovies < manookinlab.protocols.ManookinLabStageProtocol
 
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             
+            movie_dir = obj.rig.getDevice('Stage').getConfigurationSetting('local_movie_directory');
+            if isempty(movie_dir)
+                movie_dir = 'C:\Users\Public\Documents\GitRepos\Symphony2\movies\';
+            end
+            stage_dir = obj.rig.getDevice('Stage').getConfigurationSetting('stage_movie_directory');
+            if isempty(stage_dir)
+                stage_dir = 'C:\Users\Public\Documents\GitRepos\Symphony2\movies\';
+            end
+            obj.stage_movie_directory = strcat(stage_dir, obj.fileFolder);
+
             % General directory
-            obj.directory = strcat('C:\Users\Public\Documents\GitRepos\Symphony2\movies\',obj.fileFolder); % General folder
-            D = dir(obj.directory);
+            obj.local_movie_directory = strcat(movie_dir, obj.fileFolder); % General folder
+            D = dir(obj.local_movie_directory);
             
             obj.imagePaths = cell(size(D,1),1);
             for a = 1:length(D)
@@ -77,8 +88,8 @@ classdef PresentMovies < manookinlab.protocols.ManookinLabStageProtocol
             
             p.setBackgroundColor(obj.backgroundIntensity)   % Set background intensity
             
-            % Prep to display image
-            scene = stage.builtin.stimuli.Movie(fullfile(obj.directory,obj.movie_name));
+            % Prep to display movie
+            scene = stage.builtin.stimuli.Movie(fullfile(obj.stage_movie_directory,obj.movie_name));
             scene.size = [canvasSize(1),canvasSize(2)];
             scene.position = canvasSize/2;
             
@@ -100,7 +111,7 @@ classdef PresentMovies < manookinlab.protocols.ManookinLabStageProtocol
             obj.movie_name = obj.imagePaths{mov_name,1};
             
             epoch.addParameter('movieName',obj.imagePaths{mov_name,1});
-            epoch.addParameter('folder',obj.directory);
+            epoch.addParameter('folder',obj.local_movie_directory);
             if obj.randomize
                 epoch.addParameter('seed',obj.seed);
             end

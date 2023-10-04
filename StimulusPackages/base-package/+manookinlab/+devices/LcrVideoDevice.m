@@ -19,6 +19,8 @@ classdef LcrVideoDevice < symphonyui.core.Device
             ip.addParameter('micronsPerPixel', @isnumeric);
             ip.addParameter('ledCurrents',[], @isnumeric);
             ip.addParameter('customLightEngine', false, @islogical);
+            ip.addParameter('local_movie_directory','C:\Users\Public\Documents\GitRepos\Symphony2\movies\', @ischar);
+            ip.addParameter('stage_movie_directory','C:\Users\Public\Documents\GitRepos\Symphony2\movies\', @ischar);
             ip.addParameter('gammaRamps', containers.Map( ...
                 {'red', 'green', 'blue'}, ...
                 {linspace(0, 65535, 256), linspace(0, 65535, 256), linspace(0, 65535, 256)}), ...
@@ -51,9 +53,9 @@ classdef LcrVideoDevice < symphonyui.core.Device
             [auto, red, green, blue] = obj.lightCrafter.getLedEnables();
             
             if ip.Results.customLightEngine
-                obj.max_led_current = 50;
+                obj.max_led_current = 100;
             else
-                obj.max_led_current = 255;
+                obj.max_led_current = 200;
             end
             if ~isempty(ip.Results.ledCurrents)
                 led_currents = ip.Results.ledCurrents;
@@ -64,6 +66,8 @@ classdef LcrVideoDevice < symphonyui.core.Device
             
             refreshRate = obj.stageClient.getMonitorRefreshRate();
             
+            obj.addConfigurationSetting('local_movie_directory', ip.Results.local_movie_directory, 'isReadOnly', true);
+            obj.addConfigurationSetting('stage_movie_directory', ip.Results.stage_movie_directory, 'isReadOnly', true);
             obj.addConfigurationSetting('canvasSize', canvasSize, 'isReadOnly', true);
             obj.addConfigurationSetting('trueCanvasSize', trueCanvasSize, 'isReadOnly', true);
             obj.addConfigurationSetting('lightCrafterLedCurrents',[red_current, green_current, blue_current],'isReadOnly',true);
