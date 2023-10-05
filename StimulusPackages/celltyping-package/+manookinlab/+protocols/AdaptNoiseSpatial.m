@@ -15,8 +15,6 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
         filterSdStixels = 1.0           % Gaussian filter standard dev in stixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         frameDwells = uint16([1,1])     % Frame dwell.
-        randsPerRep = -1                % Number of random seeds between repeats
-        maxWidth = 0                    % Maximum width of the stimulus in microns.
         chromaticClass = 'BY'           % Chromatic type
         onlineAnalysis = 'none'
         numberOfAverages = uint16(10)   % Number of epochs
@@ -44,7 +42,6 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
         stixelSizePix
         stixelShiftPix
         imageMatrix
-        maxWidthPix
         noiseStream
         positionStream
         noiseStreamRep
@@ -69,12 +66,6 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
 
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
-            
-            if obj.maxWidth > 0
-                obj.maxWidthPix = obj.rig.getDevice('Stage').um2pix(obj.maxWidth)*ones(1,2);
-            else
-                obj.maxWidthPix = obj.canvasSize; %min(obj.canvasSize);
-            end 
 
             obj.num_masks = ceil(obj.stimTime / obj.stepDuration)+4;
             
@@ -259,25 +250,12 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
             obj.frameDwell = obj.frameDwells(mod(obj.numEpochsCompleted, length(obj.frameDwells))+1);
             
             % Deal with the seed.
-            if obj.randsPerRep == 0 
-                obj.seed = 1;
-            elseif obj.randsPerRep < 0
-                if obj.numEpochsCompleted == 0
-                    obj.seed = RandStream.shuffleSeed;
-                else
-                    obj.seed = obj.seed + 1;
-                end
-            elseif obj.randsPerRep > 0 && (mod(obj.numEpochsCompleted+1,obj.randsPerRep+1) == 0)
-                obj.seed = 1;
+            if obj.numEpochsCompleted == 0
+                obj.seed = RandStream.shuffleSeed;
             else
-                if obj.numEpochsCompleted == 0
-                    obj.seed = RandStream.shuffleSeed;
-                else
-                    obj.seed = obj.seed + 1;
-                end
+                obj.seed = obj.seed + 1;
             end
-            
-            
+
             obj.stepsPerStixel = max(round(obj.stixelSize / obj.gridSize), 1);
             
             gridSizePix = obj.rig.getDevice('Stage').um2pix(obj.gridSize);
@@ -286,10 +264,10 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
             obj.stixelShiftPix = obj.stixelSizePix / obj.stepsPerStixel;
             
             % Calculate the number of X/Y checks.
-            obj.numXStixels = ceil(obj.maxWidthPix(1)/obj.stixelSizePix) + 1;
-            obj.numYStixels = ceil(obj.maxWidthPix(2)/obj.stixelSizePix) + 1;
-            obj.numXChecks = ceil(obj.maxWidthPix(1)/gridSizePix);
-            obj.numYChecks = ceil(obj.maxWidthPix(2)/gridSizePix);
+            obj.numXStixels = ceil(obj.canvasSize(1)/obj.stixelSizePix) + 1;
+            obj.numYStixels = ceil(obj.canvasSize(2)/obj.stixelSizePix) + 1;
+            obj.numXChecks = ceil(obj.canvasSize(1)/gridSizePix);
+            obj.numYChecks = ceil(obj.canvasSize(2)/gridSizePix);
 
             % MASK REGION
             obj.mask_stream = RandStream('mt19937ar', 'Seed', obj.seed);
