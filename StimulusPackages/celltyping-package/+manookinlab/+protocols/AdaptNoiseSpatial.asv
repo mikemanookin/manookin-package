@@ -166,7 +166,7 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
             % Position controller
             if obj.stepsPerStixel > 1
                 xyController = stage.builtin.controllers.PropertyController(checkerboard, 'position',...
-                    @(state)setJitter(obj, state.frame - preF, state.time - obj.preTime*1e-3));
+                    @(state)setJitter(obj, state.frame - preF));
                 p.addController(xyController);
             end
             
@@ -220,17 +220,12 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
                 s = single(M);
             end
             
-            function p = setJitter(obj, frame, time)
+            function p = setJitter(obj, frame)
                 persistent xy;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        if time < obj.uniqueTime*1e-3
-                            xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStream.rand(1,2))) ...
-                                + obj.canvasSize / 2;
-                        else
-                            xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStreamRep.rand(1,2))) ...
-                                + obj.canvasSize / 2;
-                        end
+                        xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStream.rand(1,2))) ...
+                            + obj.canvasSize / 2;
                     end
                 else
                     xy = obj.canvasSize / 2;
@@ -291,11 +286,8 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
             % Seed the generator
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             obj.positionStream = RandStream('mt19937ar', 'Seed', obj.seed);
-            obj.noiseStreamRep = RandStream('mt19937ar', 'Seed', 1);
-            obj.positionStreamRep = RandStream('mt19937ar', 'Seed', 1);
              
             epoch.addParameter('seed', obj.seed);
-            epoch.addParameter('repeating_seed',1);
             epoch.addParameter('numXChecks', obj.numXChecks);
             epoch.addParameter('numYChecks', obj.numYChecks);
             epoch.addParameter('numFrames', obj.numFrames);
