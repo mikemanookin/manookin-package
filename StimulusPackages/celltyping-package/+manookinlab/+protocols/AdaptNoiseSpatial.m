@@ -174,9 +174,13 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        mask_idx = floor(time  / (obj.stepDuration*1e-3))+1;
-                        M = 2* (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
-                        M = M .* squeeze(obj.contrast_mask(:,:,mask_idx));
+                        if time < obj.uniqueTime*1e-3
+                            mask_idx = floor(time  / (obj.stepDuration*1e-3))+1;
+                            M = 2* (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
+                            M = M .* squeeze(obj.contrast_mask(:,:,mask_idx));
+                        else
+                            M = obj.contrast_low*(2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
+                        end
                         M = M*obj.backgroundIntensity + obj.backgroundIntensity;
                     end
                 else
@@ -190,9 +194,13 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        mask_idx = floor(time  / (obj.stepDuration*1e-3))+1;
-                        M = 2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5)-1;
-                        M = M .* repmat(obj.contrast_mask(:,:,mask_idx),[1,1,3]);
+                        if time < obj.uniqueTime*1e-3
+                            mask_idx = floor(time  / (obj.stepDuration*1e-3))+1;
+                            M = 2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5)-1;
+                            M = M .* repmat(obj.contrast_mask(:,:,mask_idx),[1,1,3]);
+                        else
+                            M = obj.contrast_low*(2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5)-1);
+                        end
                         M = M*obj.backgroundIntensity + obj.backgroundIntensity;
                     end
                 else
@@ -206,10 +214,14 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        mask_idx = floor(time  / (obj.stepDuration*1e-3))+1;% floor(frame/60  / (obj.stepDuration*1e-3))+1;
                         M = zeros(obj.numYStixels,obj.numXStixels,3);
-                        tmpM = 2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1;
-                        tmpM = tmpM .* repmat(obj.contrast_mask(:,:,mask_idx),[1,1,2]);
+                        if time < obj.uniqueTime*1e-3
+                            mask_idx = floor(time  / (obj.stepDuration*1e-3))+1;% floor(frame/60  / (obj.stepDuration*1e-3))+1;
+                            tmpM = 2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1;
+                            tmpM = tmpM .* repmat(obj.contrast_mask(:,:,mask_idx),[1,1,2]);
+                        else
+                            tmpM = obj.contrast_low*(2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1);
+                        end
                         tmpM = tmpM*obj.backgroundIntensity + obj.backgroundIntensity;
                         M(:,:,1:2) = repmat(tmpM(:,:,1),[1,1,2]);
                         M(:,:,3) = tmpM(:,:,2);
