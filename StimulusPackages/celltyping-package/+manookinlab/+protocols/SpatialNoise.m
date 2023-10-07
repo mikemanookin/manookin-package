@@ -245,6 +245,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.stepsPerStixel = max(round(obj.stixelSize / obj.gridSize), 1);
             
             gridSizePix = obj.rig.getDevice('Stage').um2pix(obj.gridSize);
+            disp(gridSizePix)
             obj.stixelSizePix = gridSizePix * obj.stepsPerStixel;
             obj.stixelShiftPix = obj.stixelSizePix / obj.stepsPerStixel;
             
@@ -253,6 +254,8 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.numYStixels = ceil(obj.canvasSize(2)/obj.stixelSizePix) + 1;
             obj.numXChecks = ceil(obj.canvasSize(1)/gridSizePix);
             obj.numYChecks = ceil(obj.canvasSize(2)/gridSizePix);
+            disp(obj.numXChecks)
+            disp(obj.numYChecks)
             
             % Seed the generator
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
