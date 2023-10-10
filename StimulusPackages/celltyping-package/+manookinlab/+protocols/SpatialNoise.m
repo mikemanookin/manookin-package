@@ -254,6 +254,8 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.numXChecks = ceil(obj.canvasSize(1)/gridSizePix);
             obj.numYChecks = ceil(obj.canvasSize(2)/gridSizePix);
             
+            disp(['num checks, x: ',num2str(obj.numXChecks),'; y: ',num2str(obj.numYChecks)]);
+            
             % Seed the generator
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             obj.positionStream = RandStream('mt19937ar', 'Seed', obj.seed);
