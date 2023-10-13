@@ -3,7 +3,6 @@ classdef PresentMovies < manookinlab.protocols.ManookinLabStageProtocol
     
     properties
         amp                             % Output amplifier
-%         preTime     = 0 % in ms
         stimTime    = 15000             % Stimulus duration in msec
         tailTime    = 250               % Trailing duration in msec
         fileFolder = 'balloons_v1';     % Folder containing videos
@@ -43,13 +42,21 @@ classdef PresentMovies < manookinlab.protocols.ManookinLabStageProtocol
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
 
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            
-            movie_dir = obj.rig.getDevice('Stage').getConfigurationSetting('local_movie_directory');
-            if isempty(movie_dir)
+
+            try
+                movie_dir = obj.rig.getDevice('Stage').getConfigurationSetting('local_movie_directory');
+                if isempty(movie_dir)
+                    movie_dir = 'C:\Users\Public\Documents\GitRepos\Symphony2\movies\';
+                end
+            catch
                 movie_dir = 'C:\Users\Public\Documents\GitRepos\Symphony2\movies\';
             end
-            stage_dir = obj.rig.getDevice('Stage').getConfigurationSetting('stage_movie_directory');
-            if isempty(stage_dir)
+            try
+                stage_dir = obj.rig.getDevice('Stage').getConfigurationSetting('stage_movie_directory');
+                if isempty(stage_dir)
+                    stage_dir = 'C:\Users\Public\Documents\GitRepos\Symphony2\movies\';
+                end
+            catch
                 stage_dir = 'C:\Users\Public\Documents\GitRepos\Symphony2\movies\';
             end
             obj.stage_movie_directory = strcat(stage_dir, obj.fileFolder);
@@ -96,6 +103,7 @@ classdef PresentMovies < manookinlab.protocols.ManookinLabStageProtocol
             scene = stage.builtin.stimuli.Movie(fullfile(obj.stage_movie_directory,obj.movie_name));
             scene.size = [canvasSize(1),canvasSize(2)];
             scene.position = canvasSize/2;
+            scene.setPlaybackSpeed(PlaybackSpeed.FRAME_BY_FRAME); % Make sure playback is one frame at a time.
             
             % Use linear interpolation when scaling the image
             scene.setMinFunction(GL.LINEAR);
