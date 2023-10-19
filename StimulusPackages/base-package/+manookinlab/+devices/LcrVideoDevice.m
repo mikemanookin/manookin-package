@@ -41,7 +41,11 @@ classdef LcrVideoDevice < symphonyui.core.Device
                 ip.Results.gammaRamps('blue'));
             
             trueCanvasSize = obj.stageClient.getCanvasSize();
-            canvasSize = [trueCanvasSize(1)*2, trueCanvasSize(2)];
+            if trueCanvasSize(1) == 912
+                canvasSize = [trueCanvasSize(1)*2, trueCanvasSize(2)];
+            else
+                canvasSize = trueCanvasSize;
+            end
             
             obj.stageClient.setCanvasProjectionIdentity();
             obj.stageClient.setCanvasProjectionOrthographic(0, canvasSize(1), 0, canvasSize(2));
