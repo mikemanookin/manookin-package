@@ -1,20 +1,24 @@
 classdef Calibration < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
-        preTime = 250                   % leading duration (ms)
-        stimTime = 500                 % duration (ms)
-        tailTime = 0 
+        preTime = 250                   % Leading duration (ms)
+        stimTime = 500                  % Stimulus duration (ms)
+        tailTime = 0                    % Trailing duration (ms)
+        width = 500                     % Width or diameter of stimulus in microns
         chromaticClass = 'white'        % Chromatic type
-        stimulusClass = 'gamma ramp'         % Stimulus class
-        numberOfAverages = uint16(256)    % Number of epochs
+        stimulusClass = 'full intensity'         % Stimulus class
+        shapeClass = 'circle'           % Shape class
+        numberOfAverages = uint16(1)    % Number of epochs
     end
     
     properties (Hidden)
         ampType
         chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'white','black','red','green','blue'})
         stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'gamma ramp','full intensity'})
+        shapeClassType = symphonyui.core.PropertyType('char', 'row', {'circle','square'})
         gammaRamp = 0:255
         rectColor
+        width_pix
     end
     
     methods
@@ -27,8 +31,9 @@ classdef Calibration < manookinlab.protocols.ManookinLabStageProtocol
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+%             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             
+            obj.width_pix = obj.width/(10000.0/obj.rig.getDevice('Stage').um2pix(10000.0));
         end
         
         function p = createPresentation(obj)
@@ -37,10 +42,16 @@ classdef Calibration < manookinlab.protocols.ManookinLabStageProtocol
             p.setBackgroundColor(0); % Set background intensity
             
             % Create the stimulus.
-            rect = stage.builtin.stimuli.Rectangle();
+            if strcmp(obj.shapeClass, 'circle')
+                rect = stage.builtin.stimuli.Ellipse();
+                rect.radiusX = obj.width_pix/2.0;
+                rect.radiusY = obj.width_pix/2.0;
+            else
+                rect = stage.builtin.stimuli.Rectangle();
+                rect.size = [obj.width_pix, obj.width_pix]; %obj.canvasSize;
+            end
             rect.color = obj.rectColor;
             rect.position = obj.canvasSize / 2;
-            rect.size = [500,500]; %obj.canvasSize;
             
             % Add the rectangle.
             p.addStimulus(rect);
