@@ -110,11 +110,11 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         end
 
         function tf = shouldContinuePreparingEpochs(obj)
-            tf = obj.numEpochsPrepared < length(obj.sequence);
+            tf = obj.numEpochsPrepared < obj.numberOfAverages;
         end
         
         function tf = shouldContinueRun(obj)
-            tf = obj.numEpochsCompleted < length(obj.sequence);
+            tf = obj.numEpochsCompleted < obj.numberOfAverages;
         end
     end
 end
