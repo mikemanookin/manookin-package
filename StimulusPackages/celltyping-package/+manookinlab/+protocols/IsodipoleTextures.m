@@ -2,9 +2,9 @@ classdef IsodipoleTextures < manookinlab.protocols.ManookinLabStageProtocol
     
     properties
         amp % Output amplifier
-        preTime     = 250 % in ms
-        stimTime    = 250 % in ms
-        tailTime    = 100 % in ms
+        preTime     = 50 % in ms
+        stimTime    = 320 % in ms
+        tailTime    = 130 % in ms
         checkSize = 30 % Length of check edge in microns
         contrast = 1.0 % Texture contrast (0-1)
         randomSeed = true % Whether to use a random seed to generate the textures.
