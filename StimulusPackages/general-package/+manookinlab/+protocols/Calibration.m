@@ -5,6 +5,7 @@ classdef Calibration < manookinlab.protocols.ManookinLabStageProtocol
         stimTime = 500                  % Stimulus duration (ms)
         tailTime = 0                    % Trailing duration (ms)
         width = 500                     % Width or diameter of stimulus in microns
+        intensity = 1.0                 % Stimulus intensity (0-1)
         chromaticClass = 'white'        % Chromatic type
         stimulusClass = 'full intensity'         % Stimulus class
         shapeClass = 'circle'           % Shape class
@@ -87,6 +88,8 @@ classdef Calibration < manookinlab.protocols.ManookinLabStageProtocol
                 obj.rectColor = g/255*obj.rectColor;
                 
                 epoch.addParameter('gammaValue', g);
+            else
+                obj.rectColor = obj.intensity * obj.rectColor;
             end
             
             epoch.addParameter('rectColor', obj.rectColor);
