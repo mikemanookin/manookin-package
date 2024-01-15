@@ -9,7 +9,7 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         stimulusDiameter = 200          % Spot diameter in microns
         contrasts = [-0.2,0.2]          % Spot contrasts
         stimulusSpeed = 500             % Spot speed (std) in microns/second
-        chromaticClass = 'chromatic'    % The chromatic class of the background
+        chromaticClass = 'achromatic'   % The chromatic class of the background
         chromaticStimulus = false       % Whether the spot/bar is the same color as the background
         noiseClass = 'gaussian_randn'
         correlationClass = 'HMM'
@@ -78,8 +78,8 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             
             if strcmp(obj.chromaticClass, 'achromatic')
                 obj.backgroundConditions = {'achromatic'};
-                obj.bgMeans = m(2,:);
-                obj.rgbContrasts = delta_rgb(2,:);
+                obj.bgMeans = obj.backgroundIntensity*ones(1,3);
+                obj.rgbContrasts = ones(1,3);
             else
                 obj.backgroundConditions = {'blue','achromatic','yellow'};
                 obj.bgMeans = m;
@@ -136,7 +136,9 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundMean);
             
-            if obj.chromaticStimulus
+            if strcmp(obj.chromaticClass, 'achromatic')
+                ct = obj.contrast * obj.backgroundIntensity + obj.backgroundIntensity;
+            elseif obj.chromaticStimulus
                 ct = obj.contrast * obj.rgb_contrast .* obj.backgroundMean + obj.backgroundMean;
             else
                 ct = obj.contrast * [0.4, 0.5, 0.7] + [0.4, 0.5, 0.7];
