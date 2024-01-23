@@ -7,8 +7,8 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Noise trailing duration (ms)
         stepDuration = 5000             % Duration series (ms)
         high_fraction = 0.05            % Fraction of pixels that are high contrast on a frame.
-        contrast_high = 1.0             % High contrast value
-        contrast_low = 0.3              % Low contrast value
+        contrastsHigh = [0.3,1.0]       % High contrast values
+        contrastsLow = [0.3,0.3]        % Low contrast values
         stixelSizes = [90,90]           % Edge length of stixel (microns)
         gridSize = 30                   % Size of underling grid
         gaussianFilter = false          % Whether to use a Gaussian filter
@@ -29,6 +29,8 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY'})
+        contrastsHighType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        contrastsLowType = symphonyui.core.PropertyType('denserealdouble','matrix')
         stixelSizesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         frameDwellsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         stixelSize
@@ -51,6 +53,8 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
         mask_stream
         num_masks
         contrast_mask
+        contrast_high
+        contrast_low
     end
     
     properties (Dependent, SetAccess = private)
@@ -248,6 +252,8 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
             % Get the current stixel size.
             obj.stixelSize = obj.stixelSizes(mod(obj.numEpochsCompleted, length(obj.stixelSizes))+1);
             obj.frameDwell = obj.frameDwells(mod(obj.numEpochsCompleted, length(obj.frameDwells))+1);
+            obj.contrast_high = obj.contrastsHigh(mod(obj.numEpochsCompleted, length(obj.contrastsHigh))+1);
+            obj.contrast_low = obj.contrastsLow(mod(obj.numEpochsCompleted, length(obj.contrastsLow))+1);
             
             % Deal with the seed.
             if obj.numEpochsCompleted == 0
@@ -294,6 +300,8 @@ classdef AdaptNoiseSpatial < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('stixelSize', obj.gridSize*obj.stepsPerStixel);
             epoch.addParameter('stepsPerStixel', obj.stepsPerStixel);
             epoch.addParameter('frameDwell', obj.frameDwell);
+            epoch.addParameter('contrast_high', obj.contrast_high);
+            epoch.addParameter('contrast_low', obj.contrast_low);
         end
         
         function a = get.amp2(obj)
