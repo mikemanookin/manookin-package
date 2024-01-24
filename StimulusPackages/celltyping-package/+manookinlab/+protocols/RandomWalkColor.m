@@ -12,7 +12,7 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         chromaticClass = 'achromatic'   % The chromatic class of the background
         chromaticStimulus = false       % Whether the spot/bar is the same color as the background
         noiseClass = 'gaussian_randn'
-        correlationClass = 'HMM'
+        correlationClasses = 'both'
         correlationDecayTau = 20        % Correlation decay time constant in msec
         backgroundIntensity = 0.5
         repeatingSeed = false
@@ -31,7 +31,7 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         chromaticClassType = symphonyui.core.PropertyType('char', 'row', {'achromatic','chromatic'})
         stimulusIndicesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         stimulusClassType = symphonyui.core.PropertyType('char', 'row', {'bar','spot'})
-        correlationClassType = symphonyui.core.PropertyType('char', 'row', {'HMM','OU'})
+        correlationClassesType = symphonyui.core.PropertyType('char', 'row', {'both','HMM','OU'})
         noiseClassType = symphonyui.core.PropertyType('char', 'row', {'gaussian_randn','gaussian'})
         spotRadiusPix
         contrast
@@ -44,6 +44,8 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
         rgbContrasts
         backgroundMean
         rgb_contrast
+        correlationClass
+        correlationClassList
     end
     
     methods
@@ -64,6 +66,13 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
                 obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
                     obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                     'sweepColor',[0 0 0]);
+            end
+
+            switch obj.correlationClasses
+                case 'both'
+                    obj.correlationClassList = {'HMM','OU'};
+                otherwise
+                    obj.correlationClassList = obj.correlationClasses;
             end
             
             % Get the spot diameter in pixels.
@@ -216,11 +225,13 @@ classdef RandomWalkColor < manookinlab.protocols.ManookinLabStageProtocol
             end
             % Get the spot contrast.
             obj.contrast = obj.contrasts(mod(floor(obj.numEpochsCompleted/length(obj.backgroundConditions)),length(obj.contrasts))+1);
+            obj.correlationClass = obj.correlationClassList{mod(floor(obj.numEpochsCompleted/(length(obj.contrasts)*length(obj.backgroundConditions))),length(obj.correlationClassList))+1};
             
             % Save the parameters.
-            epoch.addParameter('contrast',obj.contrast);
+            epoch.addParameter('contrast', obj.contrast);
             epoch.addParameter('seed', obj.seed);
-            epoch.addParameter('backgroundCondition',obj.backgroundCondition)
+            epoch.addParameter('backgroundCondition', obj.backgroundCondition)
+            epoch.addParameter('correlationClass', obj.correlationClass);
         end
         
         function stimTime = get.stimTime(obj)
