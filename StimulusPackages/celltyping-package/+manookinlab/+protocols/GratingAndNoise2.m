@@ -11,7 +11,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         radius = 200                    % Inner radius in microns.
         apertureRadius = 250            % Aperture/blank radius in microns.
         barWidth = 60                   % Bar width (microns)
-        backgroundSpeed = 1200          % Grating speed (microns/sec)
+        backgroundSpeed = 600           % Grating speed (microns/sec)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         backgroundSequences = 'drifting-jittering-stationary-nosurround' % Background sequence on alternating trials.
         noiseClass = 'gaussian'         % Noise type (binary or Gaussian)
@@ -74,6 +74,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
             obj.stepSize = obj.backgroundSpeedPix / obj.frameRate;
             % Get the temporal frequency
             obj.temporalFrequency = obj.stepSize / (2 * obj.barWidthPix) * obj.frameRate;
+            obj.temporalFrequency
             
             obj.getGratings();
             
@@ -311,7 +312,7 @@ classdef GratingAndNoise2 < manookinlab.protocols.ManookinLabStageProtocol
         
         % Pre-generate the gratings.
         function getGratings(obj)
-            downsamp = 4;
+            downsamp = 2;
             sz = ceil(sqrt(obj.canvasSize(1)^2 + obj.canvasSize(2)^2));
             x = linspace(-sz/2, sz/2, sz/downsamp);
             
