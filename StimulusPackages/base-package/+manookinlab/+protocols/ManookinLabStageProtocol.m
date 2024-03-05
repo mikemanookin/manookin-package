@@ -22,7 +22,10 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
         function prepareRun(obj)
             prepareRun@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj);
             
-            obj.showFigure('edu.washington.riekelab.figures.FrameTimingFigure', obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));
+            frameMonitor = obj.rig.getDevices('Frame Monitor');
+            if ~isempty(frameMonitor)
+                obj.showFigure('edu.washington.riekelab.figures.FrameTimingFigure', obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));
+            end
             
             % Show the progress bar.
             obj.showFigure('manookinlab.figures.ProgressFigure', obj.numberOfAverages);
