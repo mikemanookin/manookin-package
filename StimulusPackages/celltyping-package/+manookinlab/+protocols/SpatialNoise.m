@@ -129,17 +129,14 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Add the stimulus to the presentation.
             p.addStimulus(checkerboard);
             
-(*             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3); *)
+%             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
+%                 @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
                 @(state)state.frame > obj.pre_frames && state.frame < (obj.pre_frames + obj.unique_frames + obj.repeat_frames));
             p.addController(gridVisible);
             
             % Calculate preFrames and stimFrames
             preF = floor(obj.preTime/1000 * 60);
-            obj.pre_frames = round(obj.preTime * 1e-3 * 60.0);
-            obj.unique_frames = round(obj.uniqueTime * 1e-3 * 60.0);
-            obj.repeat_frames
 
             if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
                 if strcmp(obj.chromaticClass,'BY')
