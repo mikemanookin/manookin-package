@@ -44,6 +44,9 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
         positionStreamRep
         monitor_gamma
         frameDwell
+        pre_frames
+        unique_frames
+        repeat_frames
     end
     
     properties (Dependent, SetAccess = private)
@@ -62,6 +65,9 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Get the number of frames.
             obj.numFrames = floor(obj.stimTime * 1e-3 * obj.frameRate)+15;
+            obj.pre_frames = round(obj.preTime * 1e-3 * 60.0);
+            obj.unique_frames = round(obj.uniqueTime * 1e-3 * 60.0);
+            obj.repeat_frames = round(obj.repeatTime * 1e-3 * 60.0);
             
             if obj.gaussianFilter
                 % Get the gamma ramps.
@@ -123,39 +129,44 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Add the stimulus to the presentation.
             p.addStimulus(checkerboard);
             
+(*             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
+                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3); *)
             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                @(state)state.frame > obj.pre_frames && state.frame < (obj.pre_frames + obj.unique_frames + obj.repeat_frames));
             p.addController(gridVisible);
             
             % Calculate preFrames and stimFrames
             preF = floor(obj.preTime/1000 * 60);
+            obj.pre_frames = round(obj.preTime * 1e-3 * 60.0);
+            obj.unique_frames = round(obj.uniqueTime * 1e-3 * 60.0);
+            obj.repeat_frames
 
             if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
                 if strcmp(obj.chromaticClass,'BY')
                     imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                        @(state)setBYStixels(obj, state.frame - preF, state.time - obj.preTime*1e-3));
+                        @(state)setBYStixels(obj, state.frame - preF));
                 else
                     imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                        @(state)setRGBStixels(obj, state.frame - preF, state.time - obj.preTime*1e-3));
+                        @(state)setRGBStixels(obj, state.frame - preF));
                 end
             else
                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                    @(state)setStixels(obj, state.frame - preF, state.time - obj.preTime*1e-3));
+                    @(state)setStixels(obj, state.frame - preF));
             end
             p.addController(imgController);
             
             % Position controller
             if obj.stepsPerStixel > 1
                 xyController = stage.builtin.controllers.PropertyController(checkerboard, 'position',...
-                    @(state)setJitter(obj, state.frame - preF, state.time - obj.preTime*1e-3));
+                    @(state)setJitter(obj, state.frame - preF));
                 p.addController(xyController);
             end
             
-            function s = setStixels(obj, frame, time)
+            function s = setStixels(obj, frame)
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        if time < obj.uniqueTime*1e-3
+                        if frame <= obj.unique_frames
                             M = 2*obj.backgroundIntensity * ...
                                 (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5);
                         else
@@ -170,11 +181,11 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % RGB noise
-            function s = setRGBStixels(obj, frame, time)
+            function s = setRGBStixels(obj, frame)
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        if time < obj.uniqueTime*1e-3
+                        if frame <= obj.unique_frames
                             M = 2*obj.backgroundIntensity * ...
                                 (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5);
                         else
@@ -189,12 +200,12 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Blue-Yellow noise
-            function s = setBYStixels(obj, frame, time)
+            function s = setBYStixels(obj, frame)
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
                         M = zeros(obj.numYStixels,obj.numXStixels,3);
-                        if time < obj.uniqueTime*1e-3
+                        if frame <= obj.unique_frames
                             tmpM = obj.contrast*2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1;
                         else
                             tmpM = obj.contrast*2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1;
@@ -209,11 +220,11 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                 s = single(M);
             end
             
-            function p = setJitter(obj, frame, time)
+            function p = setJitter(obj, frame)
                 persistent xy;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        if time < obj.uniqueTime*1e-3
+                        if frame <= obj.unique_frames
                             xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStream.rand(1,2))) ...
                                 + obj.canvasSize / 2;
                         else
@@ -274,6 +285,9 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('stixelSize', obj.gridSize*obj.stepsPerStixel);
             epoch.addParameter('stepsPerStixel', obj.stepsPerStixel);
             epoch.addParameter('frameDwell', obj.frameDwell);
+            epoch.addParameter('pre_frames', obj.pre_frames);
+            epoch.addParameter('unique_frames', obj.unique_frames);
+            epoch.addParameter('repeat_frames', obj.repeat_frames);
         end
         
         function a = get.amp2(obj)
