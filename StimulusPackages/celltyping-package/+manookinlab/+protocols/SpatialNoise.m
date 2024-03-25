@@ -129,10 +129,10 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Add the stimulus to the presentation.
             p.addStimulus(checkerboard);
             
-%             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
-%                 @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
-                @(state)state.frame > obj.pre_frames && state.frame < (obj.pre_frames + obj.unique_frames + obj.repeat_frames));
+                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+%             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
+%                 @(state)state.frame > obj.pre_frames && state.frame < (obj.pre_frames + obj.unique_frames + obj.repeat_frames));
             p.addController(gridVisible);
             
             % Calculate preFrames and stimFrames
