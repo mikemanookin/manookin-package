@@ -104,7 +104,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
  
         function p = createPresentation(obj)
 
-            p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
+            p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3 * 1.011);
             p.setBackgroundColor(obj.backgroundIntensity);
 
             obj.imageMatrix = obj.backgroundIntensity * ones(obj.numYStixels,obj.numXStixels);
@@ -130,7 +130,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             p.addStimulus(checkerboard);
             
             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3 * 1.011);
 %             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
 %                 @(state)state.frame > obj.pre_frames && state.frame < (obj.pre_frames + obj.unique_frames + obj.repeat_frames));
             p.addController(gridVisible);
