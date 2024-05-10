@@ -68,6 +68,10 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.pre_frames = round(obj.preTime * 1e-3 * 60.0);
             obj.unique_frames = round(obj.uniqueTime * 1e-3 * 60.0);
             obj.repeat_frames = round(obj.repeatTime * 1e-3 * 60.0);
+
+            if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+                obj.chromaticClass = 'achromatic';
+            end
             
             if obj.gaussianFilter
                 % Get the gamma ramps.
@@ -138,7 +142,10 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate preFrames and stimFrames
             preF = floor(obj.preTime/1000 * 60);
 
-            if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+            if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+                imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+                    @(state)setStixelsPatternMode(obj, state.time - obj.preTime*1e-3));
+            elseif ~strcmp(obj.chromaticClass,'achromatic')
                 if strcmp(obj.chromaticClass,'BY')
                     imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                         @(state)setBYStixels(obj, state.frame - preF));
@@ -170,6 +177,21 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                             M = 2*obj.backgroundIntensity * ...
                                 (obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5);
                         end
+                    end
+                else
+                    M = obj.imageMatrix;
+                end
+                s = uint8(255*M);
+            end
+
+            function s = setStixelsPatternMode(obj, time)
+                if time > 0
+                    if frame <= obj.uniqueTime
+                        M = 2*obj.backgroundIntensity * ...
+                            (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5);
+                    else
+                        M = 2*obj.backgroundIntensity * ...
+                            (obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5);
                     end
                 else
                     M = obj.imageMatrix;
