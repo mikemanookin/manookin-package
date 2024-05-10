@@ -262,6 +262,19 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
+            % Remove the Amp responses if it's an MEA rig.
+            if obj.isMeaRig
+                amps = obj.rig.getDevices('Amp');
+                for ii = 1:numel(amps)
+                    if epoch.hasResponse(amps{ii})
+                        epoch.removeResponse(amps{ii});
+                    end
+                    if epoch.hasStimulus(amps{ii})
+                        epoch.removeStimulus(amps{ii});
+                    end
+                end
+            end
+            
             % Get the current stixel size.
             obj.stixelSize = obj.stixelSizes(mod(obj.numEpochsCompleted, length(obj.stixelSizes))+1);
             obj.frameDwell = obj.frameDwells(mod(obj.numEpochsCompleted, length(obj.frameDwells))+1);
