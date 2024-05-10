@@ -71,6 +71,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
 
             if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
                 obj.chromaticClass = 'achromatic';
+                obj.frameDwells = uint16(ones(size(obj.frameDwells)));
             end
             
             if obj.gaussianFilter
@@ -186,7 +187,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
 
             function s = setStixelsPatternMode(obj, time)
                 if time > 0
-                    if frame <= obj.uniqueTime
+                    if time <= obj.uniqueTime
                         M = 2*obj.backgroundIntensity * ...
                             (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5);
                     else
