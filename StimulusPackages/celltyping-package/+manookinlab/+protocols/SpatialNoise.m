@@ -24,7 +24,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
-        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY'})
+        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY','B'})
         stixelSizesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         frameDwellsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         stixelSize
@@ -150,6 +150,9 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                 if strcmp(obj.chromaticClass,'BY')
                     imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                         @(state)setBYStixels(obj, state.frame - preF));
+                elseif strcmp(obj.chromaticClass,'B')
+                    imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+                        @(state)setBStixels(obj, state.frame - preF));
                 else
                     imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                         @(state)setRGBStixels(obj, state.frame - preF));
@@ -233,6 +236,29 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                         tmpM = tmpM*obj.backgroundIntensity + obj.backgroundIntensity;
                         M(:,:,1:2) = repmat(tmpM(:,:,1),[1,1,2]);
                         M(:,:,3) = tmpM(:,:,2);
+                    end
+                else
+                    M = obj.imageMatrix;
+                end
+                s = single(M);
+            end
+            
+            % Blue noise
+            function s = setBStixels(obj, frame)
+                persistent M;
+                w = [0.8648,-0.3985,1];
+                if frame > 0
+                    if mod(frame, obj.frameDwell) == 0
+                        M = zeros(obj.numYStixels,obj.numXStixels,3);
+                        if frame <= obj.unique_frames
+                            tmpM = obj.contrast*2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
+                        else
+                            tmpM = obj.contrast*2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
+                        end
+                        M(:,:,1) = tmpM*w(1);
+                        M(:,:,2) = tmpM*w(2);
+                        M(:,:,3) = tmpM*w(3);
+                        M = M*obj.backgroundIntensity + obj.backgroundIntensity;
                     end
                 else
                     M = obj.imageMatrix;
