@@ -58,16 +58,18 @@ classdef MovingChromaticBar < manookinlab.protocols.ManookinLabStageProtocol
                 colors = zeros(1,3);
             end
             
-            if ~strcmp(obj.onlineAnalysis, 'none')
+            if ~obj.isMeaRig
                 obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                    'sweepColor',colors,...
-                    'groupBy',{'orientation'});
+                if ~strcmp(obj.onlineAnalysis, 'none')
+                    obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                        obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                        'sweepColor',colors,...
+                        'groupBy',{'orientation'});
+                end
             end
             
             
-            if ~strcmp(obj.onlineAnalysis, 'none')
+            if ~obj.isMeaRig && ~strcmp(obj.onlineAnalysis, 'none')
                 if length(unique(obj.orientations)) > 1
                     obj.showFigure('manookinlab.figures.DirectionFigure', ...
                         obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
@@ -208,7 +210,7 @@ classdef MovingChromaticBar < manookinlab.protocols.ManookinLabStageProtocol
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
             % Remove the Amp responses if it's an MEA rig.
-            if obj.isMeaRig && ~strcmp(obj.onlineAnalysis, 'none')
+            if obj.isMeaRig
                 amps = obj.rig.getDevices('Amp');
                 for ii = 1:numel(amps)
                     if epoch.hasResponse(amps{ii})

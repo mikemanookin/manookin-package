@@ -48,14 +48,15 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            
-            if ~strcmp(obj.onlineAnalysis, 'none')
-                obj.showFigure('manookinlab.figures.GratingDSFigure', ...
-                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                    'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
-                    'orientations', obj.orientations, ...
-                    'temporalFrequency', obj.temporalFrequency);
+            if ~obj.isMeaRig
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+                if ~strcmp(obj.onlineAnalysis, 'none')
+                    obj.showFigure('manookinlab.figures.GratingDSFigure', ...
+                        obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                        'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
+                        'orientations', obj.orientations, ...
+                        'temporalFrequency', obj.temporalFrequency);
+                end
             end
             
             % Convert from microns to pixels
@@ -178,7 +179,7 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
             % Remove the Amp responses if it's an MEA rig.
-            if obj.isMeaRig && ~strcmp(obj.onlineAnalysis, 'none')
+            if obj.isMeaRig
                 amps = obj.rig.getDevices('Amp');
                 for ii = 1:numel(amps)
                     if epoch.hasResponse(amps{ii})

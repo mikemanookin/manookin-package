@@ -42,12 +42,14 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            obj.showFigure('manookinlab.figures.ResponseFigure', obj.rig.getDevices('Amp'), ...
-                'numberOfAverages', obj.numberOfAverages);
-            
-            obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                'sweepColor',[0 0 0]);
+            if ~obj.isMeaRig
+                obj.showFigure('manookinlab.figures.ResponseFigure', obj.rig.getDevices('Amp'), ...
+                    'numberOfAverages', obj.numberOfAverages);
+
+                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'sweepColor',[0 0 0]);
+            end
             
             % Get the resources directory.
             obj.pkgDir = manookinlab.Package.getResourcePath();
@@ -187,6 +189,19 @@ classdef DovesMovie < manookinlab.protocols.ManookinLabStageProtocol
         
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
+            
+            % Remove the Amp responses if it's an MEA rig.
+            if obj.isMeaRig
+                amps = obj.rig.getDevices('Amp');
+                for ii = 1:numel(amps)
+                    if epoch.hasResponse(amps{ii})
+                        epoch.removeResponse(amps{ii});
+                    end
+                    if epoch.hasStimulus(amps{ii})
+                        epoch.removeStimulus(amps{ii});
+                    end
+                end
+            end
             
             if length(unique(obj.stimulusIndices)) > 1
                 % Set the current stimulus trajectory.
