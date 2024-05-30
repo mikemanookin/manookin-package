@@ -58,11 +58,13 @@ classdef MovingChromaticBar < manookinlab.protocols.ManookinLabStageProtocol
                 colors = zeros(1,3);
             end
             
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                'sweepColor',colors,...
-                'groupBy',{'orientation'});
+            if ~strcmp(obj.onlineAnalysis, 'none')
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'sweepColor',colors,...
+                    'groupBy',{'orientation'});
+            end
             
             
             if ~strcmp(obj.onlineAnalysis, 'none')
@@ -204,6 +206,19 @@ classdef MovingChromaticBar < manookinlab.protocols.ManookinLabStageProtocol
         
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
+            
+            % Remove the Amp responses if it's an MEA rig.
+            if obj.isMeaRig && ~strcmp(obj.onlineAnalysis, 'none')
+                amps = obj.rig.getDevices('Amp');
+                for ii = 1:numel(amps)
+                    if epoch.hasResponse(amps{ii})
+                        epoch.removeResponse(amps{ii});
+                    end
+                    if epoch.hasStimulus(amps{ii})
+                        epoch.removeStimulus(amps{ii});
+                    end
+                end
+            end
             
             % Get the bar contrast.
             obj.contrast = obj.contrasts(mod(floor(obj.numEpochsCompleted/length(obj.orientations)), length(obj.contrasts))+1);

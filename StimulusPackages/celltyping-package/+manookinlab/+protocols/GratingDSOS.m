@@ -177,6 +177,19 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
+            % Remove the Amp responses if it's an MEA rig.
+            if obj.isMeaRig && ~strcmp(obj.onlineAnalysis, 'none')
+                amps = obj.rig.getDevices('Amp');
+                for ii = 1:numel(amps)
+                    if epoch.hasResponse(amps{ii})
+                        epoch.removeResponse(amps{ii});
+                    end
+                    if epoch.hasStimulus(amps{ii})
+                        epoch.removeStimulus(amps{ii});
+                    end
+                end
+            end
+            
             % Set the current orientation.
 %             obj.orientation = obj.orientations(mod(obj.numEpochsCompleted,...
 %                 length(obj.orientations)) + 1);
