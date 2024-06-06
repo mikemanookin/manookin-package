@@ -8,7 +8,7 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
         contrast = 1.0                  % Grating contrast (0-1)
         orientations = 0:30:330         % Grating orientation (deg)
         barWidths = [100,400]           % Grating half-cycle width (microns)
-        temporalFrequency = 4.0         % Temporal frequency (Hz)
+        temporalFrequencies = [2,4]     % Range of temporal frequencies to test.
         spatialPhase = 0.0              % Spatial phase of grating (deg)
         randomOrder = true              % Random orientation order?
         backgroundIntensity = 0.5       % Background light intensity (0-1)
@@ -28,6 +28,7 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         orientationsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         barWidthsType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        temporalFrequenciesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         spatialFrequency
         orientation
         phaseShift
@@ -35,6 +36,9 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
         barWidthPix
         apertureRadiusPix
         sequence
+        sizeSequence
+        freqSequence
+        temporalFrequency
     end
     
     methods
@@ -65,20 +69,40 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function organizeParameters(obj)
+
+            % Generate the list of possible combinations.
+            tmp_orient = obj.orientations(:) * ones(1,length(obj.barWidths)*length(obj.temporalFrequencies));
+            tmp_width = obj.barWidths(:) * ones(1,length(obj.orientations)*length(obj.temporalFrequencies));
+            tmp_freq = obj.temporalFrequencies(:) * ones(1,length(obj.orientations)*length(obj.barWidths));
+            tmp_orient = tmp_orient(:)';
+            tmp_width = tmp_width(:)';
+            tmp_freq = tmp_freq(:)';
+
             % Calculate the number of repetitions of each annulus type.
-            numReps = ceil(double(obj.numberOfAverages) / length(obj.orientations));
+            numReps = ceil(double(obj.numberOfAverages) / length(tmp_freq));
             
             % Set the sequence.
             if obj.randomOrder
-                obj.sequence = zeros(length(obj.orientations), numReps);
+                epoch_order = randperm(length(tmp_orient));
+                obj.sequence = zeros(length(tmp_orient), numReps);
+                obj.sizeSequence = zeros(length(tmp_orient), numReps);
+                obj.freqSequence = zeros(length(tmp_orient), numReps);
                 for k = 1 : numReps
-                    obj.sequence(:,k) = obj.orientations(randperm(length(obj.orientations)));
+                    obj.sequence(:,k) = tmp_orient(epoch_order);
+                    obj.sizeSequence(:,k) = tmp_width(epoch_order);
+                    obj.freqSequence(:,k) = tmp_freq(epoch_order);
                 end
             else
-                obj.sequence = obj.orientations(:) * ones(1, numReps);
+                obj.sequence = tmp_orient(:) * ones(1, numReps);
+                obj.sizeSequence(:,k) = tmp_width(:) * ones(1, numReps);
+                obj.freqSequence(:,k) = tmp_freq(:) * ones(1, numReps);
             end
             obj.sequence = obj.sequence(:)';
+            obj.sizeSequence = obj.sizeSequence(:)';
+            obj.freqSequence = obj.freqSequence(:)';
             obj.sequence = obj.sequence(1 : obj.numberOfAverages);
+            obj.sizeSequence = obj.sizeSequence(1 : obj.numberOfAverages);
+            obj.freqSequence = obj.freqSequence(1 : obj.numberOfAverages);
         end
         
         function p = createPresentation(obj)
@@ -192,13 +216,13 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Set the current orientation.
-%             obj.orientation = obj.orientations(mod(obj.numEpochsCompleted,...
-%                 length(obj.orientations)) + 1);
             obj.orientation = obj.sequence(obj.numEpochsCompleted+1);
+
+            % Set the temporal frequency.
+            obj.temporalFrequency = obj.freqSequence(obj.numEpochsCompleted+1);
             
             % Get the bar width in pixels
-            obj.barWidth = obj.barWidths(mod(floor(obj.numEpochsCompleted/length(obj.orientations)),...
-                length(obj.barWidths)) + 1);
+            obj.barWidth = obj.sizeSequence(obj.numEpochsCompleted+1);
             obj.barWidthPix = obj.rig.getDevice('Stage').um2pix(obj.barWidth);
             epoch.addParameter('barWidth', obj.barWidth);
             
@@ -207,6 +231,9 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
 
             % Add the spatial frequency to the epoch.
             epoch.addParameter('spatialFrequency', obj.spatialFrequency);
+
+            % Add the temporal frequency in Hz.
+            epoch.addParameter('temporalFrequency', obj.temporalFrequency);
             
             % Save out the current orientation.
             epoch.addParameter('orientation', obj.orientation);
