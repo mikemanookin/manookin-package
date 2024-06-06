@@ -1,4 +1,5 @@
 % Plays movies...
+% Note: Requires movies in .mp4 format.
 classdef PresentMovies < manookinlab.protocols.ManookinLabStageProtocol
     
     properties
