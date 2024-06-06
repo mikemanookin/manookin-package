@@ -17,7 +17,7 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
         spatialClass = 'sinewave'       % Spatial type (sinewave or squarewave)
         temporalClass = 'drifting'      % Temporal type (drifting or reversing)      
         onlineAnalysis = 'extracellular'         % Type of online analysis
-        numberOfAverages = uint16(24)   % Number of epochs
+        numberOfAverages = uint16(48)   % Number of epochs
     end
     
     properties (Hidden)
