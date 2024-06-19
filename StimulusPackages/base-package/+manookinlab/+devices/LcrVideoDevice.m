@@ -18,6 +18,7 @@ classdef LcrVideoDevice < symphonyui.core.Device
             ip.addParameter('port', 5678, @isnumeric);
             ip.addParameter('micronsPerPixel', @isnumeric);
             ip.addParameter('ledCurrents',[], @isnumeric);
+            ip.addParameter('expectedRefreshRate',59.94, @isnumeric);
             ip.addParameter('customLightEngine', false, @islogical);
             ip.addParameter('local_movie_directory','C:\Users\Public\Documents\GitRepos\Symphony2\movies\', @ischar);
             ip.addParameter('stage_movie_directory','C:\Users\Public\Documents\GitRepos\Symphony2\movies\', @ischar);
@@ -77,6 +78,7 @@ classdef LcrVideoDevice < symphonyui.core.Device
             obj.addConfigurationSetting('lightCrafterLedCurrents',[red_current, green_current, blue_current],'isReadOnly',true);
             obj.addConfigurationSetting('centerOffset', [0 0], 'isReadOnly', true);
             obj.addConfigurationSetting('monitorRefreshRate', refreshRate, 'isReadOnly', true);
+            obj.addConfigurationSetting('expectedRefreshRate', ip.Results.expectedRefreshRate, 'isReadOnly', true);
             obj.addConfigurationSetting('prerender', false, 'isReadOnly', true);
             obj.addConfigurationSetting('lightCrafterLedEnables',  [auto, red, green, blue], 'isReadOnly', true);
             obj.addConfigurationSetting('micronsPerPixel', ip.Results.micronsPerPixel, 'isReadOnly', true);
@@ -115,6 +117,10 @@ classdef LcrVideoDevice < symphonyui.core.Device
         
         function r = getMonitorRefreshRate(obj)
             r = obj.getConfigurationSetting('monitorRefreshRate');
+        end
+        
+        function r = getExpectedRefreshRate(obj)
+            r = obj.getConfigurationSetting('expectedRefreshRate');
         end
         
         function [r, g, b] = getMonitorGammaRamp(obj)

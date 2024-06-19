@@ -47,6 +47,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
         pre_frames
         unique_frames
         repeat_frames
+        time_multiple
     end
     
     properties (Dependent, SetAccess = private)
@@ -73,6 +74,14 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                 obj.chromaticClass = 'achromatic';
                 obj.frameDwells = uint16(ones(size(obj.frameDwells)));
             end
+            
+            try
+                obj.time_multiple = obj.rig.getDevice('Stage').getExpectedRefreshRate() / obj.rig.getDevice('Stage').getMonitorRefreshRate();
+                disp(obj.time_multiple)
+            catch
+                obj.time_multiple = 1.0;
+            end
+            
             
             if obj.gaussianFilter
                 % Get the gamma ramps.
@@ -109,7 +118,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
  
         function p = createPresentation(obj)
 
-            p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3 * 1.011);
+            p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3 * obj.time_multiple);
             p.setBackgroundColor(obj.backgroundIntensity);
 
             obj.imageMatrix = obj.backgroundIntensity * ones(obj.numYStixels,obj.numXStixels);
