@@ -54,15 +54,17 @@ classdef CamouflageBreak2 < manookinlab.protocols.ManookinLabStageProtocol
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            
-            if ~strcmp(obj.onlineAnalysis, 'none')
-                co = get(groot, 'defaultAxesColorOrder');
-                
-                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                    'sweepColor',co,...
-                    'groupBy',{'moveSpeed'});
+            if ~obj.isMeaRig
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+
+                if ~strcmp(obj.onlineAnalysis, 'none')
+                    co = get(groot, 'defaultAxesColorOrder');
+
+                    obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                        obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                        'sweepColor',co,...
+                        'groupBy',{'moveSpeed'});
+                end
             end
             
             % Calculate the number of frames.
@@ -170,6 +172,19 @@ classdef CamouflageBreak2 < manookinlab.protocols.ManookinLabStageProtocol
         
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
+            
+            % Remove the Amp responses if it's an MEA rig.
+            if obj.isMeaRig
+                amps = obj.rig.getDevices('Amp');
+                for ii = 1:numel(amps)
+                    if epoch.hasResponse(amps{ii})
+                        epoch.removeResponse(amps{ii});
+                    end
+                    if epoch.hasStimulus(amps{ii})
+                        epoch.removeStimulus(amps{ii});
+                    end
+                end
+            end
             
             % Get the background motion speed.
             obj.backgroundSpeed = obj.backgroundSpeeds(mod(floor(obj.numEpochsCompleted/length(obj.moveSpeeds)), length(obj.backgroundSpeeds))+1);
