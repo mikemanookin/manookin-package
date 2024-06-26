@@ -3,18 +3,18 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         amp                             % Output amplifier
         preTime = 250                   % Stimulus leading duration (ms)
         tailTime = 250                  % Stimulus trailing duration (ms)
-        waitTime = 1000                 % Stimulus wait duration (ms)
-        flashTime = 100                 % Spot flash time (ms)
-        delayTimes = [50 50]            % Delay time (ms)
-        spotRadius = 50                 % Spot radius (pix).
-        contrasts = [0 -0.0625 0.0625 -0.125 0.125 -0.25 0.25 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1 1] % Spot contrasts (-1:1)
+        waitTime = 3000                 % Stimulus wait duration (ms)
+        flashTime = 250                 % Spot flash time (ms)
+        delayTimes = [-300 50 100 200 400]            % Delay time (ms)
+        spotRadius = 100                % Spot radius (microns).
+        contrasts = [0.2] % Spot contrasts (-1:1)
         speed = 2750                    % Background motion speed (pix/sec)
         stimulusIndex = 2               % Stimulus number (1:161)
         surroundContrast = 1.0          % Surround contrast (0-1)
-        surroundBarWidth = 75           % Surround bar width (pix)
-        maskRadius = 75                 % Mask radius in pixels
+        surroundBarWidth = 75           % Surround bar width (microns)
+        maskRadius = 125                % Mask radius in pixels
         blurMask = false                % Gaussian blur of center mask? (t/f)
-        apertureDiameter = 2000         % Aperture diameter in pixels.
+        apertureDiameter = 2000         % Aperture diameter in microns.
         randomSeed = false              % Use a random (true) or repeating seed (false)
         backgroundIntensity = 0.5       % Mean background intenstiy
         centerClass = 'spot'            % Center stimulus class
@@ -23,7 +23,7 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         bgChromaticClass = 'achromatic' % Background color
         onlineAnalysis = 'extracellular' % Type of online analysis
         stimulusSequence = 'saccade'    % Interleaved sequence types.
-        numberOfAverages = uint16(240)    % Number of epochs
+        numberOfAverages = uint16(120)    % Number of epochs
     end
     
     properties (Dependent) 
@@ -56,6 +56,9 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         rgbMeans
         rgbValues
         xyTable
+        surroundBarWidthPix
+        spotRadiusPix
+        maskRadiusPix
     end
     
     methods
@@ -100,6 +103,10 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             obj.muPerPixel = 0.8;
+            obj.surroundBarWidthPix = obj.rig.getDevice('Stage').um2pix(obj.surroundBarWidth);
+            obj.spotRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.spotRadius);
+            obj.maskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.maskRadius);
+%             gridSizePix = obj.rig.getDevice('Stage').um2pix(obj.gridSize);
             
             % Get the image and subject names.
             switch obj.surroundClass
@@ -179,9 +186,14 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function getGrating(obj)
-            x = linspace(-1650/2, 1650/2, 1650);
+            w = 2*912*2+(2*obj.speed/obj.frameRate);
+            x = linspace(-w/2+1, w/2, w);
             
-            x = x / (obj.surroundBarWidth*2/obj.magnificationFactor) * 2 * pi;
+            sf = length(x)/(obj.surroundBarWidthPix*2);
+            x = x/max(x);
+            
+            x = x * sf * 2 * pi;
+%             x = x / (obj.surroundBarWidthPix*2) * 2 * pi;
             x = repmat(x,[512 1]);
             
             % Calculate the raw grating image.
@@ -371,16 +383,16 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
                     mask = stage.builtin.stimuli.Rectangle();
                     mask.position = obj.canvasSize/2;
                     mask.color = obj.backgroundMeans;
-                    mask.size = obj.maskRadius*2*ones(1,2);
+                    mask.size = obj.maskRadiusPix*2*ones(1,2);
                     % Assign a gaussian envelope mask to the grating.
-                    msk = stage.core.Mask.createGaussianEnvelope(obj.maskRadius*2);
+                    msk = stage.core.Mask.createGaussianEnvelope(obj.maskRadiusPix*2);
                     mask.setMask(msk);
                 else
                     mask = stage.builtin.stimuli.Ellipse();
                     mask.position = obj.canvasSize/2;
                     mask.color = obj.backgroundMeans;
-                    mask.radiusX = obj.maskRadius;
-                    mask.radiusY = obj.maskRadius;
+                    mask.radiusX = obj.maskRadiusPix;
+                    mask.radiusY = obj.maskRadiusPix;
                 end
                 p.addStimulus(mask); %add mask
             end
@@ -413,8 +425,8 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             %--------------------------------------------------------------
             % Spot.
             spot = stage.builtin.stimuli.Ellipse();
-            spot.radiusX = obj.spotRadius;
-            spot.radiusY = obj.spotRadius;
+            spot.radiusX = obj.spotRadiusPix;
+            spot.radiusY = obj.spotRadiusPix;
             spot.position = obj.canvasSize/2;
             spot.color = obj.contrast*obj.rgbValues.*obj.backgroundMeans + obj.backgroundMeans;
             
@@ -435,8 +447,9 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             if strcmp(obj.backgroundType,'tremor')
                 obj.getTremorSequence();
             end
-            % Get the delay time.
-            obj.delayTime = obj.delayTimes(mod(obj.numEpochsCompleted, length(obj.delayTimes))+1);
+            % Get the delay time. 
+            obj.delayTime = obj.delayTimes(mod(floor(obj.numEpochsCompleted/length(obj.backgroundTypes)), length(obj.delayTimes))+1);
+%             obj.delayTime = obj.delayTimes(mod(obj.numEpochsCompleted, length(obj.delayTimes))+1);
             epoch.addParameter('delayTime',obj.delayTime);
             
             % Get the spot contrast.
@@ -473,7 +486,7 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function stimTime = get.stimTime(obj)
-            stimTime = obj.waitTime + max(obj.delayTimes) + obj.flashTime;
+            stimTime = obj.waitTime + max(max(obj.delayTimes),250) + obj.flashTime;
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
