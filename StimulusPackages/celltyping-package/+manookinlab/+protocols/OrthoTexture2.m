@@ -101,7 +101,7 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             obj.contrastSequence = repmat(obj.contrasts,1,n_reps*n_classes*n_frequencies*n_speeds*n_textures);
             obj.frequencySequence = repmat(obj.spatialFrequencies,1,n_reps*n_classes*n_contrasts*n_speeds*n_textures);
             obj.speedSequence = repmat(obj.motionSpeeds,1,n_reps*n_classes*n_contrasts*n_frequencies*n_textures);
-            obj.textureSequence = repmat(obj.textureClassess,1,n_reps*n_classes*n_contrasts*n_frequencies*n_speeds);
+            obj.textureSequence = repmat(obj.textureClasses,1,n_reps*n_classes*n_contrasts*n_frequencies*n_speeds);
         end
         
         
@@ -198,7 +198,9 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             [x,y] = meshgrid(-(nx):(nx-2));
 
             % Maximum spatial frequency in degrees.
-            maxF = obj.rig.getDevice('Stage').um2pix(max(obj.canvasSize)) / 200 / 2;
+%             maxF = obj.rig.getDevice('Stage').um2pix(max(obj.canvasSize)) / 200 / 2;
+            maxF = max(obj.canvasSize) / obj.rig.getDevice('Stage').um2pix(200) / 2;
+            disp(maxF)
             % in microns
             x = x / max(x(:)) * maxF;
             y = y / max(y(:)) * maxF;
@@ -235,7 +237,7 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
                 tmp = tmp / std(tmp(:)); %tmp / max(abs(tmp(:)));
                 tmp = manookinlab.util.makeUniformDist(tmp, 1);
                 % Correct for Michaelson contrast
-                ct = (max(tmp,[],'all') - min(tmp,[],'all'))/(max(tmp,[],'all')+min(tmp,[],'all'));
+                ct = (max(tmp(:)) - min(tmp(:)))/(max(tmp(:))+min(tmp(:)));
                 tmp = tmp / ct;
                 M(:,:,k) = (obj.contrast * (2*tmp-1)) * obj.backgroundIntensity + obj.backgroundIntensity;
             end
