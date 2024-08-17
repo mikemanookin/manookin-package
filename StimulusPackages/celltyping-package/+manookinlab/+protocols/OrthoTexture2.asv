@@ -102,10 +102,10 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             obj.contrastSequence = repmat(obj.contrastSequence(:)',1,n_reps*n_frequencies*n_speeds*n_textures);
             obj.textureSequence = repmat(obj.textureClasses,n_classes*n_contrasts,1);
             obj.textureSequence = repmat(obj.textureSequence(:)',1,n_reps*n_frequencies*n_speeds);
-            obj.frequencySequence = ones(n_classes*n_contrasts*n_textures,1)*obj.spatialFrequencies;
-            obj.frequencySequence = repmat(obj.frequencySequence(:)',1,n_reps*n_speeds);
-            obj.speedSequence = ones(n_classes*n_contrasts*n_textures*n_frequencies,1)*obj.motionSpeeds;
-            obj.speedSequence = repmat(obj.speedSequence(:)',1,n_reps);
+            obj.frequencySequence = ones(n_classes*n_contrasts,1)*obj.spatialFrequencies;
+            obj.frequencySequence = repmat(obj.spatialFrequencies,1,n_reps*n_classes*n_contrasts*n_speeds*n_textures);
+            obj.speedSequence = repmat(obj.motionSpeeds,1,n_reps*n_classes*n_contrasts*n_frequencies*n_textures);
+            
         end
         
         
