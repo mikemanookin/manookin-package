@@ -5,9 +5,10 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Texture trailing duration (ms)
         waitTime = 2000                 % Time texture is presented before moving (ms)
         moveTime = 1000                 % Move duration (ms)
-        contrast = 0.5                  % Texture contrast (0-1)
-        spatialFrequencies = (3+1/3)./(1:4) % Highest spatial frequencies in cyc/degree
-        moveSpeed = 3.0                 % Texture approach speed (degrees/sec)
+        contrasts = [0.05,0.1,0.2,0.4,0.8]                  % Texture contrast (0-1)
+        spatialFrequencies = [5,4]  % Highest spatial frequencies in cyc/degree
+        moveSpeed = 1.0                 % Texture approach speed (degrees/sec)
+        changeClass = 'both'            % Type of change
         backgroundIntensity = 0.5       % Background light intensity (0-1)   
         onlineAnalysis = 'extracellular' % Type of online analysis
         numberOfAverages = uint16(400)  % Number of epochs
@@ -20,7 +21,9 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
+        changeClassType = symphonyui.core.PropertyType('char', 'row', {'both', 'optic flow', 'scale change'})
         spatialFrequenciesType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
+        contrastsType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
         stimulusClasses = {'approaching','receding'}
         stimulusClass
         seed
@@ -31,6 +34,11 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
         textureSize
         textureFreqPix
         noiseStream
+        contrast
+        spatialFrequencyPix
+        downsample
+        scaleChanges
+        scaleChange
     end
     
     methods
@@ -55,8 +63,8 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             
             obj.driftSpeedPix = obj.rig.getDevice('Stage').um2pix(obj.moveSpeed);
             
-            downsample = 10;
-            obj.textureSize = round(max(obj.canvasSize)/downsample)*ones(1,2);
+            obj.downsample = 10;
+            obj.textureSize = round(max(obj.canvasSize)/obj.downsample)*ones(1,2);
         end
         
         
@@ -108,6 +116,9 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             obj.stimulusClass = obj.stimulusClasses{mod(obj.numEpochsCompleted,length(obj.stimulusClasses))+1};
             epoch.addParameter('stimulusClass', obj.stimulusClass);
             
+            obj.contrast = obj.contrasts(mod(floor(obj.numEpochsCompleted/length(obj.stimulusClasses)),length(obj.contrasts))+1);
+            epoch.addParameter('contrast', obj.contrast);
+            
             % Get the spatial frequency.
             obj.spatialFrequency = obj.spatialFrequencies(mod(floor(obj.numEpochsCompleted/length(obj.stimulusClasses)),length(obj.spatialFrequencies))+1);
             epoch.addParameter('spatialFrequency', obj.spatialFrequency);
@@ -118,6 +129,8 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             % Seed the random number generator.
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
             
+            obj.spatialFrequencyPix = obj.spatialFrequency * obj.rig.getDevice('Stage').um2pix(max(obj.canvasSize)) / 200 / obj.downsample;
+            
             obj.textureFreqPix = obj.spatialFrequency / obj.rig.getDevice('Stage').um2pix(200);
             
             obj.generateTextures();
@@ -126,29 +139,33 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
         function generateTextures(obj)
             nx = obj.textureSize(1);
             ny = obj.textureSize(2);
-            f0 = obj.spatialFrequency;
-            downsample = 10;
+            f0 = obj.spatialFrequency; %obj.spatialFrequency;
             
             [x,y] = meshgrid(-(nx):(nx-2));
             % in microns
-            x = x * downsample / 2;
-            y = y * downsample / 2;
+            x = x * obj.downsample / 2;
+            y = y * obj.downsample / 2;
 
             % Size of single cycle in degrees.
 %             maxF = obj.rig.getDevice('Stage').um2pix(200) / (downsample/2);
-            maxF = obj.rig.getDevice('Stage').um2pix(200) / 2;
+            maxF = obj.rig.getDevice('Stage').um2pix(200);
+%             maxF = obj.rig.getDevice('Stage').um2pix(200) / obj.downsample / 2;
+%             maxF = obj.rig.getDevice('Stage').um2pix(max(obj.canvasSize)) / 200 / 2;
             % Get the spatial frequencies.
             r = sqrt((x/max(x(:))*maxF).^2 + (y/max(y(:))*maxF).^2);
             
             moveFrames = ceil(obj.moveTime * 1e-3 * obj.frameRate);
             
+            img = double( obj.noiseStream.rand(obj.textureSize) > 0.5 );
+            fftI = fft2(2*img-1, 2*nx-1, 2*ny-1);
+            fftI = fftshift( fftI );
 
             M = zeros(nx, ny, moveFrames);
             fv = zeros(1,moveFrames);
             for k = 1 : moveFrames
-                img = double(obj.noiseStream.rand(obj.textureSize) > 0.5);
-                fftI = fft2(2*img-1,2*nx-1,2*ny-1);
-                fftI = fftshift(fftI);
+%                 img = double(obj.noiseStream.rand(obj.textureSize) > 0.5);
+%                 fftI = fft2(2*img-1,2*nx-1,2*ny-1);
+%                 fftI = fftshift(fftI);
                 
                 t = (k-1)/obj.frameRate;
                 f = exp(log(f0) - obj.moveSpeed*t);
