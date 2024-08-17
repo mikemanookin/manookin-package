@@ -6,9 +6,9 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
         waitTime = 2000                 % Time texture is presented before moving (ms)
         moveTime = 1000                 % Move duration (ms)
         contrasts = [0.05,0.1,0.2,0.4,0.8] % Texture contrast (0-1)
-        spatialFrequencies = [2.0, 3.0] % Highest spatial frequencies in cyc/degree
+        spatialFrequencies = [2.0, 2.0] % Highest spatial frequencies in cyc/degree
         motionSpeeds = [1.0, 2.0]       % Texture approach speed (degrees/sec)
-        changeClass = 'both'            % Type of change
+        changeClass = 'optic flow'      % Type of change
         backgroundIntensity = 0.5       % Background light intensity (0-1)   
         onlineAnalysis = 'none'         % Type of online analysis
         numberOfAverages = uint16(400)  % Number of epochs
@@ -202,16 +202,13 @@ classdef OrthoTexture2 < manookinlab.protocols.ManookinLabStageProtocol
             [x,y] = meshgrid(-(nx):(nx-2));
 
             % Maximum spatial frequency in degrees.
-%             maxF = obj.rig.getDevice('Stage').um2pix(max(obj.canvasSize)) / 200 / 2;
             maxF = max(obj.canvasSize) / obj.rig.getDevice('Stage').um2pix(200) / 2;
-            disp(maxF)
             % in microns
             x = x / max(x(:)) * maxF;
             y = y / max(y(:)) * maxF;
             
             % Get the spatial frequencies.
             r = sqrt(x.^2 + y.^2);
-%             r = sqrt((x/max(x(:))*maxF).^2 + (y/max(y(:))*maxF).^2);
             
             moveFrames = ceil(obj.moveTime * 1e-3 * obj.frameRate);
             
