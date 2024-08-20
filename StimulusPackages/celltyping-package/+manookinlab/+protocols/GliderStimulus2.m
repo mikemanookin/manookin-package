@@ -84,21 +84,23 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
                 colors = [0 0 0];
             end
             
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            
-            if ~strcmp(obj.onlineAnalysis, 'none')
-                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                    'sweepColor',colors,...
-                    'groupBy',{'stimulusType'});
+            if ~obj.isMeaRig
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
 
-                obj.showFigure('manookinlab.figures.ShiftedInformationFigure', ...
-                    obj.rig.getDevice(obj.amp), 'recordingType',obj.onlineAnalysis,...
-                    'preTime', obj.preTime, ...
-                    'stimTime', obj.stimTime, ...
-                    'frameRate', obj.frameRate, ...
-                    'groupBy', 'stimulusType',...
-                    'groupByValues', obj.stimulusNames);
+                if ~strcmp(obj.onlineAnalysis, 'none')
+                    obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                        obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                        'sweepColor',colors,...
+                        'groupBy',{'stimulusType'});
+
+                    obj.showFigure('manookinlab.figures.ShiftedInformationFigure', ...
+                        obj.rig.getDevice(obj.amp), 'recordingType',obj.onlineAnalysis,...
+                        'preTime', obj.preTime, ...
+                        'stimTime', obj.stimTime, ...
+                        'frameRate', obj.frameRate, ...
+                        'groupBy', 'stimulusType',...
+                        'groupByValues', obj.stimulusNames);
+                end
             end
             
             % Calculate the number of frames.
@@ -197,6 +199,19 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
+            % Remove the Amp responses if it's an MEA rig.
+            if obj.isMeaRig
+                amps = obj.rig.getDevices('Amp');
+                for ii = 1:numel(amps)
+                    if epoch.hasResponse(amps{ii})
+                        epoch.removeResponse(amps{ii});
+                    end
+                    if epoch.hasStimulus(amps{ii})
+                        epoch.removeStimulus(amps{ii});
+                    end
+                end
+            end
+            
             % Deal with the seed.
             if obj.randsPerRep < 0
                 obj.seed = RandStream.shuffleSeed;
@@ -272,8 +287,11 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate the 3-pt correlations
 %             c = obj.getThreePtCorr(tmp);
 %             c = squeeze(sum(sum(c,1),2));
-            c = manookinlab.util.getTemporalCorrelations(obj.frameSequence, tmp);
-            c = c(:)';
+            if ~obj.isMeaRig
+                c = manookinlab.util.getTemporalCorrelations(obj.frameSequence, tmp);
+                c = c(:)';
+                epoch.addParameter('correlationSequence',c);
+            end
             
             % Convert to contrast.
             obj.frameSequence = obj.frameSequence*obj.backgroundIntensity + obj.backgroundIntensity;
@@ -286,7 +304,6 @@ classdef GliderStimulus2 < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('numXChecks', obj.numXChecks);
             epoch.addParameter('numYChecks', obj.numYChecks);
             epoch.addParameter('stimulusType', tmp);
-            epoch.addParameter('correlationSequence',c);
         end
         
         % Calculate the 3-pt correlations
