@@ -83,6 +83,7 @@ classdef GratingColorWeights < manookinlab.protocols.ManookinLabStageProtocol
             % Convert from microns to pixels
             obj.apertureRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.apertureRadius);
             obj.organizeParameters();
+            disp('finished prepare run');
         end
         
         function organizeParameters(obj)
@@ -327,6 +328,8 @@ classdef GratingColorWeights < manookinlab.protocols.ManookinLabStageProtocol
                 end
             end
             
+            disp('At prepare epoch..')
+            
             % Set the RGB weights.
             obj.rgbWeights = obj.rgbWeightSequence(obj.numEpochsCompleted+1,:);
             
@@ -346,6 +349,8 @@ classdef GratingColorWeights < manookinlab.protocols.ManookinLabStageProtocol
             
             % Set up the raw image.
             obj.setRawImage();
+            
+            disp('I am here..')
 
             % Add the spatial frequency to the epoch.
             epoch.addParameter('spatialFrequency', obj.spatialFrequency);
