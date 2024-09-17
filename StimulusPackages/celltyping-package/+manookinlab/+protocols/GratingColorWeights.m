@@ -46,6 +46,7 @@ classdef GratingColorWeights < manookinlab.protocols.ManookinLabStageProtocol
         rgbWeightSequence
         rgbWeights
         spatialPhaseRad
+        rawImage
     end
     
     properties (Dependent) 
