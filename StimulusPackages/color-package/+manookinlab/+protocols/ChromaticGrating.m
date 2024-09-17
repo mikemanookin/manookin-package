@@ -2,7 +2,7 @@ classdef ChromaticGrating < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Grating leading duration (ms)
-        stimTime = 4000                 % Grating duration (ms)
+        moveTime = 4000                 % Grating duration (ms)
         tailTime = 250                  % Grating trailing duration (ms)
         waitTime = 1000                 % Grating wait duration (ms)
         contrast = 1.0                  % Grating contrast (0-1)
@@ -43,6 +43,10 @@ classdef ChromaticGrating < manookinlab.protocols.ManookinLabStageProtocol
         F1Phase
         repsPerX
         coneContrasts 
+    end
+    
+    properties (Dependent) 
+        stimTime
     end
     
     methods
@@ -320,6 +324,10 @@ classdef ChromaticGrating < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('mContrast', obj.coneContrasts(2));
             epoch.addParameter('sContrast', obj.coneContrasts(3));
             epoch.addParameter('rodContrast', obj.coneContrasts(4));
+        end
+        
+        function stimTime = get.stimTime(obj)
+            stimTime = obj.waitTime + obj.moveTime + obj.stopTime;
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
