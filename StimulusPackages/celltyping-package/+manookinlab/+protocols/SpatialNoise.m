@@ -24,7 +24,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
-        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY','B'})
+        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY','B','S','LM'})
         stixelSizesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         frameDwellsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         stixelSize
@@ -162,9 +162,12 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                 elseif strcmp(obj.chromaticClass,'B')
                     imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                         @(state)setBStixels(obj, state.frame - preF));
-                else
+                elseif strcmp(obj.chromaticClass,'RGB')
                     imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                         @(state)setRGBStixels(obj, state.frame - preF));
+                else  
+                    imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
+                        @(state)setIsoStixels(obj, state.frame - preF));
                 end
             else
                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
@@ -275,6 +278,28 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                 s = single(M);
             end
             
+            % Cone-iso noise
+            function s = setIsoStixels(obj, frame)
+                persistent M;
+                if frame > 0
+                    if mod(frame, obj.frameDwell) == 0
+                        M = zeros(obj.numYStixels,obj.numXStixels,3);
+                        if frame <= obj.unique_frames
+                            tmpM = obj.contrast*2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
+                        else
+                            tmpM = obj.contrast*2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
+                        end
+                        M(:,:,1) = tmpM*obj.colorWeights(1);
+                        M(:,:,2) = tmpM*obj.colorWeights(2);
+                        M(:,:,3) = tmpM*obj.colorWeights(3);
+                        M = M * obj.backgroundIntensity + obj.backgroundIntensity;
+                    end
+                else
+                    M = obj.imageMatrix;
+                end
+                s = single(M);
+            end
+            
             function p = setJitter(obj, frame)
                 persistent xy;
                 if frame > 0
@@ -308,6 +333,10 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                         epoch.removeStimulus(amps{ii});
                     end
                 end
+            end
+            
+            if strcmpi(obj.chromaticClass, 'S-iso') || strcmpi(obj.chromaticClass, 'LM-iso')
+                obj.setColorWeights();
             end
             
             % Get the current stixel size.
