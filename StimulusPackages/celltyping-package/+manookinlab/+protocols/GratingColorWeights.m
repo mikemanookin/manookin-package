@@ -330,6 +330,8 @@ classdef GratingColorWeights < manookinlab.protocols.ManookinLabStageProtocol
             % Set the RGB weights.
             obj.rgbWeights = obj.rgbWeightSequence(obj.numEpochsCompleted+1,:);
             
+            disp(obj.rgbWeights)
+            
             % Set the current orientation.
             obj.orientation = obj.sequence(obj.numEpochsCompleted+1);
 
