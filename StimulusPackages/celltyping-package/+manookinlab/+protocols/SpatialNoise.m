@@ -24,7 +24,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
-        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY','B','S','LM'})
+        chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY','B','S-iso','LM-iso'})
         stixelSizesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         frameDwellsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         stixelSize
@@ -337,6 +337,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             if strcmpi(obj.chromaticClass, 'S-iso') || strcmpi(obj.chromaticClass, 'LM-iso')
                 obj.setColorWeights();
+                disp(obj.colorWeights)
             end
             
             % Get the current stixel size.
