@@ -174,40 +174,12 @@ classdef GratingColorWeights < manookinlab.protocols.ManookinLabStageProtocol
             % Create the grating.
             grate = stage.builtin.stimuli.Image(uint8(0 * obj.rawImage));
             grate.position = obj.canvasSize / 2;
-            grate.size = ceil(sqrt(obj.canvasSize(1)^2 + obj.canvasSize(2)^2))*ones(1,2);
+            grate.size = obj.gratingLength*ones(1,2);
             grate.orientation = obj.orientation;
             
             % Set the minifying and magnifying functions.
             grate.setMinFunction(GL.NEAREST);
             grate.setMagFunction(GL.NEAREST);
-            
-%             % Create the grating.
-%             switch obj.spatialClass
-%                 case 'sinewave'
-%                     grate = stage.builtin.stimuli.Grating('sine');
-%                 otherwise % Square-wave grating
-%                     grate = stage.builtin.stimuli.Grating('square'); 
-%             end
-%             grate.orientation = obj.orientation;
-%             if obj.apertureRadiusPix > 0 && obj.apertureRadiusPix < max(obj.canvasSize/2) && strcmpi(obj.apertureClass, 'spot')
-%                 grate.size = 2*obj.apertureRadiusPix*ones(1,2);
-%             else
-%                 grate.size = sqrt(sum(obj.canvasSize.^2)) * ones(1,2);
-%             end
-%             grate.position = obj.canvasSize/2;
-%             grate.spatialFreq = 1/(2*obj.barWidthPix); %convert from bar width to spatial freq
-%             grate.contrast = obj.contrast;
-%             grate.color = 2*obj.backgroundIntensity;
-            %calc to apply phase shift s.t. a contrast-reversing boundary
-            %is in the center regardless of spatial frequency. Arbitrarily
-            %say boundary should be positve to right and negative to left
-            %crosses x axis from neg to pos every period from 0
-%             zeroCrossings = 0:(grate.spatialFreq^-1):grate.size(1); 
-%             offsets = zeroCrossings-grate.size(1)/2; %difference between each zero crossing and center of texture, pixels
-%             [shiftPix, ~] = min(offsets); % min(offsets(offsets>0)); %positive shift in pixels
-%             phaseShift_rad = (shiftPix/(grate.spatialFreq^-1))*(2*pi); %phaseshift in radians
-%             obj.phaseShift = 360*(phaseShift_rad)/(2*pi); %phaseshift in degrees
-%             grate.phase = obj.phaseShift + obj.spatialPhase; %keep contrast reversing boundary in center
             
             % Add the grating.
             p.addStimulus(grate);
@@ -329,8 +301,6 @@ classdef GratingColorWeights < manookinlab.protocols.ManookinLabStageProtocol
             
             % Set the RGB weights.
             obj.rgbWeights = obj.rgbWeightSequence(obj.numEpochsCompleted+1,:);
-            
-            disp(obj.rgbWeights)
             
             % Set the current orientation.
             obj.orientation = obj.sequence(obj.numEpochsCompleted+1);
