@@ -1,5 +1,9 @@
 function ct = coneContrast(quantalCatch, gunWeights, contrastType)
 
+if nargin < 3
+    contrastType = 'weber';
+end
+
 iMean = sum(quantalCatch);
 iDelta = sum((gunWeights(:)*ones(1,4)).*quantalCatch);
 iMax = iMean + iDelta;
