@@ -393,7 +393,6 @@ classdef SpatialNoiseAndMotion < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('screenRadiusPix',obj.screenRadiusPix);
             epoch.addParameter('barContrast',obj.barContrast);
             epoch.addParameter('bar_cycle_frames', obj.bar_cycle_frames);
-            epoch.addParameter('screenRadiusPix', obj.screenRadiusPix);
         end
         
         function a = get.amp2(obj)
