@@ -202,12 +202,11 @@ classdef SpatialNoiseAndMotion < manookinlab.protocols.ManookinLabStageProtocol
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
                         if frame <= obj.unique_frames
-                            M = 2*obj.backgroundIntensity * ...
-                                (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5);
+                            M = 2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
                         else
-                            M = 2*obj.backgroundIntensity * ...
-                                (obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5);
+                            M = 2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
                         end
+                        M = obj.contrast*M*obj.backgroundIntensity + obj.backgroundIntensity;
                     end
                 else
                     M = obj.imageMatrix;
@@ -218,12 +217,11 @@ classdef SpatialNoiseAndMotion < manookinlab.protocols.ManookinLabStageProtocol
             function s = setStixelsPatternMode(obj, time)
                 if time > 0
                     if time <= obj.uniqueTime
-                        M = 2*obj.backgroundIntensity * ...
-                            (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5);
+                        M = 2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
                     else
-                        M = 2*obj.backgroundIntensity * ...
-                            (obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5);
+                        M = 2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
                     end
+                    M = obj.contrast*M*obj.backgroundIntensity + obj.backgroundIntensity;
                 else
                     M = obj.imageMatrix;
                 end
@@ -236,17 +234,16 @@ classdef SpatialNoiseAndMotion < manookinlab.protocols.ManookinLabStageProtocol
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
                         if frame <= obj.unique_frames
-                            M = 2*obj.backgroundIntensity * ...
-                                (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5);
+                            M = 2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5)-1;
                         else
-                            M = 2*obj.backgroundIntensity * ...
-                                (obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels,3)>0.5);
+                            M = 2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels,3)>0.5)-1;
                         end
                     end
+                    M = obj.contrast*M*obj.backgroundIntensity + obj.backgroundIntensity;
                 else
                     M = obj.imageMatrix;
                 end
-                s = uint8(255*M);
+                s = single(M);
             end
             
             % Blue-Yellow noise
@@ -256,9 +253,9 @@ classdef SpatialNoiseAndMotion < manookinlab.protocols.ManookinLabStageProtocol
                     if mod(frame, obj.frameDwell) == 0
                         M = zeros(obj.numYStixels,obj.numXStixels,3);
                         if frame <= obj.unique_frames
-                            tmpM = obj.contrast*2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1;
+                            tmpM = obj.contrast*(2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1);
                         else
-                            tmpM = obj.contrast*2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1;
+                            tmpM = obj.contrast*(2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1);
                         end
                         tmpM = tmpM*obj.backgroundIntensity + obj.backgroundIntensity;
                         M(:,:,1:2) = repmat(tmpM(:,:,1),[1,1,2]);
@@ -278,9 +275,9 @@ classdef SpatialNoiseAndMotion < manookinlab.protocols.ManookinLabStageProtocol
                     if mod(frame, obj.frameDwell) == 0
                         M = zeros(obj.numYStixels,obj.numXStixels,3);
                         if frame <= obj.unique_frames
-                            tmpM = obj.contrast*2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
+                            tmpM = obj.contrast*(2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
                         else
-                            tmpM = obj.contrast*2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
+                            tmpM = obj.contrast*(2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
                         end
                         M(:,:,1) = tmpM*w(1);
                         M(:,:,2) = tmpM*w(2);
@@ -300,9 +297,9 @@ classdef SpatialNoiseAndMotion < manookinlab.protocols.ManookinLabStageProtocol
                     if mod(frame, obj.frameDwell) == 0
                         M = zeros(obj.numYStixels,obj.numXStixels,3);
                         if frame <= obj.unique_frames
-                            tmpM = obj.contrast*2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
+                            tmpM = obj.contrast*(2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
                         else
-                            tmpM = obj.contrast*2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
+                            tmpM = obj.contrast*(2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
                         end
                         M(:,:,1) = tmpM*obj.colorWeights(1);
                         M(:,:,2) = tmpM*obj.colorWeights(2);
