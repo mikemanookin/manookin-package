@@ -37,6 +37,7 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
         maxWidthPix
         noiseStream
         positionStream
+        time_multiple
     end
     
     properties (Dependent, SetAccess = private)
@@ -55,6 +56,13 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
 
             if ~obj.isMeaRig
                 obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            end
+            
+            try
+                obj.time_multiple = obj.rig.getDevice('Stage').getExpectedRefreshRate() / obj.rig.getDevice('Stage').getMonitorRefreshRate();
+%                 disp(obj.time_multiple)
+            catch
+                obj.time_multiple = 1.0;
             end
 
 %             obj.stixelSizePix = obj.rig.getDevice('Stage').um2pix(obj.stixelSize);
@@ -81,7 +89,7 @@ classdef SparseNoise < manookinlab.protocols.ManookinLabStageProtocol
  
         function p = createPresentation(obj)
 
-            p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
+            p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3 * obj.time_multiple);
             p.setBackgroundColor(obj.backgroundIntensity);
 
             obj.imageMatrix = obj.backgroundIntensity * ones(obj.numYStixels,obj.numXStixels);
