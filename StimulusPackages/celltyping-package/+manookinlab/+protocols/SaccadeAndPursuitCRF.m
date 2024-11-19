@@ -5,14 +5,14 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         tailTime = 250                  % Stimulus trailing duration (ms)
         waitTime = 3000                 % Stimulus wait duration (ms)
         flashTime = 250                 % Spot flash time (ms)
-        delayTimes = [-300 50 100 200 400]            % Delay time (ms)
-        spotRadius = 100                % Spot radius (microns).
-        contrasts = [0.2] % Spot contrasts (-1:1)
+        delayTimes = [-400 50 100 200 400]            % Delay time (ms)
+        spotRadius = 250                % Spot radius (microns).
+        contrasts = [0.2,0.2] % Spot contrasts (-1:1)
         speed = 2750                    % Background motion speed (pix/sec)
         stimulusIndex = 2               % Stimulus number (1:161)
         surroundContrast = 1.0          % Surround contrast (0-1)
-        surroundBarWidth = 75           % Surround bar width (microns)
-        maskRadius = 125                % Mask radius in pixels
+        surroundBarWidth = 60           % Surround bar width (microns)
+        maskRadius = 275                % Mask radius in pixels
         blurMask = false                % Gaussian blur of center mask? (t/f)
         apertureDiameter = 2000         % Aperture diameter in microns.
         randomSeed = false              % Use a random (true) or repeating seed (false)
@@ -72,8 +72,6 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            
             if length(unique(obj.delayTimes)) > 1
                 obj.backgroundTypes = {'stationary','fixation'};
             else
@@ -91,7 +89,16 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
                     obj.backgroundTypes = {'stationary','saccade'};
             end
             
-            if ~strcmp(obj.onlineAnalysis,'none')
+            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            if ~strcmp(obj.onlineAnalysis, 'none')
+                colors = [0 0 0; 0.8 0 0; 0 0.5 0; 0 0.7 0.2; 0 0.2 1];
+                colors = colors(1:length(obj.backgroundTypes), :);
+                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                    'sweepColor',colors,...
+                    'groupBy',{'backgroundType'});
+                
+                if length(unique(obj.delayTimes)) == 1
                 obj.showFigure('manookinlab.figures.ContrastResponseFigure', ...
                     obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                     'preTime',obj.preTime+obj.waitTime+obj.delayTimes(1),...
@@ -100,6 +107,7 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
                     'groupBy','backgroundType',...
                     'groupByValues',obj.backgroundTypes,...
                     'temporalClass','pulse');
+                end
             end
             
             obj.muPerPixel = 0.8;
@@ -453,7 +461,7 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('delayTime',obj.delayTime);
             
             % Get the spot contrast.
-            obj.contrast = obj.contrasts(mod(floor(obj.numEpochsCompleted/length(obj.backgroundTypes)), length(obj.contrasts))+1);
+            obj.contrast = obj.contrasts(mod(floor(obj.numEpochsCompleted/(length(obj.backgroundTypes)*length(obj.delayTimes))), length(obj.contrasts))+1);
             
             % Seed the random number generator.
             if obj.randomSeed
@@ -486,7 +494,7 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function stimTime = get.stimTime(obj)
-            stimTime = obj.waitTime + max(max(obj.delayTimes),250) + obj.flashTime;
+            stimTime = obj.waitTime + max(max(obj.delayTimes),400) + obj.flashTime;
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
