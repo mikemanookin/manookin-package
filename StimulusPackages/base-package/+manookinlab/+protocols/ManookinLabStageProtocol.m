@@ -146,10 +146,10 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
                         eb.setProperty('micronsPerPixel', obj.muPerPixel);
                         eb.setProperty('objectiveMag', obj.objectiveMag);
                     end
-                    eb.setProperty('maxLCone', sum(obj.quantalCatch(:,1)));
-                    eb.setProperty('maxMCone', sum(obj.quantalCatch(:,2)));
-                    eb.setProperty('maxSCone', sum(obj.quantalCatch(:,3)));
-                    eb.setProperty('maxRod', sum(obj.quantalCatch(:,4)));
+%                     eb.setProperty('maxLCone', sum(obj.quantalCatch(:,1)));
+%                     eb.setProperty('maxMCone', sum(obj.quantalCatch(:,2)));
+%                     eb.setProperty('maxSCone', sum(obj.quantalCatch(:,3)));
+%                     eb.setProperty('maxRod', sum(obj.quantalCatch(:,4)));
                     
                     % Check if this is an MEA rig.
 %                     mea = obj.rig.getDevices('MEA');

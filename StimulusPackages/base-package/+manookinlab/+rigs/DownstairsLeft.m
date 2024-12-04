@@ -75,16 +75,16 @@ classdef DownstairsLeft < symphonyui.core.descriptions.RigDescription
             obj.addDevice(lightCrafter);
 
             % Add the red LED.
-            red = UnitConvertingDevice('Red LED', 'V').bindStream(daq.getStream('ao1'));
-            obj.addDevice(red);
-            
-            % Add the green and blue LEDs
-            green = UnitConvertingDevice('Green LED', 'V').bindStream(daq.getStream('ao2'));
-            obj.addDevice(green);
-            
-            blue = UnitConvertingDevice('Blue LED', 'V').bindStream(daq.getStream('ao3'));
-            obj.addDevice(blue);
-            
+%             red = UnitConvertingDevice('Red LED', 'V').bindStream(daq.getStream('ao1'));
+%             obj.addDevice(red);
+%             
+%             % Add the green and blue LEDs
+%             green = UnitConvertingDevice('Green LED', 'V').bindStream(daq.getStream('ao2'));
+%             obj.addDevice(green);
+%             
+%             blue = UnitConvertingDevice('Blue LED', 'V').bindStream(daq.getStream('ao3'));
+%             obj.addDevice(blue);
+%             
             temperature = UnitConvertingDevice('Temperature Controller', 'V', 'manufacturer', 'Warner Instruments').bindStream(daq.getStream('ai7'));
             obj.addDevice(temperature);
             
