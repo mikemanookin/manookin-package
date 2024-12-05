@@ -141,6 +141,7 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
             
             obj.epochCount = obj.epochCount + 1;
             
+            try
             response = epoch.getResponse(obj.device);
             [quantities, ~] = response.getData();
             sampleRate = response.sampleRate.quantityInBaseUnits;
@@ -159,6 +160,7 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                 % Parse the response by type.
                 y = manookinlab.util.responseByType(quantities, obj.recordingType, obj.preTime, sampleRate);
                 
+                if ~all(y == 0)
                 if strcmp(obj.recordingType,'extracellular') || strcmp(obj.recordingType, 'spikes_CClamp')
                     if sampleRate > binRate
                         y = manookinlab.util.BinSpikeRate(y(prePts+1:end)/sampleRate, binRate, sampleRate);
@@ -291,6 +293,9 @@ classdef TemporalNoiseFigure < symphonyui.core.FigureHandler
                         'Parent', obj.nlAxesHandle, 'Color', 'k');
                 end
                 axis(obj.nlAxesHandle, 'tight');
+                end
+            end
+            catch
             end
         end
         

@@ -39,24 +39,26 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            
-            if strcmp(obj.onlineAnalysis,'extracellular')
-                obj.showFigure('manookinlab.figures.AutocorrelationFigure', obj.rig.getDevice(obj.amp));
-            end
-            
-            if ~strcmp(obj.onlineAnalysis, 'none')
-                obj.showFigure('manookinlab.figures.TemporalNoiseFigure', ...
-                    obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis, 'noiseClass', obj.noiseClass,...
-                    'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
-                    'frameRate', obj.frameRate, 'numFrames', floor(obj.stimTime/1000 * obj.frameRate / obj.frameDwell), 'frameDwell', obj.frameDwell, ...
-                    'stdev', obj.noiseContrast*0.3, 'frequencyCutoff', 0, 'numberOfFilters', 0, ...
-                    'correlation', 0, 'stimulusClass', 'Stage');
-                
-                obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                    'sweepColor',zeros(1,3),...
-                    'groupBy',{'frameRate'});
+            if ~obj.isMeaRig
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+
+                if strcmp(obj.onlineAnalysis,'extracellular')
+                    obj.showFigure('manookinlab.figures.AutocorrelationFigure', obj.rig.getDevice(obj.amp));
+                end
+
+                if ~strcmp(obj.onlineAnalysis, 'none')
+                    obj.showFigure('manookinlab.figures.TemporalNoiseFigure', ...
+                        obj.rig.getDevice(obj.amp),'recordingType', obj.onlineAnalysis, 'noiseClass', obj.noiseClass,...
+                        'preTime', obj.preTime, 'stimTime', obj.stimTime, ...
+                        'frameRate', obj.frameRate, 'numFrames', floor(obj.stimTime/1000 * obj.frameRate / obj.frameDwell), 'frameDwell', obj.frameDwell, ...
+                        'stdev', obj.noiseContrast*0.3, 'frequencyCutoff', 0, 'numberOfFilters', 0, ...
+                        'correlation', 0, 'stimulusClass', 'Stage');
+
+                    obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                        obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                        'sweepColor',zeros(1,3),...
+                        'groupBy',{'frameRate'});
+                end
             end
             
             obj.radiusPix = obj.rig.getDevice('Stage').um2pix(obj.radius);
@@ -68,8 +70,8 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             if strcmp(obj.stimulusClass, 'spot')
                 spot = stage.builtin.stimuli.Ellipse();
-                spot.radiusX = obj.radius;
-                spot.radiusY = obj.radius; 
+                spot.radiusX = obj.radiusPix;
+                spot.radiusY = obj.radiusPix; 
                 spot.position = obj.canvasSize/2;
             else
                 spot = stage.builtin.stimuli.Rectangle();
@@ -85,8 +87,8 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Add a center mask if it's an annulus.
             if strcmp(obj.stimulusClass, 'annulus')
                 mask = stage.builtin.stimuli.Ellipse();
-                mask.radiusX = obj.radius;
-                mask.radiusY = obj.radius;
+                mask.radiusX = obj.radiusPix;
+                mask.radiusY = obj.radiusPix;
                 mask.position = obj.canvasSize/2;
                 mask.color = obj.backgroundIntensity; 
                 p.addStimulus(mask);
@@ -151,6 +153,19 @@ classdef TemporalNoise < manookinlab.protocols.ManookinLabStageProtocol
   
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
+            
+            % Remove the Amp responses if it's an MEA rig.
+            if obj.isMeaRig
+                amps = obj.rig.getDevices('Amp');
+                for ii = 1:numel(amps)
+                    if epoch.hasResponse(amps{ii})
+                        epoch.removeResponse(amps{ii});
+                    end
+                    if epoch.hasStimulus(amps{ii})
+                        epoch.removeStimulus(amps{ii});
+                    end
+                end
+            end
             
             % Deal with the seed.
             if obj.randsPerRep <= 0 
