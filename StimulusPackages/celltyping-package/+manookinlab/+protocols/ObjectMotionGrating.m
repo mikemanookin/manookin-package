@@ -11,8 +11,8 @@ classdef ObjectMotionGrating < manookinlab.protocols.ManookinLabStageProtocol
         driftSpeed = 1000               % Center drift speed (pix/sec)
         spatialPhase = 0.0              % Spatial phase of grating (deg)
         backgroundIntensity = 0.5       % Background light intensity (0-1)
-        innerRadius = 200               % Center radius in pixels.
-        apertureRadius = 250            % Aperature radius between inner and outer gratings.
+        innerRadius = 200               % Center radius (in microns).
+        apertureRadius = 250            % Aperature radius between inner and outer gratings (microns).
         spatialClass = 'squarewave'     % Spatial type (sinewave or squarewave)      
         onlineAnalysis = 'extracellular' % Type of online analysis
         useRandomSeed = false            % Random or repeated seed?

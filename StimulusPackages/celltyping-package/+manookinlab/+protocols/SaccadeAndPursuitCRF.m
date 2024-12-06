@@ -194,7 +194,7 @@ classdef SaccadeAndPursuitCRF < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function getGrating(obj)
-            w = 2*912*2+(2*obj.speed/obj.frameRate);
+            w = 3*912*2+(2*obj.speed/obj.frameRate);
             x = linspace(-w/2+1, w/2, w);
             
             sf = length(x)/(obj.surroundBarWidthPix*2);
