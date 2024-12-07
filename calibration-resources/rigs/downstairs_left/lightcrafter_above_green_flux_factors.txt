@@ -1,2 +1,0 @@
-date	user	intensity	diameter	power	factor	note
-04-Dec-2024 12:30:31	Mike	1	500	2.82	1.43621420646126e-05	
