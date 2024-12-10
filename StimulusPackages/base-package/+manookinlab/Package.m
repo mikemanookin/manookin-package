@@ -3,8 +3,10 @@ classdef Package < handle
     methods (Static)
         
         function p = getCalibrationResource(varargin)
-            parentPath = fileparts(fileparts(fileparts(fileparts(((((mfilename('fullpath')))))))));
-            calibrationPath = fullfile(parentPath, 'calibration-resources');
+%             parentPath = fileparts(fileparts(fileparts(fileparts(((((mfilename('fullpath')))))))));
+%             calibrationPath = fullfile(parentPath, 'calibration-resources');
+            parentPath = fileparts(fileparts(fileparts(fileparts(fileparts(((((mfilename('fullpath'))))))))));
+            calibrationPath = fullfile(parentPath, 'calibrations-manookin', 'calibration-resources');
 %             if ~exist(calibrationPath, 'dir')
 %                 [rc, ~] = system(['git clone https://github.com/Rieke-Lab/calibration-resources.git "' calibrationPath '"']);
 %                 if rc
