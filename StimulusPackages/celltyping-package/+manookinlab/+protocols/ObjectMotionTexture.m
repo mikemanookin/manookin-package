@@ -207,7 +207,8 @@ classdef ObjectMotionTexture < manookinlab.protocols.ManookinLabStageProtocol
             
             % Deal with the seed.
             if obj.useRandomSeed
-                obj.seed = RandStream.shuffleSeed;
+%                 obj.seed = RandStream.shuffleSeed;
+                obj.seed = mod(floor(obj.numEpochsCompleted/length(obj.stimulusClasses)),5) + 1;
             else
                 obj.seed = 1;
             end
