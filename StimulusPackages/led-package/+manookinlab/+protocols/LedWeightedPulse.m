@@ -2,14 +2,14 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
     % Presents a set of rectangular pulse stimuli to a specified LED and records from a specified amplifier.
     
     properties
-        led                             % Output LED
-        preTime = 500                    % Pulse leading duration (ms)
+%         led                             % Output LED
+        preTime = 500                   % Pulse leading duration (ms)
         stimTime = 500                  % Pulse duration (ms)
-        tailTime = 1500                  % Pulse trailing duration (ms)
+        tailTime = 1500                 % Pulse trailing duration (ms)
         ledMeans = [0.5,0.5,0.5]        % RGB LED background mean (V or norm. [0-1] depending on LED units)
         redContrasts = [0.19,0.19,1]
         greenContrasts = [-0.69,-0.6,1]
-        blueContrats = [1.0,1.0,0.0]
+        blueContrasts = [1.0,1.0,0.0]
         amp                             % Input amplifier
     end
     
@@ -37,7 +37,8 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
         function didSetRig(obj)
             didSetRig@edu.washington.riekelab.protocols.RiekeLabProtocol(obj);
             
-            [obj.led, obj.ledType] = obj.createDeviceNamesProperty('LED');
+%             [obj.led, obj.ledType] = obj.createDeviceNamesProperty('LED');
+            obj.ledType = obj.rig.getDeviceNames('LED');
             [obj.amp, obj.ampType] = obj.createDeviceNamesProperty('Amp');
         end
         
@@ -51,7 +52,7 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
         
         function p = getPreview(obj, panel)
             p = symphonyui.builtin.previews.StimuliPreview(panel, @()obj.createLedStimulus(...
-                'Green LED', 1.0, 1.0));
+                'Green LED', 0.5, 0.5));
         end
         
         function prepareRun(obj)
@@ -72,9 +73,21 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
                     'baselineRegion2', [0 obj.preTime], ...
                     'measurementRegion2', [obj.preTime obj.preTime+obj.stimTime]);
             end
-            
-            device = obj.rig.getDevice(obj.led);
-            device.background = symphonyui.core.Measurement(obj.lightMean, device.background.displayUnits);
+%             
+            % Loop through the LEDs and set the mean.
+            for k = 1 : length(obj.ledNames)
+                idx = [];
+                for m = 1 : length(obj.ledType)
+                    if ~isempty(strfind(obj.ledType{m},obj.ledNames{k}))
+                        idx = m;
+                    end
+                end
+                
+                if ~isempty(idx)
+                    device = obj.rig.getDevice(obj.ledType{idx});
+                    device.background = symphonyui.core.Measurement(obj.ledMeans(k), device.background.displayUnits);
+                end
+            end
         end
         
         function stim = createLedStimulus(obj, led, lightMean, lightAmplitude)
@@ -101,8 +114,7 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
             epoch.addParameter('redContrast',redContrast);
             epoch.addParameter('greenContrast',greenContrast);
             epoch.addParameter('blueContrast',blueContrast);
-            w = [redContrast,greenContrast,blueContrast] .* obj.ledMeans + obj.ledMeans;
-            
+            w = [redContrast,greenContrast,blueContrast] .* obj.ledMeans;
             
             % Loop through the LEDs and set the weights.
             for k = 1 : length(obj.ledNames)
