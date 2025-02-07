@@ -17,7 +17,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         tailTime    = 250           % Tail time in ms
         imagesPerEpoch = 100        % Number of images to flash on each epoch
         fileFolder = 'flashImages'; % Folder in path containing images.
-        backgroundIntensity = 0.5;  % 0 - 1 (corresponds to image intensities in folder)
+        backgroundIntensity = 0.45; % 0 - 1 (corresponds to image intensities in folder)
         randomize = true;           % Whether to randomize the order of images shown
         onlineAnalysis = 'none'     % Type of online analysis
         numberOfAverages = uint16(20) % Number of epochs to queue
@@ -41,7 +41,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         directory
         totalRuns
         image_name
-        seed
+        magnificationFactor
     end
 
     methods
@@ -82,7 +82,6 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             
             if obj.randomize
                 obj.sequence = zeros(1,obj.numberOfAverages*obj.imagesPerEpoch);
-%                 seq = (1:size(obj.imagePaths,1));
                 for ii = 1 : num_reps
                     seq = randperm(size(obj.imagePaths,1));
                     obj.sequence((ii-1)*length(seq)+(1:length(seq))) = seq;
@@ -106,7 +105,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             
             % Prep to display image
             scene = stage.builtin.stimuli.Image(obj.imageMatrix{1});
-            scene.size = [canvasSize(1),canvasSize(2)];
+            scene.size = [size(obj.imageMatrix{1},2),size(obj.imageMatrix{1},1)]*obj.magnificationFactor; % Retain aspect ratio.
             scene.position = canvasSize/2;
             
             % Use linear interpolation when scaling the image
@@ -161,25 +160,24 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
                 img_name = obj.sequence(current_index + ii);
                 obj.image_name = obj.imagePaths{img_name, 1};
                 % Load the image.
-                specificImage = imread(fullfile(obj.directory, obj.image_name));
-                obj.imageMatrix{ii} = specificImage;
+                myImage = imread(fullfile(obj.directory, obj.image_name));
+                obj.imageMatrix{ii} = uint8(myImage);
                 imageName = [imageName,obj.image_name]; %#ok<AGROW>
                 if ii < obj.imagesPerEpoch
                     imageName = [imageName,',']; %#ok<AGROW>
                 end
             end
             
-            % Create the background image.
-            obj.backgroundImage = ones(size(specificImage))*obj.backgroundIntensity;
-            obj.backgroundImage = uint8(obj.backgroundImage*255);
+            % Get the magnification factor to retain aspect ratio.
+            obj.magnificationFactor = ceil( max(obj.canvasSize(2)/size(obj.imageMatrix{1},1),obj.canvasSize(1)/size(obj.imageMatrix{1},2)) );
             
-            disp(imageName)
+            % Create the background image.
+            obj.backgroundImage = ones(size(myImage))*obj.backgroundIntensity;
+            obj.backgroundImage = uint8(obj.backgroundImage*255);
             
             epoch.addParameter('imageName', imageName);
             epoch.addParameter('folder', obj.directory);
-            if obj.randomize
-                epoch.addParameter('seed', obj.seed);
-            end
+            epoch.addParameter('magnificationFactor',obj.magnificationFactor);
         end
 
         function stimTime = get.stimTime(obj)
