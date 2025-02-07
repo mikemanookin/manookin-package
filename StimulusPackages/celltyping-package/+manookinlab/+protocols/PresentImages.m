@@ -1,18 +1,26 @@
-% Loads and presents image files.
+% Loads and presents image files that are contained within a directory indicated
+% with the 'fileFolder' property.
+%
+% To determine the 'numberOfAverages' needed to present all of the images in the 
+% directory once, you would divide the number of images by the 'imagesPerEpoch'
+% property. If there are 1000 images and 'imagesPerEpoch' is 100, then the 
+% 'numberOfAverages' needed to present each image once is 1000/100 = 10.
+
+
 classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
     
     properties
-        amp % Output amplifier
-        preTime     = 250 % Pre time in ms
-        flashTime   = 100 % Time to flash each image in ms
-        gapTime     = 400 % Gap between images in ms
-        tailTime    = 250 % Tail time in ms
-        imagesPerEpoch = 10 % Number of images to flash on each epoch
+        amp                         % Output amplifier
+        preTime     = 250           % Pre time in ms
+        flashTime   = 100           % Time to flash each image in ms
+        gapTime     = 400           % Gap between images in ms
+        tailTime    = 250           % Tail time in ms
+        imagesPerEpoch = 100        % Number of images to flash on each epoch
         fileFolder = 'flashImages'; % Folder in path containing images.
-        backgroundIntensity = 0.5; % 0 - 1 (corresponds to image intensities in folder)
-        randomize = true; % whether to randomize movies shown
-        onlineAnalysis = 'none'
-        numberOfAverages = uint16(5) % number of epochs to queue
+        backgroundIntensity = 0.5;  % 0 - 1 (corresponds to image intensities in folder)
+        randomize = true;           % Whether to randomize the order of images shown
+        onlineAnalysis = 'none'     % Type of online analysis
+        numberOfAverages = uint16(20) % Number of epochs to queue
     end
 
     properties (Dependent)
