@@ -3,16 +3,20 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
     
     properties
         amp % Output amplifier
-        preTime     = 250 % in ms
-        stimTime    = 250 % in ms
-        tailTime    = 250 % in ms
-        fileFolder = 'flashImages'; % Folder in freedland-package containing videos
+        preTime     = 250 % Pre time in ms
+        flashTime   = 100 % Time to flash each image in ms
+        gapTime     = 400 % Gap between images in ms
+        tailTime    = 250 % Tail time in ms
+        imagesPerEpoch = 10 % Number of images to flash on each epoch
+        fileFolder = 'flashImages'; % Folder in path containing images.
         backgroundIntensity = 0.5; % 0 - 1 (corresponds to image intensities in folder)
         randomize = true; % whether to randomize movies shown
-        % Additional parameters
         onlineAnalysis = 'none'
         numberOfAverages = uint16(5) % number of epochs to queue
-        
+    end
+
+    properties (Dependent)
+        stimTime
     end
     
     properties (Hidden)
@@ -21,6 +25,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         sequence
         imagePaths
         imageMatrix
+        backgroundImage
         directory
         totalRuns
         image_name
@@ -41,7 +46,15 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             
             % General directory
-            obj.directory = strcat('C:\Users\Public\Documents\GitRepos\Symphony2\flashed_images\',obj.fileFolder); % General folder
+            try
+                image_dir = obj.rig.getDevice('Stage').getConfigurationSetting('local_image_directory');
+                if isempty(image_dir)
+                    image_dir = 'C:\Users\Public\Documents\GitRepos\Symphony2\flashed_images\';
+                end
+            catch
+                image_dir = 'C:\Users\Public\Documents\GitRepos\Symphony2\flashed_images\';
+            end
+            obj.directory = strcat(image_dir, obj.fileFolder); % General folder
             D = dir(obj.directory);
             
             obj.imagePaths = cell(size(D,1),1);
@@ -94,19 +107,34 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             sceneVisible = stage.builtin.controllers.PropertyController(scene, 'visible', ...
                 @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
             p.addController(sceneVisible);
+
+            % Control which image is visible.
+            objPosition = stage.builtin.controllers.PropertyController(scene, ...
+                'imageMatrix', @(state)setImage(obj, state.time - obj.preTime*1e-3));
+            % Add the controller.
+            p.addController(objPosition);
+
+            function s = setImage(obj, time)
+                s = obj.imageMatrix;
+                s = obj.backgroundImage;
+            end
         end
         
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
             img_name = obj.sequence(mod(obj.numEpochsCompleted,length(obj.sequence)) + 1);
-            obj.image_name = obj.imagePaths{img_name,1};
+            obj.image_name = obj.imagePaths{img_name, 1};
             
-            epoch.addParameter('imageName',obj.imagePaths{img_name,1});
-            epoch.addParameter('folder',obj.directory);
+            epoch.addParameter('imageName', obj.imagePaths{img_name, 1});
+            epoch.addParameter('folder', obj.directory);
             if obj.randomize
-                epoch.addParameter('seed',obj.seed);
+                epoch.addParameter('seed', obj.seed);
             end
+        end
+
+        function stimTime = get.stimTime(obj)
+            stimTime = obj.imagesPerEpoch * (obj.flashTime + obj.gapTime);
         end
 
         function tf = shouldContinuePreparingEpochs(obj)
