@@ -5,6 +5,15 @@
 % directory once, you would divide the number of images by the 'imagesPerEpoch'
 % property. If there are 1000 images and 'imagesPerEpoch' is 100, then the 
 % 'numberOfAverages' needed to present each image once is 1000/100 = 10.
+%
+% Analysis note:
+% Because we are presenting multiple images per epoch, the epoch property imageName 
+% that saves the image presented is now a list of all images presented in the correct 
+% order with each image delimited by a comma. This should make analyzing the data 
+% straightforward.
+%
+% Also, there is a magnificationFactor property that records the degree to which the
+% images were scaled in order to fill the screen.
 
 
 classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
