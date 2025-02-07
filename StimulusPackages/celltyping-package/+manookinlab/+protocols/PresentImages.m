@@ -1,4 +1,4 @@
-% Loads images for MEA
+% Loads and presents image files.
 classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
     
     properties
@@ -17,6 +17,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
 
     properties (Dependent)
         stimTime
+    end
+    
+    properties (Dependent, SetAccess = private)
+        amp2                            % Secondary amplifier
     end
     
     properties (Hidden)
@@ -40,10 +44,11 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         end
 
         function prepareRun(obj)
-
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
 
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            if ~obj.isMeaRig
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            end
             
             % General directory
             try
@@ -65,16 +70,16 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             end
             obj.imagePaths = obj.imagePaths(~cellfun(@isempty, obj.imagePaths(:,1)), :);
             
-            num_reps = ceil(double(obj.numberOfAverages)/size(obj.imagePaths,1));
+            num_reps = ceil(double(obj.numberOfAverages)/size(obj.imagePaths,1)*obj.imagesPerEpoch);
             
             if obj.randomize
-                obj.sequence = zeros(1,obj.numberOfAverages);
-                seq = (1:size(obj.imagePaths,1));
+                obj.sequence = zeros(1,obj.numberOfAverages*obj.imagesPerEpoch);
+%                 seq = (1:size(obj.imagePaths,1));
                 for ii = 1 : num_reps
                     seq = randperm(size(obj.imagePaths,1));
                     obj.sequence((ii-1)*length(seq)+(1:length(seq))) = seq;
                 end
-                obj.sequence = obj.sequence(1:obj.numberOfAverages);
+                obj.sequence = obj.sequence(1:obj.numberOfAverages*obj.imagesPerEpoch);
             else
                 obj.sequence = (1:size(obj.imagePaths,1))' * ones(1,num_reps);
                 obj.sequence = obj.sequence(:);
@@ -89,12 +94,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             canvasSize = obj.rig.getDevice('Stage').getCanvasSize();     
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             
-            % Rotate image
-            specificImage = imread(fullfile(obj.directory, obj.image_name));
             p.setBackgroundColor(obj.backgroundIntensity)   % Set background intensity
             
             % Prep to display image
-            scene = stage.builtin.stimuli.Image(uint8(specificImage));
+            scene = stage.builtin.stimuli.Image(obj.imageMatrix{1});
             scene.size = [canvasSize(1),canvasSize(2)];
             scene.position = canvasSize/2;
             
@@ -109,24 +112,62 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             p.addController(sceneVisible);
 
             % Control which image is visible.
-            objPosition = stage.builtin.controllers.PropertyController(scene, ...
+            imgValue = stage.builtin.controllers.PropertyController(scene, ...
                 'imageMatrix', @(state)setImage(obj, state.time - obj.preTime*1e-3));
             % Add the controller.
-            p.addController(objPosition);
+            p.addController(imgValue);
 
             function s = setImage(obj, time)
-                s = obj.imageMatrix;
-                s = obj.backgroundImage;
+                img_index = floor( time / ((obj.flashTime+obj.gapTime)*1e-3) ) + 1;
+                if img_index < 1 || img_index > obj.imagesPerEpoch
+                    s = obj.backgroundImage;
+                elseif (time >= ((obj.flashTime+obj.gapTime)*1e-3)*(img_index-1)) && (time <= (((obj.flashTime+obj.gapTime)*1e-3)*(img_index-1)+obj.flashTime*1e-3))
+                    s = obj.imageMatrix{img_index};
+                else
+                    s = obj.backgroundImage;
+                end
             end
         end
         
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
-            img_name = obj.sequence(mod(obj.numEpochsCompleted,length(obj.sequence)) + 1);
-            obj.image_name = obj.imagePaths{img_name, 1};
+            % Remove the Amp responses if it's an MEA rig.
+            if obj.isMeaRig
+                amps = obj.rig.getDevices('Amp');
+                for ii = 1:numel(amps)
+                    if epoch.hasResponse(amps{ii})
+                        epoch.removeResponse(amps{ii});
+                    end
+                    if epoch.hasStimulus(amps{ii})
+                        epoch.removeStimulus(amps{ii});
+                    end
+                end
+            end
             
-            epoch.addParameter('imageName', obj.imagePaths{img_name, 1});
+            current_index = mod(obj.numEpochsCompleted*obj.imagesPerEpoch,length(obj.sequence));
+            % Load the images.
+            obj.imageMatrix = cell(1, obj.imagesPerEpoch);
+            imageName = ''; % Concatenate the image names separated by a comma.
+            for ii = 1 : obj.imagesPerEpoch
+                img_name = obj.sequence(current_index + ii);
+                obj.image_name = obj.imagePaths{img_name, 1};
+                % Load the image.
+                specificImage = imread(fullfile(obj.directory, obj.image_name));
+                obj.imageMatrix{ii} = specificImage;
+                imageName = [imageName,obj.image_name]; %#ok<AGROW>
+                if ii < obj.imagesPerEpoch
+                    imageName = [imageName,',']; %#ok<AGROW>
+                end
+            end
+            
+            % Create the background image.
+            obj.backgroundImage = ones(size(specificImage))*obj.backgroundIntensity;
+            obj.backgroundImage = uint8(obj.backgroundImage*255);
+            
+            disp(imageName)
+            
+            epoch.addParameter('imageName', imageName);
             epoch.addParameter('folder', obj.directory);
             if obj.randomize
                 epoch.addParameter('seed', obj.seed);
@@ -135,6 +176,16 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
 
         function stimTime = get.stimTime(obj)
             stimTime = obj.imagesPerEpoch * (obj.flashTime + obj.gapTime);
+        end
+        
+        function a = get.amp2(obj)
+            amps = obj.rig.getDeviceNames('Amp');
+            if numel(amps) < 2
+                a = '(None)';
+            else
+                i = find(~ismember(amps, obj.amp), 1);
+                a = amps{i};
+            end
         end
 
         function tf = shouldContinuePreparingEpochs(obj)
