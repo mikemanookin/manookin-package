@@ -25,7 +25,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         gapTime     = 400           % Gap between images in ms
         tailTime    = 250           % Tail time in ms
         imagesPerEpoch = 100        % Number of images to flash on each epoch
-        fileFolder = 'flashImages'; % Folder in path containing images.
+        fileFolders    = 'ImageNet01,ImageNetTest' % List of folders containing the images separated by , or ;
+%         fileFolder = 'flashImages'; % Folder in path containing images.
         backgroundIntensity = 0.45; % 0 - 1 (corresponds to image intensities in folder)
         randomize = true;           % Whether to randomize the order of images shown
         onlineAnalysis = 'none'     % Type of online analysis
@@ -51,6 +52,9 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         totalRuns
         image_name
         magnificationFactor
+        folderList
+        fullImagePaths
+        validImageExtensions = {'.png','.jpg','.tif'}
     end
 
     methods
@@ -76,31 +80,77 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             catch
                 image_dir = 'C:\Users\Public\Documents\GitRepos\Symphony2\flashed_images\';
             end
-            obj.directory = strcat(image_dir, obj.fileFolder); % General folder
-            D = dir(obj.directory);
             
-            obj.imagePaths = cell(size(D,1),1);
-            for a = 1:length(D)
-                if sum(strfind(D(a).name,'.png')) > 0
-                    obj.imagePaths{a,1} = D(a).name;
+            % Get the list of file folders.
+            if isa(obj.fileFolders, 'cell')
+                obj.folderList = obj.fileFolders;
+            elseif isa(obj.fileFolders, 'char')
+                if ~isempty(strfind(obj.fileFolders,';'))
+                    obj.folderList = strsplit(obj.fileFolders,';');
+                elseif ~isempty(strfind(obj.fileFolders,','))
+                    obj.folderList = strsplit(obj.fileFolders,',');
+                else
+                    obj.folderList = { obj.fileFolders };
+                end
+            else % Need to throw an error here...
+            end
+            
+            % Loop through each of the folders and get the images.
+            obj.fullImagePaths = {};
+            imageCount = 0;
+            for ii = 1 : length(obj.folderList)
+                fileFolder = obj.folderList{ii};
+                current_directory = fullfile(image_dir, fileFolder);
+                dir_contents = dir(current_directory);
+                for jj = 1 : length(dir_contents)
+                    for kk = 1 : length( obj.validImageExtensions )
+                        if ~isempty(strfind(dir_contents(jj).name, obj.validImageExtensions{kk}))
+                            imageCount = imageCount + 1;
+                            obj.fullImagePaths = [obj.fullImagePaths, fullfile(current_directory,dir_contents(jj).name)];
+                        end
+                    end
                 end
             end
-            obj.imagePaths = obj.imagePaths(~cellfun(@isempty, obj.imagePaths(:,1)), :);
             
-            num_reps = ceil(double(obj.numberOfAverages)/size(obj.imagePaths,1)*obj.imagesPerEpoch);
+            num_reps = ceil(double(obj.numberOfAverages)/size(obj.fullImagePaths,1)*obj.imagesPerEpoch);
             
             if obj.randomize
                 obj.sequence = zeros(1,obj.numberOfAverages*obj.imagesPerEpoch);
                 for ii = 1 : num_reps
-                    seq = randperm(size(obj.imagePaths,1));
+                    seq = randperm(length(obj.fullImagePaths));
                     obj.sequence((ii-1)*length(seq)+(1:length(seq))) = seq;
                 end
                 obj.sequence = obj.sequence(1:obj.numberOfAverages*obj.imagesPerEpoch);
             else
-                obj.sequence = (1:size(obj.imagePaths,1))' * ones(1,num_reps);
-                obj.sequence = obj.sequence(:);
+                obj.sequence = (1:length(obj.fullImagePaths))' * ones(1,num_reps);
+                obj.sequence = obj.sequence(:)';
             end
             
+%             fileFolder = obj.fileFolders{1};
+%             obj.directory = strcat(image_dir, fileFolder); % General folder
+%             D = dir(obj.directory);
+            
+%             obj.imagePaths = cell(size(D,1),1);
+%             for a = 1:length(D)
+%                 if sum(strfind(D(a).name,'.png')) > 0
+%                     obj.imagePaths{a,1} = D(a).name;
+%                 end
+%             end
+%             obj.imagePaths = obj.imagePaths(~cellfun(@isempty, obj.imagePaths(:,1)), :);
+%             
+%             num_reps = ceil(double(obj.numberOfAverages)/size(obj.imagePaths,1)*obj.imagesPerEpoch);
+%             
+%             if obj.randomize
+%                 obj.sequence = zeros(1,obj.numberOfAverages*obj.imagesPerEpoch);
+%                 for ii = 1 : num_reps
+%                     seq = randperm(size(obj.imagePaths,1));
+%                     obj.sequence((ii-1)*length(seq)+(1:length(seq))) = seq;
+%                 end
+%                 obj.sequence = obj.sequence(1:obj.numberOfAverages*obj.imagesPerEpoch);
+%             else
+%                 obj.sequence = (1:size(obj.imagePaths,1))' * ones(1,num_reps);
+%                 obj.sequence = obj.sequence(:);
+%             end
         end
 
         
@@ -164,16 +214,22 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             current_index = mod(obj.numEpochsCompleted*obj.imagesPerEpoch,length(obj.sequence));
             % Load the images.
             obj.imageMatrix = cell(1, obj.imagesPerEpoch);
+            folderName = '';
             imageName = ''; % Concatenate the image names separated by a comma.
             for ii = 1 : obj.imagesPerEpoch
-                img_name = obj.sequence(current_index + ii);
-                obj.image_name = obj.imagePaths{img_name, 1};
+                img_index = obj.sequence(current_index + ii);
+                s = strsplit(obj.fullImagePaths{img_index}, filesep);
+                obj.image_name = s{end};
+%                 obj.image_name = obj.imagePaths{img_index, 1};
                 % Load the image.
-                myImage = imread(fullfile(obj.directory, obj.image_name));
+                myImage = imread(obj.fullImagePaths{img_index});
+%                 myImage = imread(fullfile(obj.directory, obj.image_name));
                 obj.imageMatrix{ii} = uint8(myImage);
-                imageName = [imageName,obj.image_name]; %#ok<AGROW>
+                folderName = [folderName, s{end-1}]; %#ok<AGROW>
+                imageName = [imageName, obj.image_name]; %#ok<AGROW>
                 if ii < obj.imagesPerEpoch
-                    imageName = [imageName,',']; %#ok<AGROW>
+                    folderName = [folderName, ',']; %#ok<AGROW>
+                    imageName = [imageName, ',']; %#ok<AGROW>
                 end
             end
             
@@ -184,9 +240,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.backgroundImage = ones(size(myImage))*obj.backgroundIntensity;
             obj.backgroundImage = uint8(obj.backgroundImage*255);
             
+            epoch.addParameter('folder', folderName);
             epoch.addParameter('imageName', imageName);
-            epoch.addParameter('folder', obj.directory);
-            epoch.addParameter('magnificationFactor',obj.magnificationFactor);
+%             epoch.addParameter('folder', obj.directory);
+            epoch.addParameter('magnificationFactor', obj.magnificationFactor);
         end
 
         function stimTime = get.stimTime(obj)
