@@ -24,13 +24,12 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         flashTime   = 100           % Time to flash each image in ms
         gapTime     = 400           % Gap between images in ms
         tailTime    = 250           % Tail time in ms
-        imagesPerEpoch = 100        % Number of images to flash on each epoch
+        imagesPerEpoch = 115        % Number of images to flash on each epoch
         fileFolders    = 'ImageNet01,ImageNetTest' % List of folders containing the images separated by , or ;
-%         fileFolder = 'flashImages'; % Folder in path containing images.
         backgroundIntensity = 0.45; % 0 - 1 (corresponds to image intensities in folder)
         randomize = true;           % Whether to randomize the order of images shown
         onlineAnalysis = 'none'     % Type of online analysis
-        numberOfAverages = uint16(20) % Number of epochs to queue
+        numberOfAverages = uint16(10) % Number of epochs to queue
     end
 
     properties (Dependent)
@@ -54,7 +53,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         magnificationFactor
         folderList
         fullImagePaths
-        validImageExtensions = {'.png','.jpg','.tif'}
+        validImageExtensions = {'.png','.jpg','.jpeg','.tif','.tiff'}
     end
 
     methods
@@ -98,64 +97,50 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             % Loop through each of the folders and get the images.
             obj.fullImagePaths = {};
             imageCount = 0;
+            imagesPerDir = zeros(1,length(obj.folderList));
             for ii = 1 : length(obj.folderList)
                 fileFolder = obj.folderList{ii};
                 current_directory = fullfile(image_dir, fileFolder);
                 dir_contents = dir(current_directory);
+                imageDirCount=0;
                 for jj = 1 : length(dir_contents)
                     for kk = 1 : length( obj.validImageExtensions )
                         if ~isempty(strfind(dir_contents(jj).name, obj.validImageExtensions{kk}))
                             imageCount = imageCount + 1;
+                            imageDirCount = imageDirCount + 1;
                             obj.fullImagePaths = [obj.fullImagePaths, fullfile(current_directory,dir_contents(jj).name)];
                         end
                     end
                 end
+                imagesPerDir(ii) = imageDirCount;
             end
-            
+            % Get the numbrer of repetitions per image.
             num_reps = ceil(double(obj.numberOfAverages)/size(obj.fullImagePaths,1)*obj.imagesPerEpoch);
             
+            % Make sure that you get through every image in the folder
+            % before moving on to the next one, even if randomizing order.
             if obj.randomize
-                obj.sequence = zeros(1,obj.numberOfAverages*obj.imagesPerEpoch);
+                obj.sequence = []; %zeros(1,obj.numberOfAverages*obj.imagesPerEpoch);
                 for ii = 1 : num_reps
-                    seq = randperm(length(obj.fullImagePaths));
-                    obj.sequence((ii-1)*length(seq)+(1:length(seq))) = seq;
+                    for jj = 1 : length(obj.folderList)
+                        if jj > 1
+                            count_offset = cumsum(imagesPerDir(1:jj-1));
+                        else
+                            count_offset = 0;
+                        end
+                        seq = randperm(imagesPerDir(jj)) + count_offset;
+                        obj.sequence = [obj.sequence, seq];
+                    end
                 end
                 obj.sequence = obj.sequence(1:obj.numberOfAverages*obj.imagesPerEpoch);
             else
                 obj.sequence = (1:length(obj.fullImagePaths))' * ones(1,num_reps);
                 obj.sequence = obj.sequence(:)';
             end
-            
-%             fileFolder = obj.fileFolders{1};
-%             obj.directory = strcat(image_dir, fileFolder); % General folder
-%             D = dir(obj.directory);
-            
-%             obj.imagePaths = cell(size(D,1),1);
-%             for a = 1:length(D)
-%                 if sum(strfind(D(a).name,'.png')) > 0
-%                     obj.imagePaths{a,1} = D(a).name;
-%                 end
-%             end
-%             obj.imagePaths = obj.imagePaths(~cellfun(@isempty, obj.imagePaths(:,1)), :);
-%             
-%             num_reps = ceil(double(obj.numberOfAverages)/size(obj.imagePaths,1)*obj.imagesPerEpoch);
-%             
-%             if obj.randomize
-%                 obj.sequence = zeros(1,obj.numberOfAverages*obj.imagesPerEpoch);
-%                 for ii = 1 : num_reps
-%                     seq = randperm(size(obj.imagePaths,1));
-%                     obj.sequence((ii-1)*length(seq)+(1:length(seq))) = seq;
-%                 end
-%                 obj.sequence = obj.sequence(1:obj.numberOfAverages*obj.imagesPerEpoch);
-%             else
-%                 obj.sequence = (1:size(obj.imagePaths,1))' * ones(1,num_reps);
-%                 obj.sequence = obj.sequence(:);
-%             end
         end
 
         
         function p = createPresentation(obj)
-            
             % Stage presets
             canvasSize = obj.rig.getDevice('Stage').getCanvasSize();     
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
