@@ -124,7 +124,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
                 for ii = 1 : num_reps
                     for jj = 1 : length(obj.folderList)
                         if jj > 1
-                            count_offset = cumsum(imagesPerDir(1:jj-1));
+                            count_offset = sum(imagesPerDir(1:jj-1));
                         else
                             count_offset = 0;
                         end
