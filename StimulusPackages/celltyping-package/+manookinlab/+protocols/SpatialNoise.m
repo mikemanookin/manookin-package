@@ -2,8 +2,8 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Noise leading duration (ms)
-        uniqueTime = 135000             % Duration of unique noise sequence (ms)
-        repeatTime = 15000              % Duration of repeating sequence at end of epoch (ms)
+        uniqueTime = 160000             % Duration of unique noise sequence (ms)
+        repeatTime = 20000              % Duration of repeating sequence at end of epoch (ms)
         tailTime = 250                  % Noise trailing duration (ms)
         contrast = 1
         stixelSizes = [90,90]           % Edge length of stixel (microns)
@@ -12,6 +12,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
         filterSdStixels = 1.0           % Gaussian filter standard dev in stixels.
         backgroundIntensity = 0.5       % Background light intensity (0-1)
         frameDwells = uint16([1,1])     % Frame dwell.
+        randomSeedSequence = 'every 2 epochs' % Determines how many epochs between updates to noise seed.
         chromaticClass = 'BY'   % Chromatic type
         onlineAnalysis = 'none'
         numberOfAverages = uint16(20)  % Number of epochs
@@ -27,6 +28,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY','B','Y','S-iso','LM-iso'})
         stixelSizesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         frameDwellsType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        randomSeedSequenceType = symphonyui.core.PropertyType('char','row',{'every epoch','every 2 epochs','every 3 epochs','repeat seed'})
         stixelSize
         stepsPerStixel
         numXStixels
@@ -346,7 +348,16 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             if obj.numEpochsCompleted == 0
                 obj.seed = RandStream.shuffleSeed;
             else
-                obj.seed = obj.seed + 1;
+                switch randomSeedSequence
+                    case 'every epoch'
+                        obj.seed = obj.seed + 1;
+                    case 'every 2 epochs'
+                        obj.seed = obj.seed + floor(obj.numEpochsCompleted/2);
+                    case 'every 3 epochs'
+                        obj.seed = obj.seed + floor(obj.numEpochsCompleted/3);
+                    case 'repeat seed'
+                        obj.seed = 1;
+                end
             end
             
             obj.stepsPerStixel = max(round(obj.stixelSize / obj.gridSize), 1);
