@@ -36,6 +36,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
         numXChecks
         numYChecks
         seed
+        start_seed
         numFrames
         stixelSizePix
         stixelShiftPix
@@ -346,15 +347,16 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Deal with the seed.
             if obj.numEpochsCompleted == 0
-                obj.seed = RandStream.shuffleSeed;
+                obj.start_seed = RandStream.shuffleSeed;
+                obj.seed = obj.start_seed;
             else
-                switch randomSeedSequence
+                switch obj.randomSeedSequence
                     case 'every epoch'
-                        obj.seed = obj.seed + 1;
+                        obj.seed = obj.start_seed + 1;
                     case 'every 2 epochs'
-                        obj.seed = obj.seed + floor(obj.numEpochsCompleted/2);
+                        obj.seed = obj.start_seed + floor(obj.numEpochsCompleted/2);
                     case 'every 3 epochs'
-                        obj.seed = obj.seed + floor(obj.numEpochsCompleted/3);
+                        obj.seed = obj.start_seed + floor(obj.numEpochsCompleted/3);
                     case 'repeat seed'
                         obj.seed = 1;
                 end
@@ -383,6 +385,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.positionStreamRep = RandStream('mt19937ar', 'Seed', 1);
              
             epoch.addParameter('seed', obj.seed);
+            disp(['seed ', num2str(obj.seed)]);
             epoch.addParameter('repeating_seed',1);
             epoch.addParameter('numXChecks', obj.numXChecks);
             epoch.addParameter('numYChecks', obj.numYChecks);
