@@ -54,6 +54,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         folderList
         fullImagePaths
         validImageExtensions = {'.png','.jpg','.jpeg','.tif','.tiff'}
+        flashFrames
+        gapFrames
     end
 
     methods
@@ -69,6 +71,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             if ~obj.isMeaRig
                 obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             end
+            
+            % Calcualate the number of flash and gap frames.
+            obj.flashFrames = round(obj.flashTime * 1e-3 * 60);
+            obj.gapFrames = round(obj.gapTime * 1e-3 * 60);
             
             % General directory
             try
@@ -163,16 +169,31 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             p.addController(sceneVisible);
 
             % Control which image is visible.
+%             imgValue = stage.builtin.controllers.PropertyController(scene, ...
+%                 'imageMatrix', @(state)setImage(obj, state.time - obj.preTime*1e-3));
+            preF = floor(obj.preTime*1e-3 * 60);
             imgValue = stage.builtin.controllers.PropertyController(scene, ...
-                'imageMatrix', @(state)setImage(obj, state.time - obj.preTime*1e-3));
+                'imageMatrix', @(state)setImage(obj, state.frame - preF));
             % Add the controller.
             p.addController(imgValue);
 
-            function s = setImage(obj, time)
-                img_index = floor( time / ((obj.flashTime+obj.gapTime)*1e-3) ) + 1;
+%             function s = setImage(obj, time)
+%                 img_index = floor( time / ((obj.flashTime+obj.gapTime)*1e-3) ) + 1;
+%                 if img_index < 1 || img_index > obj.imagesPerEpoch
+%                     s = obj.backgroundImage;
+%                 elseif (time >= ((obj.flashTime+obj.gapTime)*1e-3)*(img_index-1)) && (time <= (((obj.flashTime+obj.gapTime)*1e-3)*(img_index-1)+obj.flashTime*1e-3))
+%                     s = obj.imageMatrix{img_index};
+%                 else
+%                     s = obj.backgroundImage;
+%                 end
+%             end
+            
+            function s = setImage(obj, frame)
+                img_index = floor( frame / (obj.flashFrames+obj.gapFrames) ) + 1;
+%                 img_index = floor( time / ((obj.flashTime+obj.gapTime)*1e-3) ) + 1;
                 if img_index < 1 || img_index > obj.imagesPerEpoch
                     s = obj.backgroundImage;
-                elseif (time >= ((obj.flashTime+obj.gapTime)*1e-3)*(img_index-1)) && (time <= (((obj.flashTime+obj.gapTime)*1e-3)*(img_index-1)+obj.flashTime*1e-3))
+                elseif (frame >= (obj.flashFrames+obj.gapFrames)*(img_index-1)) && (frame <= ((obj.flashFrames+obj.gapFrames)*(img_index-1)+obj.flashFrames))
                     s = obj.imageMatrix{img_index};
                 else
                     s = obj.backgroundImage;
@@ -229,6 +250,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('imageName', imageName);
 %             epoch.addParameter('folder', obj.directory);
             epoch.addParameter('magnificationFactor', obj.magnificationFactor);
+            epoch.addParameter('flashFrames', obj.flashFrames);
+            epoch.addParameter('gapFrames', obj.gapFrames);
         end
 
         function stimTime = get.stimTime(obj)
