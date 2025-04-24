@@ -25,6 +25,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         gapTime     = 400           % Gap between images in ms
         tailTime    = 250           % Tail time in ms
         imagesPerEpoch = 115        % Number of images to flash on each epoch
+        scaleToScreenSize = true    % Boolean scale to the screen size
+        pixelSize = 1.0             % Pixel size in microns (used if scaleToScreenSize is false)
         fileFolders    = 'ImageNet01,ImageNetTest' % List of folders containing the images separated by , or ;
         backgroundIntensity = 0.45; % 0 - 1 (corresponds to image intensities in folder)
         randomize = true;           % Whether to randomize the order of images shown
@@ -56,6 +58,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         validImageExtensions = {'.png','.jpg','.jpeg','.tif','.tiff'}
         flashFrames
         gapFrames
+        magnificationFactor
     end
 
     methods
@@ -240,7 +243,11 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Get the magnification factor to retain aspect ratio.
-            obj.magnificationFactor = ceil( max(obj.canvasSize(2)/size(obj.imageMatrix{1},1),obj.canvasSize(1)/size(obj.imageMatrix{1},2)) );
+            if obj.scaleToScreenSize
+                obj.magnificationFactor = ceil( max(obj.canvasSize(2)/size(obj.imageMatrix{1},1),obj.canvasSize(1)/size(obj.imageMatrix{1},2)) );
+            else
+                obj.magnificationFactor = obj.pixelSize / obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel');
+            end
             
             % Create the background image.
             obj.backgroundImage = ones(size(myImage))*obj.backgroundIntensity;
