@@ -58,7 +58,6 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         validImageExtensions = {'.png','.jpg','.jpeg','.tif','.tiff'}
         flashFrames
         gapFrames
-        magnificationFactor
     end
 
     methods
