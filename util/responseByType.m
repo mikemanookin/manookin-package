@@ -62,6 +62,7 @@ switch onlineAnalysis
         else
             leak = median(response);
         end
+        leak=0;
         response = response - leak;
         
         % Check for 60 cycle noise.

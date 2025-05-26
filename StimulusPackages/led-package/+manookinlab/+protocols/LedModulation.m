@@ -55,7 +55,7 @@ classdef LedModulation < edu.washington.riekelab.protocols.RiekeLabProtocol
         
         function p = getPreview(obj, panel)
             p = symphonyui.builtin.previews.StimuliPreview(panel, @()obj.createLedStimulus(...
-                'Green LED', 1.0, 1.0));
+                'Green LED', 0.5, 0.5));
         end
         
         function prepareRun(obj)
