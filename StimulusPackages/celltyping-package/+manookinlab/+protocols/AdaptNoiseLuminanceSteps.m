@@ -122,21 +122,21 @@ classdef AdaptNoiseLuminanceSteps < manookinlab.protocols.ManookinLabStageProtoc
             if ~strcmp(obj.chromaticClass,'achromatic') && isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
                 if strcmp(obj.chromaticClass,'BY')
                     imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                        @(state)setBYStixels(obj, state.frame - preF, state.time - obj.preTime*1e-3));
+                        @(state)setBYStixels(obj, state.frame - preF));
                 else
                     imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                        @(state)setRGBStixels(obj, state.frame - preF, state.time - obj.preTime*1e-3));
+                        @(state)setRGBStixels(obj, state.frame - preF));
                 end
             else
                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
-                    @(state)setStixels(obj, state.frame - preF, state.time - obj.preTime*1e-3));
+                    @(state)setStixels(obj, state.frame - preF));
             end
             p.addController(imgController);
             
             % Position controller
             if obj.stepsPerStixel > 1
                 xyController = stage.builtin.controllers.PropertyController(checkerboard, 'position',...
-                    @(state)setJitter(obj, state.frame - preF, state.time - obj.preTime*1e-3));
+                    @(state)setJitter(obj, state.frame - preF));
                 p.addController(xyController);
             end
             
@@ -199,11 +199,11 @@ classdef AdaptNoiseLuminanceSteps < manookinlab.protocols.ManookinLabStageProtoc
                 s = single(M);
             end
             
-            function p = setJitter(obj, frame, time)
+            function p = setJitter(obj, frame)
                 persistent xy;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        if time < obj.uniqueTime*1e-3
+                        if frame <= obj.unique_frames
                             xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStream.rand(1,2))) ...
                                 + obj.canvasSize / 2;
                         else
