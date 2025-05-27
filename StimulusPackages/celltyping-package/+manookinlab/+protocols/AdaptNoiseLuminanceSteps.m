@@ -225,10 +225,10 @@ classdef AdaptNoiseLuminanceSteps < manookinlab.protocols.ManookinLabStageProtoc
             gen = edu.washington.riekelab.stimuli.ProjectorGainGenerator();
             
             gen.preTime = obj.preTime;
-            gen.stimTime = obj.stimTime;
+            gen.stimTime = obj.uniqueTime + obj.repeatTime;
             gen.tailTime = obj.tailTime;
             gen.stepDuration = obj.step_duration_ms;
-            gen.gain_values = gain_values;
+            gen.gainValues = gain_values;
             gen.sampleRate = obj.sampleRate;
             gen.units = obj.rig.getDevice( 'Projector Gain' ).background.displayUnits;
             if strcmp(gen.units, symphonyui.core.Measurement.NORMALIZED)
@@ -246,17 +246,17 @@ classdef AdaptNoiseLuminanceSteps < manookinlab.protocols.ManookinLabStageProtoc
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
             % Remove the Amp responses if it's an MEA rig.
-            if obj.isMeaRig
-                amps = obj.rig.getDevices('Amp');
-                for ii = 1:numel(amps)
-                    if epoch.hasResponse(amps{ii})
-                        epoch.removeResponse(amps{ii});
-                    end
-                    if epoch.hasStimulus(amps{ii})
-                        epoch.removeStimulus(amps{ii});
-                    end
-                end
-            end
+%             if obj.isMeaRig
+%                 amps = obj.rig.getDevices('Amp');
+%                 for ii = 1:numel(amps)
+%                     if epoch.hasResponse(amps{ii})
+%                         epoch.removeResponse(amps{ii});
+%                     end
+%                     if epoch.hasStimulus(amps{ii})
+%                         epoch.removeStimulus(amps{ii});
+%                     end
+%                 end
+%             end
             
             % Get the current stixel size.
             obj.stixelSize = obj.stixelSizes(mod(obj.numEpochsCompleted, length(obj.stixelSizes))+1);
@@ -304,6 +304,8 @@ classdef AdaptNoiseLuminanceSteps < manookinlab.protocols.ManookinLabStageProtoc
             obj.mean_steps = obj.monitorMeans( mean_idx );
             % Create the gain stimulus.
             if obj.projector_gain_device
+                stim = obj.createGainStimulus( obj.gainMeans( mean_idx ) );
+                stim.duration
                 epoch.addStimulus( obj.rig.getDevice( 'Projector Gain' ), obj.createGainStimulus( obj.gainMeans( mean_idx ) ) );
             end
             
