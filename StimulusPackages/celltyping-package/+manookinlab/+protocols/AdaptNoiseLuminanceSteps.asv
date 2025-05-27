@@ -6,8 +6,8 @@ classdef AdaptNoiseLuminanceSteps < manookinlab.protocols.ManookinLabStageProtoc
         repeatTime = 0                  % Duration of repeating sequence at end of epoch (ms)
         tailTime = 250                  % Noise trailing duration (ms)
         stepDuration = 5000             % Duration series (ms)
-        monitorMeans = [0.5,0.05,0.05,0.02]
-        gainMeans = [1,1,0.1,0.025]
+        monitorMeans = [0.5,0.02]
+        gainMeans = [1,0.025]
         contrasts = [1,1]
         stixelSizes = [150,150]           % Edge length of stixel (microns)
         gridSize = 30                   % Size of underling grid
@@ -32,7 +32,6 @@ classdef AdaptNoiseLuminanceSteps < manookinlab.protocols.ManookinLabStageProtoc
         frameDwellsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         monitorMeansType = symphonyui.core.PropertyType('denserealdouble','matrix')
         gainMeansType = symphonyui.core.PropertyType('denserealdouble','matrix')
-        contrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         randomSeedSequenceType = symphonyui.core.PropertyType('char','row',{'every epoch','every 2 epochs','every 3 epochs','repeat seed'})
         stixelSize
         stepsPerStixel
@@ -148,7 +147,7 @@ classdef AdaptNoiseLuminanceSteps < manookinlab.protocols.ManookinLabStageProtoc
                     if mod(frame, obj.frameDwell) == 0
                         m_idx = min(floor(frame/obj.step_frames) + 1, length(obj.mean_steps));
                         if frame <= obj.unique_frames
-                            M = obj.contrast*(2* (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
+                            M = obj.contrast*(2* (obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
                         else
                             M = obj.contrast*(2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
                         end
