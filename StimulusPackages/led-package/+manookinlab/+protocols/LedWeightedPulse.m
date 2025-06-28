@@ -7,9 +7,9 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
         stimTime = 500                  % Pulse duration (ms)
         tailTime = 1500                 % Pulse trailing duration (ms)
         ledMeans = [0.5,0.5,0.5]        % RGB LED background mean (V or norm. [0-1] depending on LED units)
-        redContrasts = [0.19,0.19,1]
-        greenContrasts = [-0.69,-0.6,1]
-        blueContrasts = [1.0,1.0,0.0]
+        firstContrasts = [0.19,0.19,1]
+        secondContrasts = [-0.69,-0.6,1]
+        thirdContrasts = [1.0,1.0,0.0]
         amp                             % Input amplifier
     end
     
@@ -26,10 +26,10 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
         ledType
         ampType
         ledMeansType = symphonyui.core.PropertyType('denserealdouble','matrix')
-        redContrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
-        greenContrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
-        blueContrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
-        ledNames = {'Red','Green','Blue'};
+        firstContrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        secondContrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        thirdContrastsType = symphonyui.core.PropertyType('denserealdouble','matrix')
+        ledNames = {};
     end
     
     methods
@@ -52,7 +52,7 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
         
         function p = getPreview(obj, panel)
             p = symphonyui.builtin.previews.StimuliPreview(panel, @()obj.createLedStimulus(...
-                'Green LED', 0.5, 0.5));
+                obj.ledType{1}, 0.5, 0.5));
         end
         
         function prepareRun(obj)
@@ -75,7 +75,8 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
             end
 %             
             % Loop through the LEDs and set the mean.
-            for k = 1 : length(obj.ledNames)
+            obj.ledNames = cell(1,length(obj.ledType));
+            for k = 1 : length(obj.ledType)
                 idx = [];
                 for m = 1 : length(obj.ledType)
                     if ~isempty(strfind(obj.ledType{m},obj.ledNames{k}))
@@ -83,11 +84,22 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
                     end
                 end
                 
-                if ~isempty(idx)
-                    device = obj.rig.getDevice(obj.ledType{idx});
-                    device.background = symphonyui.core.Measurement(obj.ledMeans(k), device.background.displayUnits);
-                end
+                device = obj.rig.getDevice(obj.ledType{k});
+                device.background = symphonyui.core.Measurement(obj.ledMeans(k), device.background.displayUnits);
             end
+%             for k = 1 : length(obj.ledNames)
+%                 idx = [];
+%                 for m = 1 : length(obj.ledType)
+%                     if ~isempty(strfind(obj.ledType{m},obj.ledNames{k}))
+%                         idx = m;
+%                     end
+%                 end
+%                 
+%                 if ~isempty(idx)
+%                     device = obj.rig.getDevice(obj.ledType{idx});
+%                     device.background = symphonyui.core.Measurement(obj.ledMeans(k), device.background.displayUnits);
+%                 end
+%             end
         end
         
         function stim = createLedStimulus(obj, led, lightMean, lightAmplitude)
@@ -108,30 +120,29 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
             prepareEpoch@edu.washington.riekelab.protocols.RiekeLabProtocol(obj, epoch);
             
             % Get the LED contrasts.
-            redContrast = obj.redContrasts(mod(obj.numEpochsPrepared - 1,length(obj.redContrasts))+1);
-            greenContrast = obj.greenContrasts(mod(obj.numEpochsPrepared - 1,length(obj.greenContrasts))+1);
-            blueContrast = obj.blueContrasts(mod(obj.numEpochsPrepared - 1,length(obj.blueContrasts))+1);
-            epoch.addParameter('redContrast',redContrast);
-            epoch.addParameter('greenContrast',greenContrast);
-            epoch.addParameter('blueContrast',blueContrast);
-            w = [redContrast,greenContrast,blueContrast] .* obj.ledMeans;
+            firstContrast = obj.firstContrasts(mod(obj.numEpochsPrepared - 1,length(obj.firstContrasts))+1);
+            secondContrast = obj.secondContrasts(mod(obj.numEpochsPrepared - 1,length(obj.secondContrasts))+1);
+            thirdContrast = obj.thirdContrasts(mod(obj.numEpochsPrepared - 1,length(obj.thirdContrasts))+1);
+            for k = 1 : length(obj.ledType)
+                ledName = obj.ledType{k};
+                ledName = [strrep(ledName,' ',''),'Contrast'];
+                if k==1
+                    epoch.addParameter(ledName,firstContrast);
+                elseif k==2
+                    epoch.addParameter(ledName,secondContrast);
+                else
+                    epoch.addParameter(ledName,thirdContrast);
+                end
+            end
+            w = [firstContrast,secondContrast,thirdContrast] .* obj.ledMeans;
             
             % Loop through the LEDs and set the weights.
-            for k = 1 : length(obj.ledNames)
-                idx = [];
-                for m = 1 : length(obj.ledType)
-                    if ~isempty(strfind(obj.ledType{m},obj.ledNames{k}))
-                        idx = m;
-                    end
-                end
-                
-                if ~isempty(idx)
-                    % Add the stimulus to the LED.
-                    epoch.addStimulus(obj.rig.getDevice(obj.ledType{idx}),...
-                        obj.createLedStimulus(obj.ledType{idx},...
-                        obj.ledMeans(k),...
-                        w(k)));
-                end
+            for k = 1 : length(obj.ledType)
+                % Add the stimulus to the LED.
+                epoch.addStimulus(obj.rig.getDevice(obj.ledType{k}),...
+                    obj.createLedStimulus(obj.ledType{k},...
+                    obj.ledMeans(k),...
+                    w(k)));
             end
             
             epoch.addResponse(obj.rig.getDevice(obj.amp));
@@ -145,18 +156,9 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
             prepareInterval@edu.washington.riekelab.protocols.RiekeLabProtocol(obj, interval);
             
              % Loop through the LEDs and set the mean.
-            for k = 1 : length(obj.ledNames)
-                idx = [];
-                for m = 1 : length(obj.ledType)
-                    if ~isempty(strfind(obj.ledType{m},obj.ledNames{k}))
-                        idx = m;
-                    end
-                end
-                
-                if ~isempty(idx)
-                    device = obj.rig.getDevice(obj.ledType{idx});
-                    interval.addDirectCurrentStimulus(device, device.background, obj.interpulseInterval, obj.sampleRate);
-                end
+            for k = 1 : length(obj.ledType)
+                device = obj.rig.getDevice(obj.ledType{k});
+                interval.addDirectCurrentStimulus(device, device.background, obj.interpulseInterval, obj.sampleRate);
             end
         end
         
