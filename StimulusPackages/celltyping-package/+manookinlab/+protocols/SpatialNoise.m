@@ -180,8 +180,13 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Position controller
             if obj.stepsPerStixel > 1
-                xyController = stage.builtin.controllers.PropertyController(checkerboard, 'position',...
-                    @(state)setJitter(obj, state.frame - preF));
+                if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter')) % Pattern mode
+                    xyController = stage.builtin.controllers.PropertyController(checkerboard, 'position',...
+                        @(state)setJitterPatternMode(obj, state.time - obj.preTime*1e-3));
+                else
+                    xyController = stage.builtin.controllers.PropertyController(checkerboard, 'position',...
+                        @(state)setJitter(obj, state.frame - preF));
+                end
                 p.addController(xyController);
             end
             
@@ -311,6 +316,21 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                             xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStreamRep.rand(1,2))) ...
                                 + obj.canvasSize / 2;
                         end
+                    end
+                else
+                    xy = obj.canvasSize / 2;
+                end
+                p = xy;
+            end
+
+            function p = setJitterPatternMode(obj, time)
+                if time > 0
+                    if time <= obj.uniqueTime
+                        xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStream.rand(1,2))) ...
+                            + obj.canvasSize / 2;
+                    else
+                        xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStreamRep.rand(1,2))) ...
+                            + obj.canvasSize / 2;
                     end
                 else
                     xy = obj.canvasSize / 2;
