@@ -1,16 +1,16 @@
-classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtocol
+classdef LoomingSpot < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp
         preTime = 250                       % Stimulus leading duration (ms)
         waitTime = 2000                     % Wait time between flashing on annulus and motion onset (ms)
         tailTime = 1000                     % Stimulus trailing duration (ms)
         contrasts = [0 -0.25 0.25 -0.5 0.5 -0.75 0.75 -1.0 1.0] % Stimulus contrasts to test (-1:1)
-        speed = 800                         % Annulus speed (um/sec)
+        speeds = [125,250,500,1000]         % Annulus speed (um/sec)
         width = 40                          % Annulus width (um)
-        minRadius = 40                      % Minimum annulus radius (um)
-        maxRadius = 120                     % Maximum annulus radius (um)
+        minRadius = 40                      % Minimum spot/annulus radius (um)
+        maxRadius = 1000                    % Maximum spot/annulus radius (um)
         backgroundIntensity = 0.5           % (0-1)
-        spatialClass = 'annulus'            % Stimulus spatial class
+        spatialClass = 'spot'               % Stimulus spatial class
         onlineAnalysis = 'extracellular'    % Online analysis type
         numberOfAverages = uint16(144)      % number of epochs to queue
     end
@@ -24,6 +24,7 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthreshold', 'analog'})
         spatialClassType = symphonyui.core.PropertyType('char', 'row', {'annulus','spot','grating'})
         contrastsType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
+        speedsType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
         intensity
         direction
         maskRadius
@@ -31,8 +32,10 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
         stopRadius
         contrast
         sequence
+        speed
         directions
         contrastSeq
+        speedSeq
         widthPix
         minRadiusPix
         maxRadiusPix
@@ -48,30 +51,33 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
         function prepareRun(obj)
             prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
-            % Get the color sequence for plotting.
-            colors = pmkmp(length(unique(obj.contrasts))*2,'CubicYF');
-            
-            obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-            obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
-                obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
-                'sweepColor',colors,...
-                'groupBy',{'contrast','direction'});
+            if ~obj.isMeaRig
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+                if ~strcmp(obj.onlineAnalysis, 'none')
+                    % Get the color sequence for plotting.
+                    colors = pmkmp(length(unique(obj.contrasts))*2,'CubicYF');
+                    
+                    obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
+                        obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
+                        'sweepColor',colors,...
+                        'groupBy',{'contrast','direction'});
+                end
+            end
             
             % Organize the sequence parameters before you start the run.
             obj.organizeParameters();
             
             % Convert from microns to pixels.
-            device = obj.rig.getDevice('Stage');
-            obj.widthPix = device.um2pix(obj.width);
-            obj.minRadiusPix = device.um2pix(obj.minRadius);
-            obj.maxRadiusPix = device.um2pix(obj.maxRadius);
-            obj.speedPix = device.um2pix(obj.speed);
+            % device = obj.rig.getDevice('Stage');
+            obj.widthPix = obj.rig.getDevice('Stage').um2pix( obj.width );
+            obj.minRadiusPix = obj.rig.getDevice('Stage').um2pix( obj.minRadius );
+            obj.maxRadiusPix = obj.rig.getDevice('Stage').um2pix( obj.maxRadius );
         end
         
         function organizeParameters(obj)
             % Get the contrast sequence.
-            numReps = ceil(double(obj.numberOfAverages)/(length(obj.contrasts)*2));
-            obj.contrastSeq = ones(2,1) * obj.contrasts(:)';
+            numReps = ceil(double(obj.numberOfAverages)/(length(obj.contrasts)*length(obj.speeds)*2));
+            obj.contrastSeq = ones(2*length(obj.speeds),1) * obj.contrasts(:)';
             obj.contrastSeq = obj.contrastSeq(:) * ones(1, numReps);
             obj.contrastSeq = obj.contrastSeq(:)';
             
@@ -79,13 +85,20 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
             numReps = ceil(double(obj.numberOfAverages)/2);
             obj.directions = [1; -1] * ones(1, numReps);
             obj.directions = obj.directions(:)';
+
+            % Get the speed sequence.
+            numReps = ceil(double(obj.numberOfAverages)/(length(obj.speeds)*2));
+            obj.speedSeq = ones(2,1) * obj.speeds(:)';
+            obj.speedSeq = obj.speedSeq(:) * ones(1, numReps);
+            obj.speedSeq = obj.speedSeq(:)';
         end
         
         function p = createPresentation(obj)
-            canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
-            
+            % Create a presentation object.
             p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
             p.setBackgroundColor(obj.backgroundIntensity);
+
+            canvasSize = obj.rig.getDevice('Stage').getCanvasSize();
             
             spot = stage.builtin.stimuli.Ellipse();
             spot.color = obj.intensity;
@@ -141,9 +154,25 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
         
         function prepareEpoch(obj, epoch)
             prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
+
+            % Remove the Amp responses if it's an MEA rig.
+            if obj.isMeaRig
+                amps = obj.rig.getDevices('Amp');
+                for ii = 1:numel(amps)
+                    if epoch.hasResponse(amps{ii})
+                        epoch.removeResponse(amps{ii});
+                    end
+                    if epoch.hasStimulus(amps{ii})
+                        epoch.removeStimulus(amps{ii});
+                    end
+                end
+            end
             
             obj.contrast = obj.contrastSeq( obj.numEpochsCompleted+1 );
             obj.direction = obj.directions( obj.numEpochsCompleted+1 );
+            obj.speed = obj.speedSeq( obj.numEpochsCompleted+1 );
+
+            obj.speedPix = obj.rig.getDevice('Stage').um2pix( obj.speed );
             
             if obj.contrast > 0
                 if obj.direction > 0
@@ -174,9 +203,11 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
                 epoch.addParameter('direction', 'inward');
             end
             
+            % Add parameters to the epoch.
             epoch.addParameter('intensity', obj.intensity);
             epoch.addParameter('contrast', obj.contrast);
             epoch.addParameter('sequence', obj.sequence);
+            epoch.addParameter('speed', obj.speed);
             epoch.addParameter('widthPix', obj.widthPix);
             epoch.addParameter('minRadiusPix', obj.minRadiusPix);
             epoch.addParameter('maxRadiusPix', obj.maxRadiusPix);
@@ -184,7 +215,7 @@ classdef OrthoAnnulusInterleaved < manookinlab.protocols.ManookinLabStageProtoco
         end
         
         function stimTime = get.stimTime(obj)
-            stimTime = obj.waitTime + 2*ceil((obj.maxRadiusPix-obj.minRadiusPix)/obj.speedPix*1e3);
+            stimTime = obj.waitTime + 2*ceil((obj.maxRadius-obj.minRadius)/min(obj.speeds)*1e3);
         end
  
         function tf = shouldContinuePreparingEpochs(obj)
