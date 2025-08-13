@@ -85,6 +85,10 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
                 obj.time_multiple = 1.0;
             end
             
+            if ~obj.isMeaRig
+                obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
+            end
+            
             
             if obj.gaussianFilter
                 % Get the gamma ramps.
