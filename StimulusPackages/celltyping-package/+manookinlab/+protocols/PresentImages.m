@@ -222,7 +222,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         
         function mask = makeOuterMask(obj)
             mask = stage.builtin.stimuli.Rectangle();
-            mask.color = obj.backgroundRGB;
+            mask.color = obj.backgroundIntensity;
             mask.position = obj.canvasSize/2;
             mask.orientation = 0;
             mask.size = 2 * max(obj.canvasSize) * ones(1,2);
@@ -235,7 +235,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             mask = stage.builtin.stimuli.Ellipse();
             mask.radiusX = obj.innerMaskRadiusPix;
             mask.radiusY = obj.innerMaskRadiusPix;
-            mask.color = obj.backgroundRGB;
+            mask.color = obj.backgroundIntensity;
             mask.position = obj.canvasSize/2;
         end
         
