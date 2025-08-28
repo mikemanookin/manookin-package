@@ -215,7 +215,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Create the outer mask.
-            if (obj.outerMaskRadius > 0)
+            if (obj.outerMaskRadiusPix > 0)
                 p.addStimulus(obj.makeOuterMask());
             end
         end
