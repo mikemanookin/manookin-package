@@ -52,7 +52,7 @@ classdef LedWeightModulation < edu.washington.riekelab.protocols.RiekeLabProtoco
         
         function p = getPreview(obj, panel)
             p = symphonyui.builtin.previews.StimuliPreview(panel, @()obj.createLedStimulus(...
-                obj.ledType{1}, 0.5, 0.5));
+                obj.ledType{1}, obj.ledMeans(1), obj.ledContrasts(1)*obj.ledMeans(1)));
         end
         
         function prepareRun(obj)
@@ -61,11 +61,11 @@ classdef LedWeightModulation < edu.washington.riekelab.protocols.RiekeLabProtoco
             if numel(obj.rig.getDeviceNames('Amp')) < 2
                 obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
                 if ~strcmp(obj.onlineAnalysis, 'none')
-                    colors = winter(length(obj.stimulusNames));
+                    colors = zeros(1,3);
                     obj.showFigure('manookinlab.figures.MeanResponseFigure', ...
                         obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis,...
                         'sweepColor',colors,...
-                        'groupBy',{'stimulusName'});
+                        'groupBy',{});
                 end
             else
                 obj.showFigure('edu.washington.riekelab.figures.DualResponseFigure', obj.rig.getDevice(obj.amp), obj.rig.getDevice(obj.amp2));
@@ -111,7 +111,7 @@ classdef LedWeightModulation < edu.washington.riekelab.protocols.RiekeLabProtoco
                     epoch.addStimulus(obj.rig.getDevice(obj.ledType{k}),...
                         obj.createLedStimulus(obj.ledType{idx},...
                         obj.ledMeans(k),...
-                        obj.ledContrasts(k)));
+                        obj.ledContrasts(k)*obj.ledMeans(k)));
             end
             
             epoch.addResponse(obj.rig.getDevice(obj.amp));

@@ -76,14 +76,7 @@ classdef LedWeightedPulse < edu.washington.riekelab.protocols.RiekeLabProtocol
 %             
             % Loop through the LEDs and set the mean.
             obj.ledNames = cell(1,length(obj.ledType));
-            for k = 1 : length(obj.ledType)
-                idx = [];
-                for m = 1 : length(obj.ledType)
-                    if ~isempty(strfind(obj.ledType{m},obj.ledNames{k}))
-                        idx = m;
-                    end
-                end
-                
+            for k = 1 : length(obj.ledType)               
                 device = obj.rig.getDevice(obj.ledType{k});
                 device.background = symphonyui.core.Measurement(obj.ledMeans(k), device.background.displayUnits);
             end
