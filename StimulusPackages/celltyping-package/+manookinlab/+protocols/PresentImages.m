@@ -29,6 +29,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         pixelSize = 1.0             % Pixel size in microns (used if scaleToScreenSize is false)
         fileFolders    = 'ImageNet01,ImageNetTest' % List of folders containing the images separated by , or ;
         backgroundIntensity = 0.45; % 0 - 1 (corresponds to image intensities in folder)
+        innerMaskDiameter = 0       % Inner mask diameter (in microns), not used if 0.
+        outerMaskDiameter = 0       % Outer mask diameter (in microns), not used if 0.
         randomize = true;           % Whether to randomize the order of images shown
         onlineAnalysis = 'none'     % Type of online analysis
         numberOfAverages = uint16(10) % Number of epochs to queue
@@ -58,6 +60,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         validImageExtensions = {'.png','.jpg','.jpeg','.tif','.tiff'}
         flashFrames
         gapFrames
+        innerMaskRadiusPix
+        outerMaskRadiusPix
     end
 
     methods
@@ -73,6 +77,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             if ~obj.isMeaRig
                 obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
             end
+
+            % Inner and Outer masks in pixels.
+            obj.innerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.innerMaskDiameter)/2.0;
+            obj.outerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.outerMaskDiameter)/2.0;
             
             % Calcualate the number of flash and gap frames.
             obj.flashFrames = round(obj.flashTime * 1e-3 * 60);
@@ -201,6 +209,34 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
                     s = obj.backgroundImage;
                 end
             end
+            % Create the inner mask.
+            if (obj.innerMaskRadiusPix > 0)
+                p.addStimulus(obj.makeInnerMask());
+            end
+            
+            % Create the outer mask.
+            if (obj.outerMaskRadius > 0)
+                p.addStimulus(obj.makeOuterMask());
+            end
+        end
+        
+        function mask = makeOuterMask(obj)
+            mask = stage.builtin.stimuli.Rectangle();
+            mask.color = obj.backgroundRGB;
+            mask.position = obj.canvasSize/2;
+            mask.orientation = 0;
+            mask.size = 2 * max(obj.canvasSize) * ones(1,2);
+            sc = obj.outerMaskRadiusPix*2 / (2*max(obj.canvasSize));
+            m = stage.core.Mask.createCircularAperture(sc);
+            mask.setMask(m);
+        end
+        
+        function mask = makeInnerMask(obj)
+            mask = stage.builtin.stimuli.Ellipse();
+            mask.radiusX = obj.innerMaskRadiusPix;
+            mask.radiusY = obj.innerMaskRadiusPix;
+            mask.color = obj.backgroundRGB;
+            mask.position = obj.canvasSize/2;
         end
         
         function prepareEpoch(obj, epoch)
