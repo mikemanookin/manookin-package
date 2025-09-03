@@ -26,7 +26,6 @@ classdef AdaptNoiseLuminanceSteps < manookinlab.protocols.ManookinLabStageProtoc
     properties (Hidden)
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
-        noiseClassType = symphonyui.core.PropertyType('char', 'row', {'binary', 'ternary', 'gaussian'})
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY'})
         stixelSizesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         frameDwellsType = symphonyui.core.PropertyType('denserealdouble','matrix')
@@ -221,7 +220,6 @@ classdef AdaptNoiseLuminanceSteps < manookinlab.protocols.ManookinLabStageProtoc
         end
         
         function stim = createGainStimulus(obj, gain_values)
-
             gen = edu.washington.riekelab.stimuli.ProjectorGainGenerator();
             
             gen.preTime = obj.preTime;
@@ -304,8 +302,6 @@ classdef AdaptNoiseLuminanceSteps < manookinlab.protocols.ManookinLabStageProtoc
             obj.mean_steps = obj.monitorMeans( mean_idx );
             % Create the gain stimulus.
             if obj.projector_gain_device
-                stim = obj.createGainStimulus( obj.gainMeans( mean_idx ) );
-                stim.duration
                 epoch.addStimulus( obj.rig.getDevice( 'Projector Gain' ), obj.createGainStimulus( obj.gainMeans( mean_idx ) ) );
             end
             
