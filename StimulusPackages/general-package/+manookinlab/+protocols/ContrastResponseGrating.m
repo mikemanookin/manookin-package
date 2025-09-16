@@ -101,8 +101,8 @@ classdef ContrastResponseGrating < manookinlab.protocols.ManookinLabStageProtoco
             end
             
             % Calculate the cone contrasts.
-            obj.coneContrasts = coneContrast((obj.backgroundMeans(:)*ones(1,size(obj.quantalCatch,2))).*obj.quantalCatch, ...
-                obj.colorWeights, 'michaelson');
+            %obj.coneContrasts = coneContrast((obj.backgroundMeans(:)*ones(1,size(obj.quantalCatch,2))).*obj.quantalCatch, ...
+             %   obj.colorWeights, 'michaelson');
             
             % Set up the raw image.
             obj.setRawImage();
@@ -317,10 +317,10 @@ classdef ContrastResponseGrating < manookinlab.protocols.ManookinLabStageProtoco
             epoch.addParameter('backgroundMeans',obj.backgroundMeans);
             
             % Save out the cone/rod contrasts.
-            epoch.addParameter('lContrast', obj.coneContrasts(1));
-            epoch.addParameter('mContrast', obj.coneContrasts(2));
-            epoch.addParameter('sContrast', obj.coneContrasts(3));
-            epoch.addParameter('rodContrast', obj.coneContrasts(4));
+            %epoch.addParameter('lContrast', obj.coneContrasts(1));
+            %epoch.addParameter('mContrast', obj.coneContrasts(2));
+            %epoch.addParameter('sContrast', obj.coneContrasts(3));
+            %epoch.addParameter('rodContrast', obj.coneContrasts(4));
         end
         
         function tf = shouldContinuePreparingEpochs(obj)
@@ -334,5 +334,6 @@ classdef ContrastResponseGrating < manookinlab.protocols.ManookinLabStageProtoco
         
     end
 end
+
 
 
