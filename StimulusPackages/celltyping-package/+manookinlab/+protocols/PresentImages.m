@@ -121,7 +121,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
                 imageDirCount=0;
                 for jj = 1 : length(dir_contents)
                     for kk = 1 : length( obj.validImageExtensions )
-                        if ~isempty(strfind(dir_contents(jj).name, obj.validImageExtensions{kk}))
+                        if ~isempty(strfind(lower(dir_contents(jj).name), obj.validImageExtensions{kk}))
                             imageCount = imageCount + 1;
                             imageDirCount = imageDirCount + 1;
                             obj.fullImagePaths = [obj.fullImagePaths, fullfile(current_directory,dir_contents(jj).name)];
