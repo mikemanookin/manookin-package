@@ -134,28 +134,28 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             %     imagesPerDir(ii) = imageDirCount;
             % end
             % Get the numbrer of repetitions per image.
-            num_reps = ceil(double(obj.numberOfAverages)/size(obj.fullImagePaths,1)*obj.imagesPerEpoch);
-            
-            % Make sure that you get through every image in the folder
-            % before moving on to the next one, even if randomizing order.
-            if obj.randomize
-                obj.sequence = []; %zeros(1,obj.numberOfAverages*obj.imagesPerEpoch);
-                for ii = 1 : num_reps
-                    for jj = 1 : length(obj.folderList)
-                        if jj > 1
-                            count_offset = sum(obj.imagesPerDir(1:jj-1));
-                        else
-                            count_offset = 0;
-                        end
-                        seq = randperm(obj.imagesPerDir(jj)) + count_offset;
-                        obj.sequence = [obj.sequence, seq];
-                    end
-                end
-                obj.sequence = obj.sequence(1 : obj.numberOfAverages*obj.imagesPerEpoch);
-            else
-                obj.sequence = (1:length(obj.fullImagePaths))' * ones(1,num_reps);
-                obj.sequence = obj.sequence(:)';
-            end
+%             num_reps = ceil(double(obj.numberOfAverages)/size(obj.fullImagePaths,1)*obj.imagesPerEpoch);
+%             
+%             % Make sure that you get through every image in the folder
+%             % before moving on to the next one, even if randomizing order.
+%             if obj.randomize
+%                 obj.sequence = []; %zeros(1,obj.numberOfAverages*obj.imagesPerEpoch);
+%                 for ii = 1 : num_reps
+%                     for jj = 1 : length(obj.folderList)
+%                         if jj > 1
+%                             count_offset = sum(obj.imagesPerDir(1:jj-1));
+%                         else
+%                             count_offset = 0;
+%                         end
+%                         seq = randperm(obj.imagesPerDir(jj)) + count_offset;
+%                         obj.sequence = [obj.sequence, seq];
+%                     end
+%                 end
+%                 obj.sequence = obj.sequence(1 : obj.numberOfAverages*obj.imagesPerEpoch);
+%             else
+%                 obj.sequence = (1:length(obj.fullImagePaths))' * ones(1,num_reps);
+%                 obj.sequence = obj.sequence(:)';
+%             end
         end
 
         function organize_image_sequences(obj, image_dir)

@@ -1,9 +1,9 @@
-% function [path_dict,imagesPerDir] = read_images_from_dir(image_dir, folderList, validImageExtensions)
+function [path_dict,imagesPerDir] = read_images_from_dir(image_dir, folderList, validImageExtensions)
 
 
-image_dir = '/Users/michaelmanookin/Documents/PennImageDatabase/PennImages457x286';
-folderList = {'PennImages01','PennImagesTest'};
-validImageExtensions = {'.png','.jpg','.jpeg','.tif','.tiff'};
+% image_dir = '/Users/michaelmanookin/Documents/PennImageDatabase/PennImages457x286';
+% folderList = {'PennImages01','PennImagesTest'};
+% validImageExtensions = {'.png','.jpg','.jpeg','.tif','.tiff'};
 
 % Loop through each of the folders and get the images.
 % fullImagePaths = {};
@@ -45,7 +45,7 @@ for ii = 1 : length(folderList)
         for kk = 1 : length( validImageExtensions )
             % Ignore .DS_Store and Thumb images.
             if ~isempty(strfind(lower(dir_contents(jj).name), validImageExtensions{kk}))
-                imageCount = imageCount + 1;
+%                 imageCount = imageCount + 1;
                 imageDirCount = imageDirCount + 1;
                 fullImagePaths = [fullImagePaths, fullfile(current_directory,dir_contents(jj).name)]; %#ok<AGROW>
             end
