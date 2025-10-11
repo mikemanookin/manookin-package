@@ -56,6 +56,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         image_name
         magnificationFactor
         folderList
+        path_dict
+        imagesPerDir
         fullImagePaths
         validImageExtensions = {'.png','.jpg','.jpeg','.tif','.tiff'}
         flashFrames
@@ -111,25 +113,26 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Loop through each of the folders and get the images.
-            obj.fullImagePaths = {};
-            imageCount = 0;
-            imagesPerDir = zeros(1,length(obj.folderList));
-            for ii = 1 : length(obj.folderList)
-                fileFolder = obj.folderList{ii};
-                current_directory = fullfile(image_dir, fileFolder);
-                dir_contents = dir(current_directory);
-                imageDirCount=0;
-                for jj = 1 : length(dir_contents)
-                    for kk = 1 : length( obj.validImageExtensions )
-                        if ~isempty(strfind(lower(dir_contents(jj).name), obj.validImageExtensions{kk}))
-                            imageCount = imageCount + 1;
-                            imageDirCount = imageDirCount + 1;
-                            obj.fullImagePaths = [obj.fullImagePaths, fullfile(current_directory,dir_contents(jj).name)];
-                        end
-                    end
-                end
-                imagesPerDir(ii) = imageDirCount;
-            end
+            obj.organize_image_sequences(image_dir);
+            % obj.fullImagePaths = {};
+            % imageCount = 0;
+            % imagesPerDir = zeros(1,length(obj.folderList));
+            % for ii = 1 : length(obj.folderList)
+            %     fileFolder = obj.folderList{ii};
+            %     current_directory = fullfile(image_dir, fileFolder);
+            %     dir_contents = dir(current_directory);
+            %     imageDirCount=0;
+            %     for jj = 1 : length(dir_contents)
+            %         for kk = 1 : length( obj.validImageExtensions )
+            %             if ~isempty(strfind(lower(dir_contents(jj).name), obj.validImageExtensions{kk}))
+            %                 imageCount = imageCount + 1;
+            %                 imageDirCount = imageDirCount + 1;
+            %                 obj.fullImagePaths = [obj.fullImagePaths, fullfile(current_directory,dir_contents(jj).name)];
+            %             end
+            %         end
+            %     end
+            %     imagesPerDir(ii) = imageDirCount;
+            % end
             % Get the numbrer of repetitions per image.
             num_reps = ceil(double(obj.numberOfAverages)/size(obj.fullImagePaths,1)*obj.imagesPerEpoch);
             
@@ -140,18 +143,45 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
                 for ii = 1 : num_reps
                     for jj = 1 : length(obj.folderList)
                         if jj > 1
-                            count_offset = sum(imagesPerDir(1:jj-1));
+                            count_offset = sum(obj.imagesPerDir(1:jj-1));
                         else
                             count_offset = 0;
                         end
-                        seq = randperm(imagesPerDir(jj)) + count_offset;
+                        seq = randperm(obj.imagesPerDir(jj)) + count_offset;
                         obj.sequence = [obj.sequence, seq];
                     end
                 end
-                obj.sequence = obj.sequence(1:obj.numberOfAverages*obj.imagesPerEpoch);
+                obj.sequence = obj.sequence(1 : obj.numberOfAverages*obj.imagesPerEpoch);
             else
                 obj.sequence = (1:length(obj.fullImagePaths))' * ones(1,num_reps);
                 obj.sequence = obj.sequence(:)';
+            end
+        end
+
+        function organize_image_sequences(obj, image_dir)
+            [obj.path_dict, obj.imagesPerDir] = manookinlab.util.read_images_from_dir(image_dir, obj.folderList, obj.validImageExtensions);
+
+            obj.sequence = zeros(obj.numberOfAverages, obj.imagesPerEpoch);
+            for ii = 1 : obj.numberOfAverages
+                if obj.imagesPerDir(ii) >= obj.imagesPerEpoch
+                    if obj.randomize
+                        folder_seq = randperm(obj.imagesPerDir(ii));
+                    else
+                        folder_seq = 1 : obj.imagesPerEpoch;
+                    end
+                else
+                    num_reps = ceil(obj.imagesPerEpoch / obj.imagesPerDir(ii));
+                    if obj.randomize
+                        folder_seq = zeros(obj.imagesPerDir(ii),num_reps);
+                        for jj = 1 : num_reps
+                            folder_seq(:,jj) = randperm(obj.imagesPerDir(ii));
+                        end
+                    else
+                        folder_seq = (1:obj.imagesPerDir(ii))' * ones(1,num_reps);
+                    end
+                    folder_seq = folder_seq(:)';
+                end
+                obj.sequence(ii,:) = folder_seq( 1 : obj.imagesPerEpoch );
             end
         end
 
@@ -254,14 +284,18 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
                     end
                 end
             end
+
+            current_folder_index = mod(obj.numEpochsCompleted, length(obj.folderList)) + 1;
+            folderName = obj.folderList{ current_folder_index };
+            obj.fullImagePaths = obj.path_dict( folderName );
             
-            current_index = mod(obj.numEpochsCompleted*obj.imagesPerEpoch,length(obj.sequence));
+            % current_index = mod(obj.numEpochsCompleted*obj.imagesPerEpoch,length(obj.sequence));
             % Load the images.
             obj.imageMatrix = cell(1, obj.imagesPerEpoch);
             folderName = '';
             imageName = ''; % Concatenate the image names separated by a comma.
             for ii = 1 : obj.imagesPerEpoch
-                img_index = obj.sequence(current_index + ii);
+                img_index = obj.sequence(current_folder_index, ii);
                 s = strsplit(obj.fullImagePaths{img_index}, filesep);
                 obj.image_name = s{end};
 %                 obj.image_name = obj.imagePaths{img_index, 1};
