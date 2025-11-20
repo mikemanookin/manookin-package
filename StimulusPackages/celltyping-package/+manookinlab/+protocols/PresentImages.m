@@ -120,7 +120,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             [obj.path_dict, obj.imagesPerDir] = manookinlab.util.read_images_from_dir(image_dir, obj.folderList, obj.validImageExtensions);
 
             obj.sequence = zeros(obj.numberOfAverages, obj.imagesPerEpoch);
-            for ii = 1 : obj.numberOfAverages
+            for ii = 1 : length(obj.imagesPerDir)
                 if obj.imagesPerDir(ii) >= obj.imagesPerEpoch
                     if obj.randomize
                         folder_seq = randperm(obj.imagesPerDir(ii));
