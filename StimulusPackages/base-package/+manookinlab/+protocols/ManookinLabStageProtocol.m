@@ -247,6 +247,13 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
 %         function completeEpoch(obj, epoch)
 %             completeEpoch@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj, epoch);
 %             
+%             % Save the frame monitor trace.
+%             resp = epoch.getResponse(obj.rig.getDevice('Frame Monitor'));
+%             frameMonitor = resp.getData();
+%             sample_rate = obj.sampleRate;
+%             save(['C:\Users\Public\Documents\f_monitor_',num2str(sample_rate/1000),'kHz.mat'],'frameMonitor','sample_rate');
+%             
+%             
 %             % Get the frame times and frame rate and append to epoch.
 % %             [frameTimes, actualFrameRate] = obj.getFrameTimes(epoch);
 % %             epoch.addParameter('frameTimes', frameTimes);
