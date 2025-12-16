@@ -376,7 +376,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             else
                 switch obj.randomSeedSequence
                     case 'every epoch'
-                        obj.seed = obj.start_seed + 1;
+                        obj.seed = obj.start_seed + floor(obj.numEpochsCompleted);
                     case 'every 2 epochs'
                         obj.seed = obj.start_seed + floor(obj.numEpochsCompleted/2);
                     case 'every 3 epochs'
