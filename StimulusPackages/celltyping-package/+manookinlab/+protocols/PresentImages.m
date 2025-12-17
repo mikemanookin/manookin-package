@@ -171,11 +171,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             p.addController(sceneVisible);
 
             % Control which image is visible.
-%             imgValue = stage.builtin.controllers.PropertyController(scene, ...
-%                 'imageMatrix', @(state)setImage(obj, state.time - obj.preTime*1e-3));
-            preF = floor(obj.preTime*1e-3 * 60);
             imgValue = stage.builtin.controllers.PropertyController(scene, ...
-                'imageMatrix', @(state)setImage(obj, state.frame - preF));
+                'imageMatrix', @(state)setImage(obj, state.frame - obj.preFrames));
             % Add the controller.
             p.addController(imgValue);
 
