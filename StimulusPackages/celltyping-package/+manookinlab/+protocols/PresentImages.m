@@ -85,10 +85,11 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.outerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.outerMaskDiameter)/2.0;
             
             % Calcualate the number of flash and gap frames.
-            obj.preFrames = round((obj.preTime * 1e-3) * obj.expectedRefreshRate);
-            obj.flashFrames = round((obj.flashTime * 1e-3) * obj.expectedRefreshRate);
-            obj.gapFrames = round((obj.gapTime * 1e-3) * obj.expectedRefreshRate);
-            obj.tailFrames = round((obj.tailTime * 1e-3) * obj.expectedRefreshRate);
+            expectedRefreshRate = obj.rig.getDevice('Stage').getExpectedRefreshRate()
+            obj.preFrames = round((obj.preTime * 1e-3) * expectedRefreshRate);
+            obj.flashFrames = round((obj.flashTime * 1e-3) * expectedRefreshRate);
+            obj.gapFrames = round((obj.gapTime * 1e-3) * expectedRefreshRate);
+            obj.tailFrames = round((obj.tailTime * 1e-3) * expectedRefreshRate);
             obj.stimFrames = round((obj.flashFrames + obj.gapFrames) * obj.imagesPerEpoch);
             
             % General directory
