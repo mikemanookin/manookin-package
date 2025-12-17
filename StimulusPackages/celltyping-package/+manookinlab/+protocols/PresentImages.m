@@ -60,6 +60,9 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         imagesPerDir
         fullImagePaths
         validImageExtensions = {'.png','.jpg','.jpeg','.tif','.tiff'}
+        preFrames
+        tailFrames
+        stimFrames
         flashFrames
         gapFrames
         innerMaskRadiusPix
@@ -85,7 +88,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.outerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.outerMaskDiameter)/2.0;
             
             % Calcualate the number of flash and gap frames.
-            expectedRefreshRate = obj.rig.getDevice('Stage').getExpectedRefreshRate()
+            expectedRefreshRate = obj.rig.getDevice('Stage').getExpectedRefreshRate();
             obj.preFrames = round((obj.preTime * 1e-3) * expectedRefreshRate);
             obj.flashFrames = round((obj.flashTime * 1e-3) * expectedRefreshRate);
             obj.gapFrames = round((obj.gapTime * 1e-3) * expectedRefreshRate);
