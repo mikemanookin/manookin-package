@@ -60,6 +60,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         imagesPerDir
         fullImagePaths
         validImageExtensions = {'.png','.jpg','.jpeg','.tif','.tiff'}
+        expectedRefreshRate
+        preFrames
+        tailFrames
+        stimFrames
         flashFrames
         gapFrames
         innerMaskRadiusPix
@@ -85,8 +89,12 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.outerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.outerMaskDiameter)/2.0;
             
             % Calcualate the number of flash and gap frames.
-            obj.flashFrames = round(obj.flashTime * 1e-3 * 60);
-            obj.gapFrames = round(obj.gapTime * 1e-3 * 60);
+            obj.expectedRefreshRate = obj.rig.getDevice('Stage').getExpectedRefreshRate();
+            obj.preFrames = round((obj.preTime * 1e-3) * obj.expectedRefreshRate);
+            obj.flashFrames = round((obj.flashTime * 1e-3) * obj.expectedRefreshRate);
+            obj.gapFrames = round((obj.gapTime * 1e-3) * obj.expectedRefreshRate);
+            obj.tailFrames = round((obj.tailTime * 1e-3) * obj.expectedRefreshRate);
+            obj.stimFrames = round((obj.flashFrames + obj.gapFrames) * obj.imagesPerEpoch);
             
             % General directory
             try
@@ -147,7 +155,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         function p = createPresentation(obj)
             % Stage presets
             canvasSize = obj.rig.getDevice('Stage').getCanvasSize();     
-            p = stage.core.Presentation((obj.preTime + obj.stimTime + obj.tailTime) * 1e-3);
+            totalTimePerEpoch = ceil((obj.preFrames + obj.stimFrames + obj.tailFrames)/obj.expectedRefreshRate);
+            p = stage.core.Presentation(totalTimePerEpoch);
             
             p.setBackgroundColor(obj.backgroundIntensity)   % Set background intensity
             
@@ -163,15 +172,12 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             % Only allow image to be visible during specific time
             p.addStimulus(scene);
             sceneVisible = stage.builtin.controllers.PropertyController(scene, 'visible', ...
-                @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3);
+                @(state)state.frame >= obj.preFrames && state.frame < obj.preFrames + obj.stimFrames);
             p.addController(sceneVisible);
 
             % Control which image is visible.
-%             imgValue = stage.builtin.controllers.PropertyController(scene, ...
-%                 'imageMatrix', @(state)setImage(obj, state.time - obj.preTime*1e-3));
-            preF = floor(obj.preTime*1e-3 * 60);
             imgValue = stage.builtin.controllers.PropertyController(scene, ...
-                'imageMatrix', @(state)setImage(obj, state.frame - preF));
+                'imageMatrix', @(state)setImage(obj, state.frame - obj.preFrames));
             % Add the controller.
             p.addController(imgValue);
 
@@ -285,6 +291,9 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('magnificationFactor', obj.magnificationFactor);
             epoch.addParameter('flashFrames', obj.flashFrames);
             epoch.addParameter('gapFrames', obj.gapFrames);
+            epoch.addParameter('preFrames', obj.preFrames);
+            epoch.addParameter('tailFrames', obj.tailFrames);
+            epoch.addParameter('stimFrames', obj.stimFrames);
         end
 
         function stimTime = get.stimTime(obj)
