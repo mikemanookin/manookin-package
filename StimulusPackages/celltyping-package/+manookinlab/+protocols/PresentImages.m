@@ -302,7 +302,6 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             % Create the background image.
             obj.backgroundImage = ones(size(myImage))*obj.backgroundIntensity;
             obj.backgroundImage = uint8(obj.backgroundImage*255);
-            
             epoch.addParameter('folder', folderName);
             epoch.addParameter('imageName', imageName);
             disp(['Presenting images from folder: ', folderName]);
