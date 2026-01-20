@@ -136,6 +136,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
 
         for ii = 1 : nFolders
             nImgs = obj.imagesPerDir(ii);
+            assert(nImgs > 0, ['No images found in folder: ', obj.folderList{ii}]);
             
             % Compute epochs one repeat of all images would take.
             nEpochsForFolder = ceil(nImgs / obj.imagesPerEpoch);
