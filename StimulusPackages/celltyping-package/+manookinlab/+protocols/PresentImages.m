@@ -131,6 +131,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
 
         nFolders = length(obj.folderList);
         obj.sequence = cell(1, nFolders); % One cell per folder
+        disp(['Organizing image sequences for ', num2str(nFolders), ' folders.']);
 
         for ii = 1 : nFolders
             nImgs = obj.imagesPerDir(ii);
@@ -155,6 +156,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
 
             % Reshape into [nEpochsForFolder x imagesPerEpoch]
             obj.sequence{ii} = reshape(perm, nEpochsForFolder, obj.imagesPerEpoch);
+            disp(['Folder ', num2str(ii), ': ', num2str(nImgs), ' images, organized into ', num2str(nEpochsForFolder), ' epochs.']);
         end
     end
 
