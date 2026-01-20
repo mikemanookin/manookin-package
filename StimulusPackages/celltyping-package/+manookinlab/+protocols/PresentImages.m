@@ -132,6 +132,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         nFolders = length(obj.folderList);
         obj.sequence = cell(1, nFolders); % One cell per folder
         disp(['Organizing image sequences for ', num2str(nFolders), ' folders.']);
+        disp(['images per dir: ', num2str(obj.imagesPerDir)]);
 
         for ii = 1 : nFolders
             nImgs = obj.imagesPerDir(ii);
