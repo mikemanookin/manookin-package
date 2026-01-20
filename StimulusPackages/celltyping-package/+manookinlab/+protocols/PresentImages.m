@@ -305,6 +305,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             
             epoch.addParameter('folder', folderName);
             epoch.addParameter('imageName', imageName);
+            disp(['Presenting images from folder: ', folderName]);
+            disp(['Images: ', imageName]);
             epoch.addParameter('magnificationFactor', obj.magnificationFactor);
             epoch.addParameter('flashFrames', obj.flashFrames);
             epoch.addParameter('gapFrames', obj.gapFrames);
