@@ -48,6 +48,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'exc', 'inh'}) 
         sequence
+        image_parent_dir
         imagePaths
         imageMatrix
         backgroundImage
@@ -121,35 +122,45 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Loop through each of the folders and get the images.
-            obj.organize_image_sequences(image_dir);
+            obj.image_parent_dir = image_dir;
+            obj.organize_image_sequences(obj.image_parent_dir);
         end
 
-        function organize_image_sequences(obj, image_dir)
-            [obj.path_dict, obj.imagesPerDir] = manookinlab.util.read_images_from_dir(image_dir, obj.folderList, obj.validImageExtensions);
+    function organize_image_sequences(obj, image_dir)
+        [obj.path_dict, obj.imagesPerDir] = manookinlab.util.read_images_from_dir(image_dir, obj.folderList, obj.validImageExtensions);
 
-            obj.sequence = zeros(obj.numberOfAverages, obj.imagesPerEpoch);
-            for ii = 1 : length(obj.imagesPerDir)
-                if obj.imagesPerDir(ii) >= obj.imagesPerEpoch
-                    if obj.randomize
-                        folder_seq = randperm(obj.imagesPerDir(ii));
-                    else
-                        folder_seq = 1 : obj.imagesPerEpoch;
-                    end
-                else
-                    num_reps = ceil(obj.imagesPerEpoch / obj.imagesPerDir(ii));
-                    if obj.randomize
-                        folder_seq = zeros(obj.imagesPerDir(ii),num_reps);
-                        for jj = 1 : num_reps
-                            folder_seq(:,jj) = randperm(obj.imagesPerDir(ii));
-                        end
-                    else
-                        folder_seq = (1:obj.imagesPerDir(ii))' * ones(1,num_reps);
-                    end
-                    folder_seq = folder_seq(:)';
-                end
-                obj.sequence(ii,:) = folder_seq( 1 : obj.imagesPerEpoch );
+        nFolders = length(obj.folderList);
+        obj.sequence = cell(1, nFolders); % One cell per folder
+        disp(['Organizing image sequences for ', num2str(nFolders), ' folders.']);
+        disp(['images per dir: ', num2str(obj.imagesPerDir)]);
+
+        for ii = 1 : nFolders
+            nImgs = obj.imagesPerDir(ii);
+            assert(nImgs > 0, ['No images found in folder: ', obj.folderList{ii}]);
+            
+            % Compute epochs one repeat of all images would take.
+            nEpochsForFolder = ceil(nImgs / obj.imagesPerEpoch);
+            % Generate a random or sequential order of all images in the folder
+            if obj.randomize
+                perm = randperm(nImgs);
+            else
+                perm = 1:nImgs;
             end
+
+            % Pad with wrap-around for last epoch if needed.
+            nNeeded = nEpochsForFolder * obj.imagesPerEpoch;
+
+            if nImgs < nNeeded
+                nToPad = nNeeded - nImgs;
+                perm = [perm, perm(1:nToPad)];
+            end
+            perm = perm(1:nNeeded);
+
+            % Reshape into [nEpochsForFolder x imagesPerEpoch]
+            obj.sequence{ii} = reshape(perm, nEpochsForFolder, obj.imagesPerEpoch);
+            disp(['Folder ', num2str(ii), ': ', num2str(nImgs), ' images, organized into ', num2str(nEpochsForFolder), ' epochs.']);
         end
+    end
 
         
         function p = createPresentation(obj)
@@ -252,20 +263,30 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             current_folder_index = mod(obj.numEpochsCompleted, length(obj.folderList)) + 1;
             folderName = obj.folderList{ current_folder_index };
             obj.fullImagePaths = obj.path_dict( folderName );
+
+            % Get the correct row for this epoch
+            epochIdxForFolder = floor(obj.numEpochsCompleted / length(obj.folderList)) + 1;
+            seq = obj.sequence{current_folder_index};
+            % If epochIdxForFolder exceeds the number of rows, regenerate the sequence and wrap around
+            if epochIdxForFolder > size(seq, 1)
+                obj.organize_image_sequences(obj.image_parent_dir);
+                seq = obj.sequence{current_folder_index};
+                epochIdxForFolder = mod(epochIdxForFolder-1, size(seq, 1)) + 1;
+            end
+            img_indices = seq(epochIdxForFolder, :);
             
-            % current_index = mod(obj.numEpochsCompleted*obj.imagesPerEpoch,length(obj.sequence));
             % Load the images.
             obj.imageMatrix = cell(1, obj.imagesPerEpoch);
             folderName = '';
             imageName = ''; % Concatenate the image names separated by a comma.
+            
             for ii = 1 : obj.imagesPerEpoch
-                img_index = obj.sequence(current_folder_index, ii);
+                img_index = img_indices(ii);
                 s = strsplit(obj.fullImagePaths{img_index}, filesep);
                 obj.image_name = s{end};
-%                 obj.image_name = obj.imagePaths{img_index, 1};
+                
                 % Load the image.
                 myImage = imread(obj.fullImagePaths{img_index});
-%                 myImage = imread(fullfile(obj.directory, obj.image_name));
                 obj.imageMatrix{ii} = uint8(myImage);
                 folderName = [folderName, s{end-1}]; %#ok<AGROW>
                 imageName = [imageName, obj.image_name]; %#ok<AGROW>
@@ -285,9 +306,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             % Create the background image.
             obj.backgroundImage = ones(size(myImage))*obj.backgroundIntensity;
             obj.backgroundImage = uint8(obj.backgroundImage*255);
-            
             epoch.addParameter('folder', folderName);
             epoch.addParameter('imageName', imageName);
+            disp(['Presenting images from folder: ', folderName]);
+            disp(['Images: ', imageName]);
             epoch.addParameter('magnificationFactor', obj.magnificationFactor);
             epoch.addParameter('flashFrames', obj.flashFrames);
             epoch.addParameter('gapFrames', obj.gapFrames);
