@@ -23,6 +23,10 @@ classdef SplitFieldContrastResponse < edu.washington.riekelab.protocols.RiekeLab
         stimSequence
     end
     
+    properties (Hidden, Transient)
+        analysisFigure
+    end
+    
     methods
         function didSetRig(obj)
             didSetRig@edu.washington.riekelab.protocols.RiekeLabStageProtocol(obj);
@@ -42,19 +46,103 @@ classdef SplitFieldContrastResponse < edu.washington.riekelab.protocols.RiekeLab
             end
             
             obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
-%             obj.showFigure('edu.washington.riekelab.chris.figures.FrameTimingFigure',...
-%                 obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));
             
-%             if length(obj.stimSequence) > 1
-%                 colors = edu.washington.riekelab.chris.utils.pmkmp(length(obj.stimSequence),'CubicYF');
-%             else
-%                 colors = [0 0 0];
-%             end
+            if exist('edu.washington.riekelab.chris.figures.FrameTimingFigure','class')
+                obj.showFigure('edu.washington.riekelab.chris.figures.FrameTimingFigure',...
+                    obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));
+            else
+                obj.showFigure('edu.washington.riekelab.figures.FrameTimingFigure', obj.rig.getDevice('Stage'), obj.rig.getDevice('Frame Monitor'));
+            end
             
-%             obj.showFigure('edu.washington.riekelab.chris.figures.MeanResponseFigure',...
-%                 obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis',...
-%                 'groupBy',{'currentR1Contrast','currentR2Contrast'},...
-%                 'sweepColor',colors);
+            if exist('edu.washington.riekelab.chris.figures.FrameTimingFigure','class')
+                if length(obj.stimSequence) > 1
+                    colors = edu.washington.riekelab.chris.utils.pmkmp(length(obj.stimSequence),'CubicYF');
+                else
+                    colors = [0 0 0];
+                end
+
+                obj.showFigure('edu.washington.riekelab.chris.figures.MeanResponseFigure',...
+                    obj.rig.getDevice(obj.amp),'recordingType',obj.onlineAnalysis',...
+                    'groupBy',{'currentR1Contrast','currentR2Contrast'},...
+                    'sweepColor',colors);
+            else
+                if length(obj.stimSequence) > 1
+                    colors = manookinlab.util.pmkmp(length(obj.stimSequence),'CubicYF');
+                else
+                    colors = [30 144 255]/255;
+                end
+                if strcmpi(obj.onlineAnalysis,'extracellular')
+                    use_psth = true;
+                else
+                    use_psth = false;
+                end
+                obj.showFigure('edu.washington.riekelab.figures.MeanResponseFigure', ...
+                    obj.rig.getDevice(obj.amp),'psth',use_psth,...
+                    'sweepColor',colors,...
+                    'groupBy',{'currentR1Contrast','currentR2Contrast'});
+            end
+            
+            if ~strcmp(obj.onlineAnalysis,'none')
+                % custom figure handler
+                if isempty(obj.analysisFigure) || ~isvalid(obj.analysisFigure)
+                    obj.analysisFigure = obj.showFigure('symphonyui.builtin.figures.CustomFigure', @obj.CRF_GRID);
+                    f = obj.analysisFigure.getFigureHandle();
+                    set(f, 'Name', 'Contrast grid');
+                    obj.analysisFigure.userData.runningTrace = zeros(length(obj.contrasts));
+                    obj.analysisFigure.userData.axesHandle = axes('Parent', f);
+                else
+                    obj.analysisFigure.userData.runningTrace = zeros(length(obj.contrasts));
+                end
+            end
+        end
+        
+        function CRF_GRID(obj, ~, epoch) %online analysis function
+            response = epoch.getResponse(obj.rig.getDevice(obj.amp));
+            quantities = response.getData();
+            sampleRate = response.sampleRate.quantityInBaseUnits;
+            
+            pre_pts = floor(sampleRate*obj.preTime*1e-3);
+            stim_pts = floor(sampleRate*obj.stimTime*1e-3);
+            
+            axesHandle = obj.analysisFigure.userData.axesHandle;
+            runningTrace = obj.analysisFigure.userData.runningTrace;
+            
+            if strcmp(obj.onlineAnalysis,'extracellular') %spike recording
+                filterSigma = (20/1000)*sampleRate; %msec -> dataPts
+                newFilt = normpdf(1:10*filterSigma,10*filterSigma/2,filterSigma);
+                res = edu.washington.riekelab.util.spikeDetectorOnline(quantities, [], sampleRate);
+                epochResponseTrace = zeros(size(quantities));
+                epochResponseTrace(res.sp) = 1; %spike binary
+                epochResponseTrace = sampleRate*conv(epochResponseTrace,newFilt,'same'); %inst firing rate
+            else %intracellular - Vclamp
+                epochResponseTrace = quantities-mean(quantities(1:sampleRate*obj.preTime/1000)); %baseline
+                if strcmp(obj.onlineAnalysis,'exc') %measuring exc
+                    epochResponseTrace = epochResponseTrace./(-60-0); %conductance (nS), ballpark
+                elseif strcmp(obj.onlineAnalysis,'inh') %measuring inh
+                    epochResponseTrace = epochResponseTrace./(0-(-60)); %conductance (nS), ballpark
+                end
+            end
+            
+            epoch_response = mean(epochResponseTrace(pre_pts+(1:stim_pts))) - mean(epochResponseTrace(1:pre_pts));
+            x_index = find(obj.contrasts == obj.currentR1Contrast,1);
+            y_index = find(obj.contrasts == obj.currentR2Contrast,1);
+            
+            runningTrace(x_index,y_index) = runningTrace(x_index,y_index) + epoch_response;
+            cla(axesHandle);
+            h = surf(obj.contrasts,obj.contrasts,runningTrace, 'Parent', axesHandle);
+            set(h,'FaceColor','flat');
+            view(axesHandle,[45,45]);
+%             h = line(timeVector, runningTrace./obj.numEpochsCompleted, 'Parent', axesHandle);
+%             set(h,'Color',[0 0 0],'LineWidth',2);
+            xlabel(axesHandle,'R1 contrast');
+            ylabel(axesHandle,'R2 contrast');
+            title(axesHandle,'Running response average...')
+            if strcmp(obj.onlineAnalysis,'extracellular')
+                ylabel(axesHandle,'Spike rate (Hz)')
+            else
+                ylabel(axesHandle,'Resp (nS)')
+            end
+            obj.analysisFigure.userData.runningTrace = runningTrace;
         end
         
         function prepareEpoch(obj, epoch)
