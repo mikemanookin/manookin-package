@@ -126,7 +126,11 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.organize_image_sequences(obj.image_parent_dir);
         end
 
-    function organize_image_sequences(obj, image_dir)
+    function organize_image_sequences(obj, image_dir, folder_indices)
+        if nargin < 3
+            folder_indices = 1:length(obj.folderList);
+        end
+
         [obj.path_dict, obj.imagesPerDir] = manookinlab.util.read_images_from_dir(image_dir, obj.folderList, obj.validImageExtensions);
 
         nFolders = length(obj.folderList);
@@ -134,7 +138,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         disp(['Organizing image sequences for ', num2str(nFolders), ' folders.']);
         disp(['images per dir: ', num2str(obj.imagesPerDir)]);
 
-        for ii = 1 : nFolders
+        for ii = folder_indices
             nImgs = obj.imagesPerDir(ii);
             assert(nImgs > 0, ['No images found in folder: ', obj.folderList{ii}]);
             
@@ -267,9 +271,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             % Get the correct row for this epoch
             epochIdxForFolder = floor(obj.numEpochsCompleted / length(obj.folderList)) + 1;
             seq = obj.sequence{current_folder_index};
-            % If epochIdxForFolder exceeds the number of rows, regenerate the sequence and wrap around
+            % If epochIdxForFolder exceeds the number of rows, 
+            % regenerate the sequence for this folder and wrap around
             if epochIdxForFolder > size(seq, 1)
-                obj.organize_image_sequences(obj.image_parent_dir);
+                obj.organize_image_sequences(obj.image_parent_dir, current_folder_index);
                 seq = obj.sequence{current_folder_index};
                 epochIdxForFolder = mod(epochIdxForFolder-1, size(seq, 1)) + 1;
             end
