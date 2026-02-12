@@ -123,6 +123,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             
             % Loop through each of the folders and get the images.
             obj.image_parent_dir = image_dir;
+            nFolders = length(obj.folderList);
+            obj.sequence = cell(1, nFolders); % One cell per folder
             obj.organize_image_sequences(obj.image_parent_dir);
         end
 
@@ -133,10 +135,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
 
         [obj.path_dict, obj.imagesPerDir] = manookinlab.util.read_images_from_dir(image_dir, obj.folderList, obj.validImageExtensions);
 
-        nFolders = length(obj.folderList);
-        obj.sequence = cell(1, nFolders); % One cell per folder
-        disp(['Organizing image sequences for ', num2str(nFolders), ' folders.']);
-        disp(['images per dir: ', num2str(obj.imagesPerDir)]);
+        disp(['Organizing image sequences for ', num2str(length(folder_indices)), ' folders.']);
 
         for ii = folder_indices
             nImgs = obj.imagesPerDir(ii);
@@ -162,7 +161,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
 
             % Reshape into [nEpochsForFolder x imagesPerEpoch]
             obj.sequence{ii} = reshape(perm, nEpochsForFolder, obj.imagesPerEpoch);
-            disp(['Folder ', num2str(ii), ': ', num2str(nImgs), ' images, organized into ', num2str(nEpochsForFolder), ' epochs.']);
+            disp(['Folder ', obj.folderList{ii}, ': ', num2str(nImgs), ' images, organized into ', num2str(nEpochsForFolder), ' epochs.']);
         end
     end
 
