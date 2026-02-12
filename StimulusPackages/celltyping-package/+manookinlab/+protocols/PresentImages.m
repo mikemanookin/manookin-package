@@ -173,7 +173,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
 
             % Reshape into [imagesPerEpoch x nEpochsForFolder] so that the sequence 
             % progresses across rows (i.e. imagesPerEpoch) for each epoch before moving to the next epoch (next column).
-            obj.sequence{ii} = reshape(perm, obj.imagesPerEpoch, nEpochsForFolder)';
+            obj.sequence{ii} = reshape(perm, obj.imagesPerEpoch, nEpochsForFolder);
             disp(['Folder ', obj.folderList{ii}, ': ', num2str(nImgs), ' images, organized into ', num2str(nEpochsForFolder), ' epochs.']);
         end
     end
