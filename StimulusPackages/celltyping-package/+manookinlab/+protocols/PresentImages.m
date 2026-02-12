@@ -314,7 +314,13 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('folder', folderName);
             epoch.addParameter('imageName', imageName);
             disp(['Presenting images from folder: ', folderName]);
-            disp(['Images: ', imageName]);
+            if obj.imagesPerEpoch <= 10
+                disp(['Images: ', imageName]);
+            else
+                % If there are many images, print only the first and last image names.
+                imageNamesSplit = strsplit(imageName, ',');
+                disp(['Images: ', imageNamesSplit{1}, ' ... ', imageNamesSplit{end}]);
+            end
             epoch.addParameter('magnificationFactor', obj.magnificationFactor);
             epoch.addParameter('flashFrames', obj.flashFrames);
             epoch.addParameter('gapFrames', obj.gapFrames);
