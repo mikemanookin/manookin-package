@@ -171,8 +171,9 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             end
             perm = perm(1:nNeeded);
 
-            % Reshape into [nEpochsForFolder x imagesPerEpoch]
-            obj.sequence{ii} = reshape(perm, nEpochsForFolder, obj.imagesPerEpoch);
+            % Reshape into [imagesPerEpoch x nEpochsForFolder] so that the sequence 
+            % progresses across rows (i.e. imagesPerEpoch) for each epoch before moving to the next epoch (next column).
+            obj.sequence{ii} = reshape(perm, obj.imagesPerEpoch, nEpochsForFolder)';
             disp(['Folder ', obj.folderList{ii}, ': ', num2str(nImgs), ' images, organized into ', num2str(nEpochsForFolder), ' epochs.']);
         end
     end
@@ -279,10 +280,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             folderName = obj.folderList{ current_folder_index };
             obj.fullImagePaths = obj.path_dict( folderName );
 
-            % Get the correct row for this epoch
+            % Get the correct column for this epoch
             epochIdxForFolder = floor(obj.numEpochsCompleted / length(obj.folderList)) + 1;
             seq = obj.sequence{current_folder_index};
-            img_indices = seq(epochIdxForFolder, :);
+            img_indices = seq(:, epochIdxForFolder);
             
             % Load the images.
             obj.imageMatrix = cell(1, obj.imagesPerEpoch);
