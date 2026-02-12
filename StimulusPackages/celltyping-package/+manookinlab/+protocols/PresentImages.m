@@ -142,28 +142,32 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             nImgs = obj.imagesPerDir(ii);
             assert(nImgs > 0, ['No images found in folder: ', obj.folderList{ii}]);
             
-            % Generate a random or sequential order of all images in the folder
-            if obj.randomize
-                perm = randperm(nImgs);
-            else
-                perm = 1:nImgs;
-            end
-
             % Number of image-trials needed to fill each epoch for this folder
             nNeeded = nEpochsForFolder * obj.imagesPerEpoch;
 
             % Typically will have less images than needed, so 
             % repeat the sequence as many times as needed.
             if nImgs < nNeeded
-                % Pad with wrap-around for last epoch if needed.
-                nToPad = nNeeded - nImgs;
-                perm = [perm, repmat(perm, 1, ceil(nToPad/length(perm)))];
+                nRepeats = ceil(nNeeded / nImgs);
+                perm = [];
+                for jj = 1:nRepeats
+                    if obj.randomize
+                        perm = [perm, randperm(nImgs)]; %#ok<AGROW>
+                    else
+                        perm = [perm, 1:nImgs]; %#ok<AGROW>
+                    end
+                end
             elseif nImgs > nNeeded
                 % If more images than can be covered across epochs,
                 % Print a warning and just use the first nNeeded images.
                 disp(['More images in folder ', obj.folderList{ii}, ' than can be presented across epochs.']);
                 disp(['Only ', num2str(nNeeded), 'out of ',  num2str(nImgs), ' images will be used.']);
                 disp(['Consider increasing the number of averages or images per epoch to use more of the images.']);
+                if obj.randomize
+                    perm = randperm(nImgs);
+                else
+                    perm = 1:nImgs;
+                end
             end
             perm = perm(1:nNeeded);
 
