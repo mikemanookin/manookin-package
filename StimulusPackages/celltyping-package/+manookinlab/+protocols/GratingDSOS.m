@@ -70,10 +70,16 @@ classdef GratingDSOS < manookinlab.protocols.ManookinLabStageProtocol
         
         function organizeParameters(obj)
 
-            % Generate the list of possible combinations.
-            tmp_orient = obj.orientations(:) * ones(1,length(obj.barWidths)*length(obj.temporalFrequencies));
-            tmp_width = obj.barWidths(:) * ones(1,length(obj.orientations)*length(obj.temporalFrequencies));
-            tmp_freq = obj.temporalFrequencies(:) * ones(1,length(obj.orientations)*length(obj.barWidths));
+            % % Generate the list of possible combinations.
+            % tmp_orient = obj.orientations(:) * ones(1,length(obj.barWidths)*length(obj.temporalFrequencies));
+            % tmp_width = obj.barWidths(:) * ones(1,length(obj.orientations)*length(obj.temporalFrequencies));
+            % tmp_freq = obj.temporalFrequencies(:) * ones(1,length(obj.orientations)*length(obj.barWidths));
+            % tmp_orient = tmp_orient(:)';
+            % tmp_width = tmp_width(:)';
+            % tmp_freq = tmp_freq(:)';
+            % Generate all combinations
+            [tmp_orient, tmp_width, tmp_freq] = ndgrid(obj.orientations, obj.barWidths, obj.temporalFrequencies);
+            
             tmp_orient = tmp_orient(:)';
             tmp_width = tmp_width(:)';
             tmp_freq = tmp_freq(:)';
