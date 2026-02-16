@@ -127,38 +127,54 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         end
 
     function organize_image_sequences(obj, image_dir)
-        [obj.path_dict, obj.imagesPerDir] = manookinlab.util.read_images_from_dir(image_dir, obj.folderList, obj.validImageExtensions);
 
+        [obj.path_dict, obj.imagesPerDir] = manookinlab.util.read_images_from_dir(image_dir, obj.folderList, obj.validImageExtensions);
+        
         nFolders = length(obj.folderList);
         obj.sequence = cell(1, nFolders); % One cell per folder
-        disp(['Organizing image sequences for ', num2str(nFolders), ' folders.']);
-        disp(['images per dir: ', num2str(obj.imagesPerDir)]);
 
-        for ii = 1 : nFolders
+        disp(['Organizing image sequences for ', num2str(nFolders), ' folders.']);
+
+        % Calculate how many epochs each folder will be used
+        nEpochsForFolder = ceil(double(obj.numberOfAverages) / nFolders);
+
+        for ii = 1:nFolders   
             nImgs = obj.imagesPerDir(ii);
             assert(nImgs > 0, ['No images found in folder: ', obj.folderList{ii}]);
             
-            % Compute epochs one repeat of all images would take.
-            nEpochsForFolder = ceil(nImgs / obj.imagesPerEpoch);
-            % Generate a random or sequential order of all images in the folder
-            if obj.randomize
-                perm = randperm(nImgs);
-            else
-                perm = 1:nImgs;
-            end
-
-            % Pad with wrap-around for last epoch if needed.
+            % Number of image-trials needed to fill each epoch for this folder
             nNeeded = nEpochsForFolder * obj.imagesPerEpoch;
 
+            % Typically will have less images than needed, so 
+            % repeat the sequence as many times as needed.
             if nImgs < nNeeded
-                nToPad = nNeeded - nImgs;
-                perm = [perm, perm(1:nToPad)];
+                nRepeats = ceil(nNeeded / nImgs);
+                perm = [];
+                for jj = 1:nRepeats
+                    if obj.randomize
+                        perm = [perm, randperm(nImgs)]; %#ok<AGROW>
+                    else
+                        perm = [perm, 1:nImgs]; %#ok<AGROW>
+                    end
+                end
+            elseif nImgs > nNeeded
+                % If more images than can be covered across epochs,
+                % Print a warning and just use the first nNeeded images.
+                disp(['More images in folder ', obj.folderList{ii}, ' than can be presented across epochs.']);
+                disp(['Only ', num2str(nNeeded), 'out of ',  num2str(nImgs), ' images will be used.']);
+                disp(['Consider increasing the number of averages or images per epoch to use more of the images.']);
+                if obj.randomize
+                    perm = randperm(nImgs);
+                else
+                    perm = 1:nImgs;
+                end
             end
             perm = perm(1:nNeeded);
 
-            % Reshape into [nEpochsForFolder x imagesPerEpoch]
-            obj.sequence{ii} = reshape(perm, nEpochsForFolder, obj.imagesPerEpoch);
-            disp(['Folder ', num2str(ii), ': ', num2str(nImgs), ' images, organized into ', num2str(nEpochsForFolder), ' epochs.']);
+            % Reshape into [imagesPerEpoch x nEpochsForFolder] so that the sequence 
+            % progresses across rows (i.e. imagesPerEpoch) for each epoch before moving to the next epoch (next column).
+            obj.sequence{ii} = reshape(perm, obj.imagesPerEpoch, nEpochsForFolder);
+            disp(['Folder ', obj.folderList{ii}, ': ', num2str(nImgs), ' images, organized into ', num2str(nEpochsForFolder), ' epochs.']);
         end
     end
 
@@ -264,16 +280,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             folderName = obj.folderList{ current_folder_index };
             obj.fullImagePaths = obj.path_dict( folderName );
 
-            % Get the correct row for this epoch
+            % Get the correct column for this epoch
             epochIdxForFolder = floor(obj.numEpochsCompleted / length(obj.folderList)) + 1;
             seq = obj.sequence{current_folder_index};
-            % If epochIdxForFolder exceeds the number of rows, regenerate the sequence and wrap around
-            if epochIdxForFolder > size(seq, 1)
-                obj.organize_image_sequences(obj.image_parent_dir);
-                seq = obj.sequence{current_folder_index};
-                epochIdxForFolder = mod(epochIdxForFolder-1, size(seq, 1)) + 1;
-            end
-            img_indices = seq(epochIdxForFolder, :);
+            img_indices = seq(:, epochIdxForFolder);
             
             % Load the images.
             obj.imageMatrix = cell(1, obj.imagesPerEpoch);
@@ -309,7 +319,13 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('folder', folderName);
             epoch.addParameter('imageName', imageName);
             disp(['Presenting images from folder: ', folderName]);
-            disp(['Images: ', imageName]);
+            if obj.imagesPerEpoch <= 10
+                disp(['Images: ', imageName]);
+            else
+                % If there are many images, print only the first and last image names.
+                imageNamesSplit = strsplit(imageName, ',');
+                disp(['Images: ', imageNamesSplit{1}, ' ... ', imageNamesSplit{end}]);
+            end
             epoch.addParameter('magnificationFactor', obj.magnificationFactor);
             epoch.addParameter('flashFrames', obj.flashFrames);
             epoch.addParameter('gapFrames', obj.gapFrames);
