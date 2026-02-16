@@ -157,6 +157,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
                 end
             elseif nImgs > nNeeded
                 % If more images than can be covered across epochs,
+                % Print a warning and just use the first nNeeded images.
+                disp(['More images in folder ', obj.folderList{ii}, ' than can be presented across epochs.']);
+                disp(['Only ', num2str(nNeeded), 'out of ',  num2str(nImgs), ' images will be used.']);
+                disp(['Consider increasing the number of averages or images per epoch to use more of the images.']);
                 if obj.randomize
                     perm = randperm(nImgs);
                 else
@@ -168,6 +172,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             % Reshape into [imagesPerEpoch x nEpochsForFolder] so that the sequence 
             % progresses across rows (i.e. imagesPerEpoch) for each epoch before moving to the next epoch (next column).
             obj.sequence{ii} = reshape(perm, obj.imagesPerEpoch, nEpochsForFolder);
+            disp(['Folder ', obj.folderList{ii}, ': ', num2str(nImgs), ' images, organized into ', num2str(nEpochsForFolder), ' epochs.']);
         end
     end
 
