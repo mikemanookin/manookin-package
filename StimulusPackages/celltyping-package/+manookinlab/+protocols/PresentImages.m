@@ -90,7 +90,11 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.outerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.outerMaskDiameter)/2.0;
             
             % Calcualate the number of flash and gap frames.
-            obj.expectedRefreshRate = obj.rig.getDevice('Stage').getExpectedRefreshRate();
+            try
+                obj.expectedRefreshRate = obj.rig.getDevice('Stage').getExpectedRefreshRate();
+            catch
+                obj.expectedRefreshRate = 60.0;
+            end
             obj.preFrames = round((obj.preTime * 1e-3) * obj.expectedRefreshRate);
             obj.flashFrames = round((obj.flashTime * 1e-3) * obj.expectedRefreshRate);
             obj.gapFrames = round((obj.gapTime * 1e-3) * obj.expectedRefreshRate);
@@ -300,14 +304,6 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.backgroundImage = uint8(obj.backgroundImage*255);
             epoch.addParameter('folder', folderName);
             epoch.addParameter('imageName', imageName);
-            disp(['Presenting images from folder: ', folderName]);
-            if obj.imagesPerEpoch <= 10
-                disp(['Images: ', imageName]);
-            else
-                % If there are many images, print only the first and last image names.
-                imageNamesSplit = strsplit(imageName, ',');
-                disp(['Images: ', imageNamesSplit{1}, ' ... ', imageNamesSplit{end}]);
-            end
             epoch.addParameter('magnificationFactor', obj.magnificationFactor);
             epoch.addParameter('flashFrames', obj.flashFrames);
             epoch.addParameter('gapFrames', obj.gapFrames);
