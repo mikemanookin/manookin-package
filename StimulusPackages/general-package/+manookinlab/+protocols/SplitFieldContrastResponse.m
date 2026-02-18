@@ -138,9 +138,9 @@ classdef SplitFieldContrastResponse < edu.washington.riekelab.protocols.RiekeLab
             ylabel(axesHandle,'R2 contrast');
             title(axesHandle,'Running response average...')
             if strcmp(obj.onlineAnalysis,'extracellular')
-                ylabel(axesHandle,'Spike rate (Hz)')
+                zlabel(axesHandle,'Spike rate (Hz)')
             else
-                ylabel(axesHandle,'Resp (nS)')
+                zlabel(axesHandle,'Resp (nS)')
             end
             obj.analysisFigure.userData.runningTrace = runningTrace;
         end
