@@ -90,7 +90,11 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.outerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.outerMaskDiameter)/2.0;
             
             % Calcualate the number of flash and gap frames.
-            obj.expectedRefreshRate = obj.rig.getDevice('Stage').getExpectedRefreshRate();
+            try
+                obj.expectedRefreshRate = obj.rig.getDevice('Stage').getExpectedRefreshRate();
+            catch
+                obj.expectedRefreshRate = 60.0;
+            end
             obj.preFrames = round((obj.preTime * 1e-3) * obj.expectedRefreshRate);
             obj.flashFrames = round((obj.flashTime * 1e-3) * obj.expectedRefreshRate);
             obj.gapFrames = round((obj.gapTime * 1e-3) * obj.expectedRefreshRate);
@@ -127,38 +131,47 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         end
 
     function organize_image_sequences(obj, image_dir)
-        [obj.path_dict, obj.imagesPerDir] = manookinlab.util.read_images_from_dir(image_dir, obj.folderList, obj.validImageExtensions);
 
+        [obj.path_dict, obj.imagesPerDir] = manookinlab.util.read_images_from_dir(image_dir, obj.folderList, obj.validImageExtensions);
+        
         nFolders = length(obj.folderList);
         obj.sequence = cell(1, nFolders); % One cell per folder
-        disp(['Organizing image sequences for ', num2str(nFolders), ' folders.']);
-        disp(['images per dir: ', num2str(obj.imagesPerDir)]);
 
-        for ii = 1 : nFolders
+        % Calculate how many epochs each folder will be used
+        nEpochsForFolder = ceil(double(obj.numberOfAverages) / nFolders);
+
+        for ii = 1:nFolders   
             nImgs = obj.imagesPerDir(ii);
             assert(nImgs > 0, ['No images found in folder: ', obj.folderList{ii}]);
             
-            % Compute epochs one repeat of all images would take.
-            nEpochsForFolder = ceil(nImgs / obj.imagesPerEpoch);
-            % Generate a random or sequential order of all images in the folder
-            if obj.randomize
-                perm = randperm(nImgs);
-            else
-                perm = 1:nImgs;
-            end
-
-            % Pad with wrap-around for last epoch if needed.
+            % Number of image-trials needed to fill each epoch for this folder
             nNeeded = nEpochsForFolder * obj.imagesPerEpoch;
 
+            % Typically will have less images than needed, so 
+            % repeat the sequence as many times as needed.
             if nImgs < nNeeded
-                nToPad = nNeeded - nImgs;
-                perm = [perm, perm(1:nToPad)];
+                nRepeats = ceil(nNeeded / nImgs);
+                perm = [];
+                for jj = 1:nRepeats
+                    if obj.randomize
+                        perm = [perm, randperm(nImgs)]; %#ok<AGROW>
+                    else
+                        perm = [perm, 1:nImgs]; %#ok<AGROW>
+                    end
+                end
+            elseif nImgs > nNeeded
+                % If more images than can be covered across epochs,
+                if obj.randomize
+                    perm = randperm(nImgs);
+                else
+                    perm = 1:nImgs;
+                end
             end
             perm = perm(1:nNeeded);
 
-            % Reshape into [nEpochsForFolder x imagesPerEpoch]
-            obj.sequence{ii} = reshape(perm, nEpochsForFolder, obj.imagesPerEpoch);
-            disp(['Folder ', num2str(ii), ': ', num2str(nImgs), ' images, organized into ', num2str(nEpochsForFolder), ' epochs.']);
+            % Reshape into [imagesPerEpoch x nEpochsForFolder] so that the sequence 
+            % progresses across rows (i.e. imagesPerEpoch) for each epoch before moving to the next epoch (next column).
+            obj.sequence{ii} = reshape(perm, obj.imagesPerEpoch, nEpochsForFolder);
         end
     end
 
@@ -191,17 +204,6 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
                 'imageMatrix', @(state)setImage(obj, state.frame - obj.preFrames));
             % Add the controller.
             p.addController(imgValue);
-
-%             function s = setImage(obj, time)
-%                 img_index = floor( time / ((obj.flashTime+obj.gapTime)*1e-3) ) + 1;
-%                 if img_index < 1 || img_index > obj.imagesPerEpoch
-%                     s = obj.backgroundImage;
-%                 elseif (time >= ((obj.flashTime+obj.gapTime)*1e-3)*(img_index-1)) && (time <= (((obj.flashTime+obj.gapTime)*1e-3)*(img_index-1)+obj.flashTime*1e-3))
-%                     s = obj.imageMatrix{img_index};
-%                 else
-%                     s = obj.backgroundImage;
-%                 end
-%             end
             
             function s = setImage(obj, frame)
                 img_index = floor( frame / (obj.flashFrames+obj.gapFrames) ) + 1;
@@ -264,16 +266,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             folderName = obj.folderList{ current_folder_index };
             obj.fullImagePaths = obj.path_dict( folderName );
 
-            % Get the correct row for this epoch
+            % Get the correct column for this epoch
             epochIdxForFolder = floor(obj.numEpochsCompleted / length(obj.folderList)) + 1;
             seq = obj.sequence{current_folder_index};
-            % If epochIdxForFolder exceeds the number of rows, regenerate the sequence and wrap around
-            if epochIdxForFolder > size(seq, 1)
-                obj.organize_image_sequences(obj.image_parent_dir);
-                seq = obj.sequence{current_folder_index};
-                epochIdxForFolder = mod(epochIdxForFolder-1, size(seq, 1)) + 1;
-            end
-            img_indices = seq(epochIdxForFolder, :);
+            img_indices = seq(:, epochIdxForFolder);
             
             % Load the images.
             obj.imageMatrix = cell(1, obj.imagesPerEpoch);
@@ -308,8 +304,6 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.backgroundImage = uint8(obj.backgroundImage*255);
             epoch.addParameter('folder', folderName);
             epoch.addParameter('imageName', imageName);
-            disp(['Presenting images from folder: ', folderName]);
-            disp(['Images: ', imageName]);
             epoch.addParameter('magnificationFactor', obj.magnificationFactor);
             epoch.addParameter('flashFrames', obj.flashFrames);
             epoch.addParameter('gapFrames', obj.gapFrames);
