@@ -62,6 +62,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         fullImagePaths
         validImageExtensions = {'.png','.jpg','.jpeg','.tif','.tiff'}
         expectedRefreshRate
+        monitorRefreshRate
         preFrames
         tailFrames
         stimFrames
@@ -92,8 +93,10 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             % Calcualate the number of flash and gap frames.
             try
                 obj.expectedRefreshRate = obj.rig.getDevice('Stage').getExpectedRefreshRate();
+                obj.monitorRefreshRate = obj.rig.getDevice('Stage').getMonitorRefreshRate();
             catch
                 obj.expectedRefreshRate = 60.0;
+                obj.monitorRefreshRate = 60.0;
             end
             obj.preFrames = round((obj.preTime * 1e-3) * obj.expectedRefreshRate);
             obj.flashFrames = round((obj.flashTime * 1e-3) * obj.expectedRefreshRate);
@@ -159,7 +162,7 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
                         perm = [perm, 1:nImgs]; %#ok<AGROW>
                     end
                 end
-            elseif nImgs > nNeeded
+            elseif nImgs >= nNeeded
                 % If more images than can be covered across epochs,
                 if obj.randomize
                     perm = randperm(nImgs);
@@ -179,7 +182,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
         function p = createPresentation(obj)
             % Stage presets
             canvasSize = obj.rig.getDevice('Stage').getCanvasSize();     
-            totalTimePerEpoch = ceil((obj.preFrames + obj.stimFrames + obj.tailFrames)/obj.expectedRefreshRate);
+            % Total time based on monitor refresh rate as that's used by the Player to determine number of frames delivered.
+            totalTimePerEpoch = ceil((obj.preFrames + obj.stimFrames + obj.tailFrames)/obj.monitorRefreshRate);
             p = stage.core.Presentation(totalTimePerEpoch);
             
             p.setBackgroundColor(obj.backgroundIntensity)   % Set background intensity
