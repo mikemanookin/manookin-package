@@ -77,10 +77,10 @@ function testMEADeviceSideChannel()
 
     % Create MEADevice (the class under test)
     try
-        mea = manookinlab.devices.MEADevice(meaPort);
-        fprintf('  Created MEADevice on port %d\n', meaPort);
+        mea = manookinlab.devices.VisionCommDevice(meaPort);
+        fprintf('  Created VisionCommDevice on port %d\n', meaPort);
     catch e
-        fprintf('  SKIP: Could not create MEADevice (Symphony not on path?)\n');
+        fprintf('  SKIP: Could not create VisionCommDevice (Symphony not on path?)\n');
         fprintf('         Error: %s\n', e.message);
         fprintf('         Test 1 already validated the protocol.\n');
         return;
@@ -94,20 +94,20 @@ function testMEADeviceSideChannel()
     senderThread2.start();
 
     % Start MEADevice (this blocks until it receives the filename or times out)
-    fprintf('  Starting MEADevice.start() ...\n');
+    fprintf('  Starting VisionCommDevice.start() ...\n');
     try
         mea.start();
 
         receivedName2 = char(mea.fileName);
-        fprintf('  MEADevice.fileName = %s\n', receivedName2);
+        fprintf('  VisionCommDevice.fileName = %s\n', receivedName2);
 
         if strcmp(receivedName2, testFileName2)
-            fprintf('  PASS: MEADevice received the correct filename!\n\n');
+            fprintf('  PASS: VisionCommDevice received the correct filename!\n\n');
         else
             fprintf('  FAIL: Expected "%s" but got "%s"\n\n', testFileName2, receivedName2);
         end
     catch e
-        fprintf('  FAIL: MEADevice.start() threw: %s\n\n', e.message);
+        fprintf('  FAIL: VisionCommDevice.start() threw: %s\n\n', e.message);
     end
 
     senderThread2.join(5000);
