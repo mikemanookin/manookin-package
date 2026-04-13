@@ -95,7 +95,7 @@ classdef SpatialNoiseAndMotion < manookinlab.protocols.ManookinLabStageProtocol
             end
             obj.bar_cycle_frames = ceil((obj.screenRadiusPix*2 + obj.barSizePix(1)) / obj.barSpeedPix * 60.0);
 
-            if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+            if ~strcmpi(obj.stageClass, 'LightCrafter')
                 obj.chromaticClass = 'achromatic';
                 obj.frameDwells = uint16(ones(size(obj.frameDwells)));
             end
@@ -140,7 +140,7 @@ classdef SpatialNoiseAndMotion < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate preFrames and stimFrames
             preF = floor(obj.preTime/1000 * 60);
 
-            if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+            if ~strcmpi(obj.stageClass, 'LightCrafter')
                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                     @(state)setStixelsPatternMode(obj, state.time - obj.preTime*1e-3));
             elseif ~strcmp(obj.chromaticClass,'achromatic')

@@ -73,7 +73,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             obj.unique_frames = round(obj.uniqueTime * 1e-3 * 60.0);
             obj.repeat_frames = round(obj.repeatTime * 1e-3 * 60.0);
 
-            if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+            if ~strcmpi(obj.stageClass, 'LightCrafter')
                 obj.chromaticClass = 'achromatic';
                 obj.frameDwells = uint16(ones(size(obj.frameDwells)));
             end
@@ -159,7 +159,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate preFrames and stimFrames
             preF = floor(obj.preTime/1000 * 60);
 
-            if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+            if ~strcmpi(obj.stageClass, 'LightCrafter')
                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                     @(state)setStixelsPatternMode(obj, state.time - obj.preTime*1e-3));
             elseif ~strcmp(obj.chromaticClass,'achromatic')
@@ -184,7 +184,7 @@ classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
             
             % Position controller
             if obj.stepsPerStixel > 1
-                if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter')) % Pattern mode
+                if ~strcmpi(obj.stageClass, 'LightCrafter') % Pattern mode
                     xyController = stage.builtin.controllers.PropertyController(checkerboard, 'position',...
                         @(state)setJitterPatternMode(obj, state.time - obj.preTime*1e-3));
                 else
