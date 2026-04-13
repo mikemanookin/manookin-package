@@ -115,7 +115,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                 % Calculate preFrames and stimFrames
                 preF = floor(obj.preTime/1000 * 60);
 
-                if ~strcmp(obj.chromaticClass,'achromatic') && strcmpi(obj.stageClass, 'LightCrafter')
+                if ~strcmp(obj.chromaticClass,'achromatic') && ~strcmpi(obj.stageClass, 'LightCrafter')
                     if strcmp(obj.chromaticClass,'BY')
                         imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                             @(state)setBYStixels(obj, state.frame - preF));
@@ -328,7 +328,7 @@ classdef AdaptNoiseColorSteps < manookinlab.protocols.ManookinLabStageProtocol
                     'stimulusClass',obj.stimulusClass);
                 
                 obj.frameSeq = zeros(length(fseq),3);
-                if ~strcmp(obj.chromaticClass,'achromatic') && strcmpi(obj.stageClass, 'LightCrafter')
+                if ~strcmp(obj.chromaticClass,'achromatic') && ~strcmpi(obj.stageClass, 'LightCrafter')
                     if strcmp(obj.chromaticClass,'BY')
                         [fseq2, ~,~] = manookinlab.util.getAdaptNoiseStepFrames(...
                             nframes, obj.durations, sFrames, eFrames, obj.seed+1,...

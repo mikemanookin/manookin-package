@@ -77,7 +77,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
                     'frameRate', obj.frameRate, 'numFrames', obj.numFrames);
             end
             
-            if ~strcmp(obj.chromaticClass,'achromatic') && strcmpi(obj.stageClass, 'LightCrafter')
+            if ~strcmp(obj.chromaticClass,'achromatic') && ~strcmpi(obj.stageClass, 'LightCrafter')
                 obj.setColorWeights();
             end
         end
@@ -108,7 +108,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
             preF = floor(obj.preTime/1000 * obj.frameRate);
             stimF = floor(obj.stimTime/1000 * obj.frameRate);
 
-            if ~strcmp(obj.chromaticClass,'achromatic') && strcmpi(obj.stageClass, 'LightCrafter')
+            if ~strcmp(obj.chromaticClass,'achromatic') && ~strcmpi(obj.stageClass, 'LightCrafter')
                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                     @(state)setColorStixels(obj, state.frame - preF, stimF));
             else
@@ -149,7 +149,7 @@ classdef JitteredNoise < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             
-            if ~strcmp(obj.chromaticClass,'achromatic') && strcmpi(obj.stageClass, 'LightCrafter')
+            if ~strcmp(obj.chromaticClass,'achromatic') && ~strcmpi(obj.stageClass, 'LightCrafter')
                 if strcmp(obj.chromaticClass,'BY')
                     yellow_matrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed, obj.frameDwell);
                     blue_matrix = manookinlab.util.getJitteredNoiseFrames(obj.numXStixels, obj.numYStixels, obj.numXChecks, obj.numYChecks, obj.numFrames, obj.stepsPerStixel, obj.seed+1, obj.frameDwell);

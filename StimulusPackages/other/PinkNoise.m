@@ -63,7 +63,7 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
                 obj.frameBuffer = [];
             end
             
-            if ~strcmp(obj.chromaticClass,'achromatic') && strcmpi(obj.stageClass, 'LightCrafter')
+            if ~strcmp(obj.chromaticClass,'achromatic') && ~strcmpi(obj.stageClass, 'LightCrafter')
                 obj.setColorWeights();
             end
         end
@@ -110,7 +110,7 @@ classdef PinkNoise < manookinlab.protocols.ManookinLabStageProtocol
             preF = floor(obj.preTime/1000 * obj.frameRate);
             stimF = obj.numFrames;
 
-            if ~strcmp(obj.chromaticClass,'achromatic') && strcmpi(obj.stageClass, 'LightCrafter')
+            if ~strcmp(obj.chromaticClass,'achromatic') && ~strcmpi(obj.stageClass, 'LightCrafter')
                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                     @(state)setColorStixels(obj, state.frame - preF, stimF));
             else

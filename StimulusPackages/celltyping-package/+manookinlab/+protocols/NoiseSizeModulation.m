@@ -134,7 +134,7 @@ classdef NoiseSizeModulation < manookinlab.protocols.ManookinLabStageProtocol
             % Calculate preFrames and stimFrames
             preF = floor(obj.preTime/1000 * 60);
 
-            if ~strcmp(obj.chromaticClass,'achromatic') && strcmpi(obj.stageClass, 'LightCrafter')
+            if ~strcmp(obj.chromaticClass,'achromatic') && ~strcmpi(obj.stageClass, 'LightCrafter')
                 if strcmp(obj.chromaticClass,'BY')
                     imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                         @(state)setBYStixels(obj, state.frame - preF));
