@@ -32,8 +32,19 @@ classdef ManookinLabStageProtocol < edu.washington.riekelab.protocols.RiekeLabSt
             
             % Get the frame rate. Need to check if it's a LCR rig.
             if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
-                obj.frameRate = obj.rig.getDevice('Stage').getPatternRate();
-                obj.stageClass = 'LightCrafter';
+                if isprop(obj.rig.getDevice('Stage'), 'mode')
+                    if strcmpi(obj.rig.getDevice('Stage').mode, 'pattern')
+                        obj.frameRate = obj.rig.getDevice('Stage').getPatternRate();
+                        obj.stageClass = 'LightCrafter';
+                    else
+                        obj.frameRate = obj.rig.getDevice('Stage').getMonitorRefreshRate();
+                        obj.stageClass = 'LcrRGB';
+                    end
+                else
+                    obj.frameRate = obj.rig.getDevice('Stage').getPatternRate();
+                    obj.stageClass = 'LightCrafter';
+                end
+                
             elseif ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LcrRGB'))
                 obj.frameRate = obj.rig.getDevice('Stage').getMonitorRefreshRate();
                 obj.stageClass = 'LcrRGB';
