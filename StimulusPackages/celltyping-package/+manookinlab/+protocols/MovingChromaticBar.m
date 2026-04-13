@@ -85,7 +85,7 @@ classdef MovingChromaticBar < manookinlab.protocols.ManookinLabStageProtocol
             end
             
             % Get the frame rate. Need to check if it's a LCR rig.
-            if ~strcmpi(obj.stageClass, 'LightCrafter')
+            if strcmpi(obj.stageClass, 'LightCrafter')
                 obj.frameRate = obj.rig.getDevice('Stage').getPatternRate();
             else
                 obj.frameRate = obj.rig.getDevice('Stage').getMonitorRefreshRate();
