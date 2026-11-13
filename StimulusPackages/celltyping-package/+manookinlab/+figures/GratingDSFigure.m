@@ -93,7 +93,14 @@ classdef GratingDSFigure < symphonyui.core.FigureHandler
                 
                 y = manookinlab.util.binData(y(prePts+1 : prePts+stimPts),100,sampleRate);
                 
-                r = manookinlab.util.frequencyModulation(y, 100, obj.temporalFrequency, 'avg', 1, []);
+                % Temporal frequency can change from epoch to epoch, so read
+                % it from the epoch; fall back to the constructor value.
+                if epoch.parameters.isKey('temporalFrequency')
+                    tf = epoch.parameters('temporalFrequency');
+                else
+                    tf = obj.temporalFrequency;
+                end
+                r = manookinlab.util.frequencyModulation(y, 100, tf, 'avg', 1, []);
                      
                 % Iterate the reps.
                 obj.repsPerX(xIndex) = obj.repsPerX(xIndex) + 1;
