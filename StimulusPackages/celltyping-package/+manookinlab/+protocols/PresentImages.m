@@ -90,13 +90,21 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.innerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.innerMaskDiameter)/2.0;
             obj.outerMaskRadiusPix = obj.rig.getDevice('Stage').um2pix(obj.outerMaskDiameter)/2.0;
             
-            % Calcualate the number of flash and gap frames.
+            % Calcualate the number of flash and gap frames. Not every Stage
+            % device has getExpectedRefreshRate (e.g. MicrodisplayDevice);
+            % fall back to the monitor rate for it, not to a fixed 60 Hz.
+            stageDev = obj.rig.getDevice('Stage');
             try
-                obj.expectedRefreshRate = obj.rig.getDevice('Stage').getExpectedRefreshRate();
-                obj.monitorRefreshRate = obj.rig.getDevice('Stage').getMonitorRefreshRate();
-            catch
-                obj.expectedRefreshRate = 60.0;
+                obj.monitorRefreshRate = stageDev.getMonitorRefreshRate();
+            catch x
                 obj.monitorRefreshRate = 60.0;
+                warning('PresentImages:refreshRate', ...
+                    'getMonitorRefreshRate failed (%s); assuming 60 Hz.', x.message);
+            end
+            try
+                obj.expectedRefreshRate = stageDev.getExpectedRefreshRate();
+            catch
+                obj.expectedRefreshRate = obj.monitorRefreshRate;
             end
             obj.preFrames = round((obj.preTime * 1e-3) * obj.expectedRefreshRate);
             obj.flashFrames = round((obj.flashTime * 1e-3) * obj.expectedRefreshRate);
@@ -104,15 +112,24 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             obj.tailFrames = round((obj.tailTime * 1e-3) * obj.expectedRefreshRate);
             obj.stimFrames = round((obj.flashFrames + obj.gapFrames) * obj.imagesPerEpoch);
             
-            % General directory
+            % General directory: the Stage device's 'local_image_directory'
+            % setting if the rig defines it, otherwise the default below.
+            image_dir = '';
             try
-                image_dir = obj.rig.getDevice('Stage').getConfigurationSetting('local_image_directory');
-                if isempty(image_dir)
-                    image_dir = 'C:\Users\Public\Documents\GitRepos\Symphony2\flashed_images\';
-                end
+                image_dir = stageDev.getConfigurationSetting('local_image_directory');
             catch
+            end
+            if isempty(image_dir)
                 image_dir = 'C:\Users\Public\Documents\GitRepos\Symphony2\flashed_images\';
             end
+            if exist(image_dir, 'dir') ~= 7
+                error('PresentImages:noImageDir', ...
+                    ['Image directory not found: %s\nSet it for this rig with ' ...
+                     'addConfigurationSetting(''local_image_directory'', ''<path>'') ' ...
+                     'on the Stage device in the rig description.'], image_dir);
+            end
+            fprintf('PresentImages: images from %s (refresh %.3g Hz, expected %.3g Hz)\n', ...
+                image_dir, obj.monitorRefreshRate, obj.expectedRefreshRate);
             
             % Get the list of file folders.
             if isa(obj.fileFolders, 'cell')
@@ -188,7 +205,8 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             
             p.setBackgroundColor(obj.backgroundIntensity)   % Set background intensity
             
-            % Prep to display image
+            % Prep to display image. All images in obj.imageMatrix share one
+            % size (see prepareEpoch), which Stage's Image stimulus requires.
             scene = stage.builtin.stimuli.Image(obj.imageMatrix{1});
             scene.size = [size(obj.imageMatrix{1},2),size(obj.imageMatrix{1},1)]*obj.magnificationFactor; % Retain aspect ratio.
             scene.position = canvasSize/2;
@@ -197,29 +215,34 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
             scene.setMinFunction(GL.LINEAR);
             scene.setMagFunction(GL.LINEAR);
 
+            % The controllers below capture plain local copies of what they
+            % need rather than obj. A closure over obj ships the whole
+            % protocol object to the Stage server, which then rebuilds it
+            % from whatever PresentImages class definition IT has loaded --
+            % if that copy is stale, its properties come back empty and the
+            % presentation fails on the server.
+            preFrames = obj.preFrames;
+            stimFrames = obj.stimFrames;
+            flashFrames = obj.flashFrames;
+            cycleFrames = obj.flashFrames + obj.gapFrames;
+            nImages = obj.imagesPerEpoch;
+            frames = [obj.imageMatrix(1:nImages), {obj.backgroundImage}];  % last entry = blank
+
             % Only allow image to be visible during specific time
             p.addStimulus(scene);
             sceneVisible = stage.builtin.controllers.PropertyController(scene, 'visible', ...
-                @(state)state.frame >= obj.preFrames && state.frame < obj.preFrames + obj.stimFrames);
+                @(state)state.frame >= preFrames && state.frame < preFrames + stimFrames);
             p.addController(sceneVisible);
 
-            % Control which image is visible.
+            % Control which image is visible: image k during the first
+            % flashFrames+1 frames of cycle k (same timing as before), the
+            % blank image otherwise.
+            showing = @(f) f >= 0 && f < nImages*cycleFrames && mod(f, cycleFrames) <= flashFrames;
+            frameIndex = @(f) showing(f) * (floor(f/cycleFrames) + 1 - (nImages + 1)) + (nImages + 1);
             imgValue = stage.builtin.controllers.PropertyController(scene, ...
-                'imageMatrix', @(state)setImage(obj, state.frame - obj.preFrames));
+                'imageMatrix', @(state)frames{frameIndex(state.frame - preFrames)});
             % Add the controller.
             p.addController(imgValue);
-            
-            function s = setImage(obj, frame)
-                img_index = floor( frame / (obj.flashFrames+obj.gapFrames) ) + 1;
-%                 img_index = floor( time / ((obj.flashTime+obj.gapTime)*1e-3) ) + 1;
-                if img_index < 1 || img_index > obj.imagesPerEpoch
-                    s = obj.backgroundImage;
-                elseif (frame >= (obj.flashFrames+obj.gapFrames)*(img_index-1)) && (frame <= ((obj.flashFrames+obj.gapFrames)*(img_index-1)+obj.flashFrames))
-                    s = obj.imageMatrix{img_index};
-                else
-                    s = obj.backgroundImage;
-                end
-            end
             % Create the inner mask.
             if (obj.innerMaskRadiusPix > 0)
                 p.addStimulus(obj.makeInnerMask());
@@ -296,16 +319,27 @@ classdef PresentImages < manookinlab.protocols.ManookinLabStageProtocol
                 end
             end
             
+            % Put every image on one common canvas (centered, padded with the
+            % background). Stage's Image stimulus sizes its texture from the
+            % first image and writes later ones into it at the corner, so a
+            % folder with mixed image sizes otherwise shows a smaller image
+            % in one corner over leftovers of the previous one.
+            [obj.imageMatrix, obj.backgroundImage, padInfo] = ...
+                manookinlab.util.padImagesToCommonSize(obj.imageMatrix, obj.backgroundIntensity);
+            if padInfo.nPadded > 0
+                warning('PresentImages:mixedSizes', ...
+                    '%d of %d images in this epoch were padded to %dx%d (folder has mixed image sizes).', ...
+                    padInfo.nPadded, obj.imagesPerEpoch, padInfo.size(1), padInfo.size(2));
+            end
+            
             % Get the magnification factor to retain aspect ratio.
             if obj.scaleToScreenSize
-                obj.magnificationFactor = ceil( max(obj.canvasSize(2)/size(obj.imageMatrix{1},1),obj.canvasSize(1)/size(obj.imageMatrix{1},2)) );
+                obj.magnificationFactor = ceil( max(obj.canvasSize(2)/padInfo.size(1),obj.canvasSize(1)/padInfo.size(2)) );
             else
                 obj.magnificationFactor = obj.pixelSize / obj.rig.getDevice('Stage').getConfigurationSetting('micronsPerPixel');
             end
-            
-            % Create the background image.
-            obj.backgroundImage = ones(size(myImage))*obj.backgroundIntensity;
-            obj.backgroundImage = uint8(obj.backgroundImage*255);
+            epoch.addParameter('imageHeight', padInfo.size(1));
+            epoch.addParameter('imageWidth', padInfo.size(2));
             epoch.addParameter('folder', folderName);
             epoch.addParameter('imageName', imageName);
             epoch.addParameter('magnificationFactor', obj.magnificationFactor);
